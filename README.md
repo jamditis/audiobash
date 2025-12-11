@@ -1,8 +1,8 @@
 # AudioBash
 
-A voice-controlled terminal for developers. Speak commands, execute them instantly.
-
 ![AudioBash](audiobash-logo.png)
+
+A voice-controlled terminal for developers. Speak commands, execute them instantly.
 
 ## Features
 
