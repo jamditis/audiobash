@@ -71,8 +71,56 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '../audiobash-logo.png');
-  const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+  // Use ICO for Windows tray (better rendering), PNG for other platforms
+  let iconPath;
+  if (app.isPackaged) {
+    // In production, icons are in resources folder
+    const resourcesPath = process.resourcesPath;
+    iconPath = process.platform === 'win32'
+      ? path.join(resourcesPath, 'audiobash-logo.ico')
+      : path.join(resourcesPath, 'audiobash-logo.png');
+  } else {
+    // In development, icons are in project root
+    iconPath = process.platform === 'win32'
+      ? path.join(__dirname, '../audiobash-logo.ico')
+      : path.join(__dirname, '../audiobash-logo.png');
+  }
+
+  console.log('[AudioBash] Tray icon path:', iconPath);
+  console.log('[AudioBash] Icon exists:', fs.existsSync(iconPath));
+
+  let icon = nativeImage.createFromPath(iconPath);
+  console.log('[AudioBash] Icon isEmpty:', icon.isEmpty());
+
+  // If icon failed to load, try fallback paths
+  if (icon.isEmpty()) {
+    const fallbackPaths = [
+      path.join(process.resourcesPath || '', 'audiobash-logo.ico'),
+      path.join(process.resourcesPath || '', 'audiobash-logo.png'),
+      path.join(__dirname, '../audiobash-logo.ico'),
+      path.join(__dirname, '../audiobash-logo.png'),
+      path.join(app.getAppPath(), 'audiobash-logo.ico'),
+      path.join(app.getAppPath(), 'audiobash-logo.png'),
+    ];
+
+    for (const fallback of fallbackPaths) {
+      if (fs.existsSync(fallback)) {
+        console.log('[AudioBash] Trying fallback:', fallback);
+        icon = nativeImage.createFromPath(fallback);
+        if (!icon.isEmpty()) {
+          console.log('[AudioBash] Fallback worked:', fallback);
+          break;
+        }
+      }
+    }
+  }
+
+  // Resize for tray (16x16 is standard for Windows tray)
+  if (!icon.isEmpty()) {
+    icon = icon.resize({ width: 16, height: 16 });
+  } else {
+    console.log('[AudioBash] WARNING: Could not load tray icon, using empty icon');
+  }
   tray = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([

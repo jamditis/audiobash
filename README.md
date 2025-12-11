@@ -7,11 +7,12 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 ## Features
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
+- **Context-aware agent mode** - AI understands your environment: current directory, recent output, errors
 - **Multi-tab support** - Run up to 4 terminal sessions simultaneously
-- **Multiple AI providers** - Gemini 2.0/2.5 Flash, OpenAI Whisper, or local transcription
+- **Quick directory navigation** - Jump to recent or favorite folders with one click
+- **Multiple AI providers** - Gemini 2.0/2.5 Flash, OpenAI Whisper, Claude, or ElevenLabs
 - **Auto-copy** - Selected text is automatically copied to clipboard
 - **Always-on-top mode** - Pin the voice panel while you work
-- **Visual themes** - Multiple color themes to match your style
 - **System tray** - Runs quietly in background, accessible via global shortcuts
 
 ## Installation
