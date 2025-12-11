@@ -23,6 +23,10 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **System tray** - Runs quietly in background, accessible via global shortcuts
 - **Extensive keyboard shortcuts** - 14 customizable shortcuts for power users
 
+<a href="[http://www.youtube.com/watch?feature=player_embedded&v=nTQUwghvy5Q](https://www.youtube.com/watch?v=EMllHx3lIyk)" target="_blank">
+ <img src="https://i.imgur.com/eVs5hBZ.png" alt="Watch the video" width="100%" border="10" />
+</a>
+
 ## Installation
 
 Download the latest installer from [Releases](https://github.com/jamditis/audiobash/releases).
