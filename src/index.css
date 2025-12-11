@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Void aesthetic base */
+:root {
+  --void: #050505;
+  --void-100: #0a0a0a;
+  --void-200: #111111;
+  --void-300: #1a1a1a;
+  --accent: #ff3333;
+  --accent-glow: #ff4444;
+  --crt-green: #33ff33;
+  --crt-amber: #ffaa00;
+  --crt-white: #f0f0f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--void);
+  color: var(--crt-white);
+  font-family: 'JetBrains Mono', monospace;
+  overflow: hidden;
+}
+
+/* Custom scrollbar - brutalist */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--void-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--void-300);
+  border: 1px solid var(--void-200);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* xterm.js overrides for void aesthetic */
+.xterm {
+  padding: 12px;
+}
+
+.xterm-viewport {
+  background: var(--void) !important;
+}
+
+.xterm-screen {
+  background: var(--void) !important;
+}
+
+/* CRT scan line effect (subtle) */
+.crt-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1) 0px,
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+}
+
+.glow-recording {
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 51, 51, 0.8);
+  }
+}
+
+/* Frameless window drag region */
+.drag-region {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* Button base */
+.btn-brutal {
+  @apply px-4 py-2 font-mono font-bold uppercase tracking-wider;
+  @apply border-2 border-current;
+  @apply transition-all duration-100;
+  @apply hover:bg-accent hover:text-void hover:border-accent;
+  @apply active:translate-y-0.5;
+}
+
+/* Voice overlay positioning */
+.voice-overlay-container {
+  position: absolute;
+  bottom: 48px; /* Above status bar */
+  right: 16px;
+  z-index: 50;
+  animation: slide-in-overlay 0.2s ease-out;
+}
+
+@keyframes slide-in-overlay {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Overlay shadow and glow */
+.voice-overlay {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5),
+    0 2px 4px -1px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Recording state glow for overlay */
+.voice-overlay-recording {
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5),
+    0 2px 4px -1px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 51, 51, 0.3),
+    0 0 0 1px rgba(255, 51, 51, 0.2);
+}
