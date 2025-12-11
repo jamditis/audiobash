@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -66,7 +66,15 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "audiobash-logo.ico",
+      "uninstallerIcon": "audiobash-logo.ico",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AudioBash"
     }
   }
 }

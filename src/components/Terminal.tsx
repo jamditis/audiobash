@@ -2,14 +2,26 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
+import FocusIndicator from './FocusIndicator';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
   tabId: string;
   isActive: boolean;
+  isVisible?: boolean;   // For split view - show terminal
+  isFocused?: boolean;   // For voice commands target
+  isRecording?: boolean; // For focus indicator animation
+  onFocus?: () => void;  // Click callback for split view
 }
 
-const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
+const Terminal: React.FC<TerminalProps> = ({
+  tabId,
+  isActive,
+  isVisible,
+  isFocused = false,
+  isRecording = false,
+  onFocus,
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -157,17 +169,46 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Focus terminal when clicked
+  // ResizeObserver for split view pane resizing
+  useEffect(() => {
+    if (!terminalRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (fitAddonRef.current && xtermRef.current) {
+        setTimeout(() => {
+          try {
+            fitAddonRef.current?.fit();
+            if (xtermRef.current) {
+              window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
+            }
+          } catch (err) {
+            // Ignore fit errors during resize
+          }
+        }, 50);
+      }
+    });
+
+    resizeObserver.observe(terminalRef.current);
+    return () => resizeObserver.disconnect();
+  }, [tabId]);
+
+  // Focus terminal when clicked (also notify parent in split view)
   const handleClick = () => {
     xtermRef.current?.focus();
+    onFocus?.();
   };
+
+  // Determine visibility: use isVisible if provided (split view), otherwise use isActive (single view)
+  const shouldShow = isVisible !== undefined ? isVisible : isActive;
 
   return (
     <div
-      className="h-full w-full bg-void relative"
-      style={{ display: isActive ? 'block' : 'none' }}
+      className={`h-full w-full bg-void relative ${isFocused ? 'ring-1 ring-accent/50' : ''}`}
+      style={{ display: shouldShow ? 'block' : 'none' }}
       onClick={handleClick}
     >
+      {/* Focus indicator badge for voice command target */}
+      {isFocused && <FocusIndicator isRecording={isRecording} />}
       <div ref={terminalRef} className="h-full w-full" />
       {/* Subtle CRT scanline effect overlay (toggleable) */}
       {scanlines && (

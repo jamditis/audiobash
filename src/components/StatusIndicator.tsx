@@ -1,4 +1,5 @@
 import React from 'react';
+import { MODELS, ModelId } from '../services/transcriptionService';
 
 interface StatusIndicatorProps {
   isRecording: boolean;
@@ -23,8 +24,9 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   onOpenVoicePanel,
   onOpenDirectoryPicker,
 }) => {
-  const modelDisplay = model === 'parakeet-local' ? 'Parakeet' :
-    model === 'gemini-2.5-flash' ? 'Gemini 2.5' : 'Gemini 2.0';
+  // Look up the model name from the MODELS array
+  const modelInfo = MODELS.find(m => m.id === model as ModelId);
+  const modelDisplay = modelInfo?.name || model;
 
   const statusText = status === 'recording' ? 'Listening...' :
     status === 'processing' ? 'Processing...' : 'Ready';

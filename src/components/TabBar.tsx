@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TerminalTab } from '../types';
+import LayoutSelector, { LayoutMode } from './LayoutSelector';
 
 interface TabBarProps {
   tabs: TerminalTab[];
@@ -7,7 +8,10 @@ interface TabBarProps {
   onSelectTab: (tabId: string) => void;
   onNewTab: () => void;
   onCloseTab: (tabId: string) => void;
+  onRenameTab: (tabId: string, newTitle: string) => void;
   canAddTab: boolean;
+  layoutMode: LayoutMode;
+  onSelectLayout: (mode: LayoutMode) => void;
 }
 
 const PlusIcon = () => (
@@ -34,8 +38,53 @@ const TabBar: React.FC<TabBarProps> = ({
   onSelectTab,
   onNewTab,
   onCloseTab,
+  onRenameTab,
   canAddTab,
+  layoutMode,
+  onSelectLayout,
 }) => {
+  // Edit mode state
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus and select input when edit mode activates
+  useEffect(() => {
+    if (editingTabId && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingTabId]);
+
+  const handleDoubleClick = (tabId: string, currentTitle: string, index: number) => {
+    setEditingTabId(tabId);
+    setEditValue(currentTitle || `Terminal ${index + 1}`);
+  };
+
+  const handleSave = () => {
+    if (editingTabId) {
+      const trimmed = editValue.trim();
+      onRenameTab(editingTabId, trimmed);
+      setEditingTabId(null);
+      setEditValue('');
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingTabId(null);
+    setEditValue('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
   return (
     <div className="flex items-center bg-void-100 border-b border-void-300 px-1">
       {/* Tabs */}
@@ -54,7 +103,29 @@ const TabBar: React.FC<TabBarProps> = ({
             `}
           >
             <TerminalIcon />
-            <span className="truncate flex-1 text-left">{tab.title || `Terminal ${index + 1}`}</span>
+            {editingTabId === tab.id ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                maxLength={24}
+                className="flex-1 min-w-0 bg-transparent border-b border-accent text-xs font-mono text-crt-white outline-none px-0 py-0"
+              />
+            ) : (
+              <span
+                className="truncate flex-1 text-left"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  handleDoubleClick(tab.id, tab.title, index);
+                }}
+              >
+                {tab.title || `Terminal ${index + 1}`}
+              </span>
+            )}
             {tabs.length > 1 && (
               <span
                 onClick={(e) => {
@@ -91,6 +162,16 @@ const TabBar: React.FC<TabBarProps> = ({
       >
         <PlusIcon />
       </button>
+
+      {/* Separator */}
+      <div className="w-px h-4 bg-void-300 mx-1" />
+
+      {/* Layout Selector */}
+      <LayoutSelector
+        currentMode={layoutMode}
+        availablePanes={tabs.length}
+        onSelectLayout={onSelectLayout}
+      />
     </div>
   );
 };

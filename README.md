@@ -8,6 +8,10 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
 - **Context-aware agent mode** - AI understands your environment: current directory, recent output, errors
+- **Split view** - View up to 4 terminals simultaneously with 5 layout modes (single, horizontal, vertical, 2x2 grid, 1+2)
+- **Resizable panes** - Drag dividers to resize terminal panes in split view
+- **Focus indicator** - Voice badge shows which terminal receives voice commands in split mode
+- **Tab rename** - Double-click tab names to customize them
 - **Multi-tab support** - Run up to 4 terminal sessions simultaneously
 - **Quick directory navigation** - Jump to recent or favorite folders with one click
 - **Multiple AI providers** - Gemini 2.0/2.5 Flash, OpenAI Whisper, Claude, or ElevenLabs
