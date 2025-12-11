@@ -7,6 +7,7 @@ import TitleBar from './components/TitleBar';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
 import { TerminalTab } from './types';
+import { transcriptionService } from './services/transcriptionService';
 
 const MAX_TABS = 4;
 
@@ -43,9 +44,30 @@ const App: React.FC = () => {
     const savedModel = localStorage.getItem('audiobash-model');
     if (savedModel) setModel(savedModel);
 
-    window.electron?.getApiKey().then((key: string) => {
-      if (key) setApiKey(key);
-    });
+    // Load ALL API keys and set them in the transcription service on startup
+    const loadApiKeys = async () => {
+      const geminiKey = await window.electron?.getApiKey('gemini');
+      if (geminiKey) {
+        setApiKey(geminiKey);
+        transcriptionService.setApiKey(geminiKey, 'gemini');
+      }
+
+      const openaiKey = await window.electron?.getApiKey('openai');
+      if (openaiKey) {
+        transcriptionService.setApiKey(openaiKey, 'openai');
+      }
+
+      const anthropicKey = await window.electron?.getApiKey('anthropic');
+      if (anthropicKey) {
+        transcriptionService.setApiKey(anthropicKey, 'anthropic');
+      }
+
+      const elevenlabsKey = await window.electron?.getApiKey('elevenlabs');
+      if (elevenlabsKey) {
+        transcriptionService.setApiKey(elevenlabsKey, 'elevenlabs');
+      }
+    };
+    loadApiKeys();
 
     // Check if onboarding should be shown
     const onboardingComplete = localStorage.getItem('audiobash-onboarding-complete');

@@ -47,7 +47,7 @@ function createWindow() {
 
   // Load the app
   if (isDev) {
-    mainWindow.loadURL('http://localhost:8100');
+    mainWindow.loadURL('http://localhost:9527');
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
@@ -193,13 +193,17 @@ function spawnShell(tabId) {
 
   // Forward PTY output to renderer
   ptyProcess.onData((data) => {
-    mainWindow?.webContents.send('terminal-data', { tabId, data });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('terminal-data', { tabId, data });
+    }
   });
 
   ptyProcess.onExit(({ exitCode, signal }) => {
     console.log(`[AudioBash] Shell ${tabId} exited with code ${exitCode}, signal ${signal}`);
     ptyProcesses.delete(tabId);
-    mainWindow?.webContents.send('terminal-closed', { tabId, exitCode, signal });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
+    }
   });
 
   return ptyProcess.pid;

@@ -38,15 +38,40 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
     xterm.loadAddon(fitAddon);
 
     xterm.open(terminalRef.current);
-    fitAddon.fit();
 
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
 
+    // Delay initial fit to ensure terminal is fully rendered and has dimensions
+    const tryFit = (attempts = 0) => {
+      const container = terminalRef.current;
+      if (!container || attempts > 10) return;
+
+      // Check if container has dimensions
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        try {
+          fitAddon.fit();
+          xterm.focus();
+        } catch (err) {
+          console.warn('[Terminal] Fit failed:', err);
+        }
+      } else {
+        // Container not ready, retry
+        setTimeout(() => tryFit(attempts + 1), 50);
+      }
+    };
+
+    requestAnimationFrame(() => tryFit());
+
     // Handle resize
     const handleResize = () => {
-      fitAddon.fit();
-      window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+      try {
+        fitAddon.fit();
+        window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+      } catch (err) {
+        // Ignore fit errors during resize
+      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -54,6 +79,16 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
     // Handle user input - send to PTY
     xterm.onData((data) => {
       window.electron?.writeToTerminal(tabId, data);
+    });
+
+    // Enable copy on selection
+    xterm.onSelectionChange(() => {
+      const selection = xterm.getSelection();
+      if (selection) {
+        navigator.clipboard.writeText(selection).catch(() => {
+          // Clipboard write failed, ignore
+        });
+      }
     });
 
     // Listen for PTY output (filtered by tabId)
@@ -65,8 +100,12 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
 
     // Initial fit after a short delay
     setTimeout(() => {
-      fitAddon.fit();
-      window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+      try {
+        fitAddon.fit();
+        window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+      } catch (err) {
+        // Ignore fit errors
+      }
     }, 100);
 
     return () => {
@@ -80,11 +119,15 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
   useEffect(() => {
     if (isActive && fitAddonRef.current && xtermRef.current) {
       setTimeout(() => {
-        fitAddonRef.current?.fit();
-        if (xtermRef.current) {
-          window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
+        try {
+          fitAddonRef.current?.fit();
+          if (xtermRef.current) {
+            window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
+          }
+          xtermRef.current?.focus();
+        } catch (err) {
+          // Ignore fit errors
         }
-        xtermRef.current?.focus();
       }, 50);
     }
   }, [isActive, tabId]);
@@ -105,10 +148,16 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Focus terminal when clicked
+  const handleClick = () => {
+    xtermRef.current?.focus();
+  };
+
   return (
     <div
       className="h-full w-full bg-void relative"
       style={{ display: isActive ? 'block' : 'none' }}
+      onClick={handleClick}
     >
       <div ref={terminalRef} className="h-full w-full" />
       {/* Subtle CRT scanline effect overlay (toggleable) */}

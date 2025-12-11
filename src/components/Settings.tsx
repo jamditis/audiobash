@@ -505,55 +505,23 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             </label>
           </div>
 
-          {/* Keyboard Shortcuts */}
+          {/* Keyboard Shortcuts (read-only for v1.0.1) */}
           <div>
             <label className="block text-[10px] text-crt-white/50 font-mono uppercase mb-2">
               Keyboard shortcuts
             </label>
-            <div className="bg-void-200 rounded p-3 space-y-3">
-              {/* Toggle Recording */}
+            <div className="bg-void-200 rounded p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono text-crt-white/50">Toggle recording</span>
-                <button
-                  onClick={() => setRecordingShortcut(recordingShortcut === 'toggleRecording' ? null : 'toggleRecording')}
-                  className={`
-                    px-3 py-1.5 rounded text-xs font-mono transition-colors
-                    ${recordingShortcut === 'toggleRecording'
-                      ? 'bg-accent text-void animate-pulse'
-                      : 'bg-void-300 text-crt-amber hover:bg-void-400'
-                    }
-                  `}
-                >
-                  {recordingShortcut === 'toggleRecording' ? 'Press keys...' : shortcutsInput.toggleRecording}
-                </button>
+                <span className="px-3 py-1.5 rounded text-xs font-mono bg-void-300 text-crt-amber">
+                  Alt+S
+                </span>
               </div>
-
-              {/* Toggle Window */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono text-crt-white/50">Show/hide window</span>
-                <button
-                  onClick={() => setRecordingShortcut(recordingShortcut === 'toggleWindow' ? null : 'toggleWindow')}
-                  className={`
-                    px-3 py-1.5 rounded text-xs font-mono transition-colors
-                    ${recordingShortcut === 'toggleWindow'
-                      ? 'bg-accent text-void animate-pulse'
-                      : 'bg-void-300 text-crt-amber hover:bg-void-400'
-                    }
-                  `}
-                >
-                  {recordingShortcut === 'toggleWindow' ? 'Press keys...' : shortcutsInput.toggleWindow}
-                </button>
-              </div>
-
-              {/* Error message */}
-              {shortcutError && (
-                <div className="text-[10px] text-accent mt-1">
-                  {shortcutError}
-                </div>
-              )}
-
-              <div className="text-[9px] text-crt-white/30 pt-1 border-t border-void-300">
-                Click a shortcut to change it. Use Ctrl, Alt, Shift + a key.
+                <span className="px-3 py-1.5 rounded text-xs font-mono bg-void-300 text-crt-amber">
+                  Alt+H
+                </span>
               </div>
             </div>
           </div>
