@@ -32,7 +32,7 @@ npm run electron:build
 1. **Launch AudioBash** - The app starts with a PowerShell terminal
 2. **Press Alt+S** - Opens the voice panel and starts recording
 3. **Speak your command** - e.g., "list all files in the current directory"
-4. **Release Alt+S** - Transcription is sent to the terminal
+4. **Press Alt+S again** - Transcription is sent to the terminal
 
 ### Keyboard shortcuts
 
