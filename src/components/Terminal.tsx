@@ -22,96 +22,105 @@ const Terminal: React.FC<TerminalProps> = ({ tabId, isActive }) => {
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
-    // Create xterm instance with theme
-    const xterm = new XTerm({
-      theme: themeToXtermTheme(theme),
-      fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
-      fontSize: 14,
-      lineHeight: 1.2,
-      cursorBlink: true,
-      cursorStyle: 'block',
-      scrollback: 10000,
-      allowProposedApi: true,
-    });
+    const container = terminalRef.current;
+    let xterm: XTerm | null = null;
+    let fitAddon: FitAddon | null = null;
+    let dataCleanup: (() => void) | undefined;
+    let resizeHandler: (() => void) | null = null;
+    let disposed = false;
 
-    const fitAddon = new FitAddon();
-    xterm.loadAddon(fitAddon);
+    // Wait for container to have dimensions before initializing xterm
+    const initTerminal = () => {
+      if (disposed) return;
 
-    xterm.open(terminalRef.current);
-
-    xtermRef.current = xterm;
-    fitAddonRef.current = fitAddon;
-
-    // Delay initial fit to ensure terminal is fully rendered and has dimensions
-    const tryFit = (attempts = 0) => {
-      const container = terminalRef.current;
-      if (!container || attempts > 10) return;
-
-      // Check if container has dimensions
       const rect = container.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
+      if (rect.width === 0 || rect.height === 0) {
+        // Container not ready, retry
+        requestAnimationFrame(initTerminal);
+        return;
+      }
+
+      // Create xterm instance with theme
+      xterm = new XTerm({
+        theme: themeToXtermTheme(theme),
+        fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
+        fontSize: 14,
+        lineHeight: 1.2,
+        cursorBlink: true,
+        cursorStyle: 'block',
+        scrollback: 10000,
+        allowProposedApi: true,
+      });
+
+      fitAddon = new FitAddon();
+      xterm.loadAddon(fitAddon);
+
+      xterm.open(container);
+
+      xtermRef.current = xterm;
+      fitAddonRef.current = fitAddon;
+
+      // Handle resize
+      resizeHandler = () => {
+        if (!fitAddon || !xterm) return;
         try {
           fitAddon.fit();
+          window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+        } catch (err) {
+          // Ignore fit errors during resize
+        }
+      };
+      window.addEventListener('resize', resizeHandler);
+
+      // Handle user input - send to PTY
+      xterm.onData((data) => {
+        window.electron?.writeToTerminal(tabId, data);
+      });
+
+      // Enable copy on selection
+      xterm.onSelectionChange(() => {
+        const selection = xterm?.getSelection();
+        if (selection) {
+          navigator.clipboard.writeText(selection).catch(() => {
+            // Clipboard write failed, ignore
+          });
+        }
+      });
+
+      // Listen for PTY output (filtered by tabId)
+      dataCleanup = window.electron?.onTerminalData((incomingTabId: string, data: string) => {
+        if (incomingTabId === tabId && xterm) {
+          xterm.write(data);
+        }
+      });
+
+      // Fit after a brief delay to ensure rendering is complete
+      setTimeout(() => {
+        if (!fitAddon || !xterm || disposed) return;
+        try {
+          fitAddon.fit();
+          window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
           xterm.focus();
         } catch (err) {
-          console.warn('[Terminal] Fit failed:', err);
+          console.warn('[Terminal] Initial fit failed:', err);
         }
-      } else {
-        // Container not ready, retry
-        setTimeout(() => tryFit(attempts + 1), 50);
-      }
+      }, 100);
     };
 
-    requestAnimationFrame(() => tryFit());
-
-    // Handle resize
-    const handleResize = () => {
-      try {
-        fitAddon.fit();
-        window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
-      } catch (err) {
-        // Ignore fit errors during resize
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Handle user input - send to PTY
-    xterm.onData((data) => {
-      window.electron?.writeToTerminal(tabId, data);
-    });
-
-    // Enable copy on selection
-    xterm.onSelectionChange(() => {
-      const selection = xterm.getSelection();
-      if (selection) {
-        navigator.clipboard.writeText(selection).catch(() => {
-          // Clipboard write failed, ignore
-        });
-      }
-    });
-
-    // Listen for PTY output (filtered by tabId)
-    const cleanup = window.electron?.onTerminalData((incomingTabId: string, data: string) => {
-      if (incomingTabId === tabId) {
-        xterm.write(data);
-      }
-    });
-
-    // Initial fit after a short delay
-    setTimeout(() => {
-      try {
-        fitAddon.fit();
-        window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
-      } catch (err) {
-        // Ignore fit errors
-      }
-    }, 100);
+    // Start initialization
+    requestAnimationFrame(initTerminal);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      cleanup?.();
-      xterm.dispose();
+      disposed = true;
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+      }
+      dataCleanup?.();
+      if (xterm) {
+        xterm.dispose();
+      }
+      xtermRef.current = null;
+      fitAddonRef.current = null;
     };
   }, [tabId]);
 

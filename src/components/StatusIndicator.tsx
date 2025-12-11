@@ -6,7 +6,14 @@ interface StatusIndicatorProps {
   status: 'idle' | 'recording' | 'processing';
   apiConnected: boolean;
   onOpenVoicePanel: () => void;
+  onOpenDirectoryPicker: () => void;
 }
+
+const FolderIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+  </svg>
+);
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   isRecording,
@@ -14,6 +21,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   status,
   apiConnected,
   onOpenVoicePanel,
+  onOpenDirectoryPicker,
 }) => {
   const modelDisplay = model === 'parakeet-local' ? 'Parakeet' :
     model === 'gemini-2.5-flash' ? 'Gemini 2.5' : 'Gemini 2.0';
@@ -33,8 +41,21 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
       `}
       onClick={onOpenVoicePanel}
     >
-      {/* Left: Shortcuts */}
+      {/* Left: Quick actions & Shortcuts */}
       <div className="flex items-center gap-4">
+        {/* Directory picker button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDirectoryPicker();
+          }}
+          className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-void-300 text-crt-white/50 hover:text-crt-amber transition-colors"
+          title="Quick navigate to folder"
+        >
+          <FolderIcon />
+          <span className="text-[10px] font-mono">Folders</span>
+        </button>
+
         <div className="flex items-center gap-2">
           <kbd className={`
             px-1.5 py-0.5 text-[10px] font-mono rounded

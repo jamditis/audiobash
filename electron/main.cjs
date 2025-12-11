@@ -6,8 +6,16 @@ const fs = require('fs');
 // node-pty will be loaded dynamically after app ready
 let pty = null;
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
+const terminalOutputBuffers = new Map(); // Map of tabId -> recent output (last ~2000 chars)
+const terminalCwds = new Map(); // Map of tabId -> current working directory
 let mainWindow = null;
 let tray = null;
+const MAX_OUTPUT_BUFFER = 2000; // Keep last 2000 characters of output
+const MAX_RECENT_DIRS = 10; // Keep last 10 recent directories
+
+// Recent and favorite directories
+let recentDirectories = [];
+let favoriteDirectories = [];
 let currentShortcuts = {
   toggleRecording: 'Alt+S',
   toggleWindow: 'Alt+H',
@@ -103,6 +111,45 @@ function loadShortcuts() {
   }
 }
 
+function loadDirectories() {
+  try {
+    const dirsPath = path.join(app.getPath('userData'), 'directories.json');
+    if (fs.existsSync(dirsPath)) {
+      const saved = JSON.parse(fs.readFileSync(dirsPath, 'utf8'));
+      recentDirectories = saved.recent || [];
+      favoriteDirectories = saved.favorites || [];
+    }
+  } catch (err) {
+    console.error('[AudioBash] Failed to load directories:', err);
+  }
+}
+
+function saveDirectories() {
+  try {
+    const dirsPath = path.join(app.getPath('userData'), 'directories.json');
+    fs.writeFileSync(dirsPath, JSON.stringify({
+      recent: recentDirectories,
+      favorites: favoriteDirectories,
+    }), 'utf8');
+  } catch (err) {
+    console.error('[AudioBash] Failed to save directories:', err);
+  }
+}
+
+function addRecentDirectory(dir) {
+  if (!dir || !fs.existsSync(dir)) return;
+
+  // Remove if already exists
+  recentDirectories = recentDirectories.filter(d => d !== dir);
+  // Add to front
+  recentDirectories.unshift(dir);
+  // Trim to max
+  if (recentDirectories.length > MAX_RECENT_DIRS) {
+    recentDirectories = recentDirectories.slice(0, MAX_RECENT_DIRS);
+  }
+  saveDirectories();
+}
+
 function saveShortcuts() {
   try {
     const shortcutsPath = path.join(app.getPath('userData'), 'shortcuts.json');
@@ -188,11 +235,33 @@ function spawnShell(tabId) {
 
   console.log(`[AudioBash] Spawned ${shell} for tab ${tabId} with PID ${ptyProcess.pid}`);
 
-  // Store the process
+  // Store the process and initialize buffers
   ptyProcesses.set(tabId, ptyProcess);
+  terminalOutputBuffers.set(tabId, '');
+  terminalCwds.set(tabId, os.homedir());
 
-  // Forward PTY output to renderer
+  // Forward PTY output to renderer and track in buffer
   ptyProcess.onData((data) => {
+    // Append to output buffer (keep last MAX_OUTPUT_BUFFER chars)
+    let buffer = terminalOutputBuffers.get(tabId) || '';
+    buffer += data;
+    if (buffer.length > MAX_OUTPUT_BUFFER) {
+      buffer = buffer.slice(-MAX_OUTPUT_BUFFER);
+    }
+    terminalOutputBuffers.set(tabId, buffer);
+
+    // Try to detect CWD changes from common shell prompts
+    // This is a heuristic - works for PowerShell and most Unix shells
+    const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
+    if (cwdMatch && cwdMatch[1]) {
+      const newCwd = cwdMatch[1].trim();
+      if (newCwd && newCwd !== terminalCwds.get(tabId)) {
+        terminalCwds.set(tabId, newCwd);
+        // Track as recent directory
+        addRecentDirectory(newCwd);
+      }
+    }
+
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('terminal-data', { tabId, data });
     }
@@ -201,6 +270,8 @@ function spawnShell(tabId) {
   ptyProcess.onExit(({ exitCode, signal }) => {
     console.log(`[AudioBash] Shell ${tabId} exited with code ${exitCode}, signal ${signal}`);
     ptyProcesses.delete(tabId);
+    terminalOutputBuffers.delete(tabId);
+    terminalCwds.delete(tabId);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
     }
@@ -263,9 +334,116 @@ function setupIPC() {
   ipcMain.on('send-to-terminal', (_, { tabId, text }) => {
     const ptyProcess = ptyProcesses.get(tabId);
     if (ptyProcess && text) {
-      // Write the text followed by Enter
-      ptyProcess.write(text + '\r');
+      // Write the text first
+      ptyProcess.write(text);
+      // Brief delay then send Enter - helps interactive programs process input correctly
+      setTimeout(() => {
+        ptyProcess.write('\r');
+      }, 50);
     }
+  });
+
+  // Insert text to terminal WITHOUT executing (for raw mode)
+  ipcMain.on('insert-to-terminal', (_, { tabId, text }) => {
+    const ptyProcess = ptyProcesses.get(tabId);
+    if (ptyProcess && text) {
+      // Write the text WITHOUT \r - user can review and press Enter
+      ptyProcess.write(text);
+    }
+  });
+
+  // Get terminal context for AI prompts
+  ipcMain.handle('get-terminal-context', async (_, tabId) => {
+    const cwd = terminalCwds.get(tabId) || os.homedir();
+    const recentOutput = terminalOutputBuffers.get(tabId) || '';
+
+    // Detect OS
+    const platform = process.platform;
+    const osType = platform === 'win32' ? 'windows' : platform === 'darwin' ? 'mac' : 'linux';
+
+    // Get shell type
+    const shell = platform === 'win32' ? 'powershell' : process.env.SHELL || 'bash';
+
+    // Extract last command and potential error from output
+    let lastCommand = '';
+    let lastError = '';
+
+    // Try to find last command (PowerShell or bash prompt followed by command)
+    const commandMatches = recentOutput.match(/(?:PS [^>]+>|[$#])\s*([^\r\n]+)/g);
+    if (commandMatches && commandMatches.length > 0) {
+      const lastMatch = commandMatches[commandMatches.length - 1];
+      lastCommand = lastMatch.replace(/^(?:PS [^>]+>|[$#])\s*/, '').trim();
+    }
+
+    // Look for common error patterns
+    const errorPatterns = [
+      /error[:\s]+([^\r\n]+)/i,
+      /not recognized|command not found|cannot find|does not exist/i,
+      /permission denied|access denied/i,
+      /failed|failure/i,
+    ];
+
+    for (const pattern of errorPatterns) {
+      const match = recentOutput.slice(-1000).match(pattern);
+      if (match) {
+        lastError = match[0].slice(0, 200); // Cap error message length
+        break;
+      }
+    }
+
+    return {
+      cwd,
+      recentOutput: recentOutput.slice(-500), // Send less to renderer
+      os: osType,
+      shell: path.basename(shell),
+      lastCommand,
+      lastError,
+    };
+  });
+
+  // Directory management
+  ipcMain.handle('get-directories', async () => {
+    return {
+      recent: recentDirectories,
+      favorites: favoriteDirectories,
+    };
+  });
+
+  ipcMain.handle('add-favorite-directory', async (_, dir) => {
+    if (!dir || favoriteDirectories.includes(dir)) return { success: false };
+    if (!fs.existsSync(dir)) return { success: false, error: 'Directory does not exist' };
+    favoriteDirectories.unshift(dir);
+    saveDirectories();
+    return { success: true };
+  });
+
+  ipcMain.handle('remove-favorite-directory', async (_, dir) => {
+    favoriteDirectories = favoriteDirectories.filter(d => d !== dir);
+    saveDirectories();
+    return { success: true };
+  });
+
+  ipcMain.handle('cd-to-directory', async (_, { tabId, dir }) => {
+    const ptyProcess = ptyProcesses.get(tabId);
+    if (!ptyProcess) return { success: false, error: 'No terminal' };
+    if (!fs.existsSync(dir)) return { success: false, error: 'Directory does not exist' };
+
+    // Send cd command
+    const cdCommand = process.platform === 'win32' ? `cd "${dir}"` : `cd "${dir}"`;
+    ptyProcess.write(cdCommand + '\r');
+    return { success: true };
+  });
+
+  ipcMain.handle('browse-directory', async () => {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: 'Select Directory',
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: false };
+    }
+    return { success: true, path: result.filePaths[0] };
   });
 
   // Shortcut management
@@ -340,6 +518,7 @@ function setupIPC() {
 // App lifecycle
 app.whenReady().then(() => {
   loadShortcuts();
+  loadDirectories();
   createWindow();
   createTray();
   registerShortcuts();

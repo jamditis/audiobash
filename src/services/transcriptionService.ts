@@ -15,6 +15,16 @@ export interface TranscribeResult {
 
 export type TranscriptionMode = 'raw' | 'agent';
 
+// Context information for smarter command translation
+export interface TerminalContext {
+  cwd: string;                    // Current working directory
+  recentOutput: string;           // Last N lines of terminal output
+  os: 'windows' | 'linux' | 'mac'; // Operating system
+  shell: string;                  // Current shell (powershell, bash, cmd, etc.)
+  lastCommand?: string;           // The last command that was run
+  lastError?: string;             // Last error message if any
+}
+
 // Model identifiers
 export type ModelId =
   | 'gemini-2.0-flash'
@@ -45,32 +55,97 @@ export const MODELS: ModelInfo[] = [
   { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
 ];
 
-const AGENT_PROMPT = `You are a CLI command translator. Your ONLY job is to convert spoken natural language into executable terminal/command prompt commands.
+// Generate a context-aware prompt based on terminal state
+function buildAgentPrompt(context?: TerminalContext): string {
+  const osName = context?.os === 'windows' ? 'Windows' : context?.os === 'mac' ? 'macOS' : 'Linux';
+  const shell = context?.shell || 'unknown shell';
+  const cwd = context?.cwd || 'unknown directory';
+
+  // Determine which command style to use
+  const isWindows = context?.os === 'windows';
+  const isPowerShell = shell.toLowerCase().includes('powershell');
+
+  let osSpecificExamples = '';
+  if (isWindows && isPowerShell) {
+    osSpecificExamples = `
+- "list all files" → Get-ChildItem or dir
+- "show hidden files" → Get-ChildItem -Force
+- "find files named config" → Get-ChildItem -Recurse -Filter "*config*"
+- "what's my current directory" → Get-Location or pwd
+- "go to desktop" → Set-Location ~\\Desktop or cd ~\\Desktop
+- "show running processes" → Get-Process
+- "check disk space" → Get-PSDrive`;
+  } else if (isWindows) {
+    osSpecificExamples = `
+- "list all files" → dir /a
+- "what's my current directory" → cd
+- "show running processes" → tasklist
+- "check disk space" → wmic logicaldisk get size,freespace,caption`;
+  } else {
+    osSpecificExamples = `
+- "list all files" → ls -la
+- "show hidden files" → ls -la
+- "what's my current directory" → pwd
+- "go to desktop" → cd ~/Desktop
+- "show running processes" → ps aux
+- "check disk space" → df -h`;
+  }
+
+  // Build context section if we have terminal context
+  let contextSection = '';
+  if (context) {
+    contextSection = `
+CURRENT ENVIRONMENT:
+- Operating System: ${osName}
+- Shell: ${shell}
+- Current Directory: ${cwd}`;
+
+    if (context.lastCommand) {
+      contextSection += `\n- Last Command: ${context.lastCommand}`;
+    }
+
+    if (context.lastError) {
+      contextSection += `\n- Last Error: ${context.lastError}`;
+    }
+
+    if (context.recentOutput) {
+      // Truncate recent output to last 500 chars to avoid token bloat
+      const truncatedOutput = context.recentOutput.slice(-500);
+      contextSection += `\n\nRECENT TERMINAL OUTPUT (use this to understand context):
+\`\`\`
+${truncatedOutput}
+\`\`\``;
+    }
+  }
+
+  return `You are a CLI command translator for ${osName} using ${shell}. Your ONLY job is to convert spoken natural language into executable terminal commands.
+${contextSection}
 
 CRITICAL RULES:
 1. Output ONLY the raw command - no explanations, no markdown, no backticks, no quotes around the output
-2. Convert natural speech into the appropriate CLI command
-3. If the speech is unclear, silence, or not command-related, output an empty string
+2. Use ${osName}/${shell}-appropriate syntax and commands
+3. If the user references "this folder" or "here", they mean: ${cwd}
+4. If the user says to "fix it" or "try again" or references the last error, consider the recent output/error context
+5. If the speech is unclear, silence, or not command-related, output an empty string
+6. Relative paths are relative to: ${cwd}
 
-EXAMPLES:
+OS-SPECIFIC EXAMPLES for ${osName}/${shell}:${osSpecificExamples}
+
+UNIVERSAL EXAMPLES:
 - "git status" → git status
-- "show me the git status" → git status
-- "list all files" → ls -la
-- "list files in the current directory" → dir
-- "make a new folder called test" → mkdir test
 - "run the dev server" → npm run dev
 - "install lodash" → npm install lodash
-- "show running processes" → ps aux
-- "what's my current directory" → pwd
-- "go to the desktop folder" → cd ~/Desktop
 - "run python script called main" → python main.py
 - "build the project" → npm run build
 - "start docker compose" → docker-compose up
-- "check disk space" → df -h
 - "hello there" → (empty - not a command)
 - (silence) → (empty)
 
-Convert the following transcription to a CLI command:`;
+Convert the following speech to a ${shell} command:`;
+}
+
+// Fallback static prompt for when no context is available
+const AGENT_PROMPT = buildAgentPrompt();
 
 export class TranscriptionService {
   private genAI: GoogleGenerativeAI | null = null;
@@ -111,6 +186,17 @@ export class TranscriptionService {
 
   public getModelInfo(modelId: ModelId): ModelInfo | undefined {
     return MODELS.find(m => m.id === modelId);
+  }
+
+  // Store the current terminal context for use in prompts
+  private terminalContext: TerminalContext | null = null;
+
+  public setTerminalContext(context: TerminalContext) {
+    this.terminalContext = context;
+  }
+
+  public getTerminalContext(): TerminalContext | null {
+    return this.terminalContext;
   }
 
   public async transcribeAudio(
@@ -156,8 +242,9 @@ export class TranscriptionService {
     }
 
     const base64Audio = await blobToBase64(audioBlob);
+    // Use context-aware prompt for agent mode
     const prompt = mode === 'agent'
-      ? `${AGENT_PROMPT}`
+      ? buildAgentPrompt(this.terminalContext || undefined)
       : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.`;
 
     // Map model ID to actual Gemini model name (stable versions only)
@@ -207,10 +294,11 @@ export class TranscriptionService {
 
     // If agent mode and using GPT-4, process the transcription
     if (mode === 'agent' && modelId === 'openai-gpt4' && text) {
+      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined);
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
         messages: [
-          { role: 'system', content: AGENT_PROMPT },
+          { role: 'system', content: contextAwarePrompt },
           { role: 'user', content: text }
         ],
         max_tokens: 200,
@@ -260,11 +348,12 @@ export class TranscriptionService {
         ? 'claude-3-haiku-20240307'
         : 'claude-sonnet-4-20250514';
 
+      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined);
       const message = await this.anthropic.messages.create({
         model: claudeModel,
         max_tokens: 200,
         messages: [
-          { role: 'user', content: `${AGENT_PROMPT}\n\n${text}` }
+          { role: 'user', content: `${contextAwarePrompt}\n\n${text}` }
         ],
       });
 

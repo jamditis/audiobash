@@ -3,6 +3,7 @@ import Terminal from './components/Terminal';
 import TabBar from './components/TabBar';
 import VoiceOverlay from './components/VoiceOverlay';
 import StatusIndicator from './components/StatusIndicator';
+import DirectoryPicker from './components/DirectoryPicker';
 import TitleBar from './components/TitleBar';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
@@ -33,6 +34,9 @@ const App: React.FC = () => {
 
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Directory picker state
+  const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false);
 
   // Load settings and check onboarding
   useEffect(() => {
@@ -135,11 +139,16 @@ const App: React.FC = () => {
     return () => cleanup?.();
   }, []);
 
-  const handleTranscript = useCallback((text: string) => {
+  const handleTranscript = useCallback((text: string, mode: 'agent' | 'raw') => {
     setTranscript(text);
     setStatus('idle');
-    // Send to active terminal via IPC if autoSend is enabled
-    if (autoSend && text.trim()) {
+
+    if (!text.trim()) return;
+
+    // Both modes: send text to terminal with Enter when autoSend is enabled
+    // Agent mode: text is a converted CLI command
+    // Raw mode: text is verbatim transcription (for talking to Claude Code, etc.)
+    if (autoSend) {
       window.electron?.sendToTerminal(activeTabId, text);
     }
   }, [autoSend, activeTabId]);
@@ -152,6 +161,10 @@ const App: React.FC = () => {
 
   const handleOpenVoicePanel = useCallback(() => {
     setVoiceOverlayOpen(true);
+  }, []);
+
+  const handleOpenDirectoryPicker = useCallback(() => {
+    setDirectoryPickerOpen(prev => !prev);
   }, []);
 
   // Tab management functions
@@ -228,6 +241,14 @@ const App: React.FC = () => {
           status={status}
           apiConnected={!!apiKey || model === 'parakeet-local'}
           onOpenVoicePanel={handleOpenVoicePanel}
+          onOpenDirectoryPicker={handleOpenDirectoryPicker}
+        />
+
+        {/* Directory picker overlay */}
+        <DirectoryPicker
+          isOpen={directoryPickerOpen}
+          onClose={() => setDirectoryPickerOpen(false)}
+          activeTabId={activeTabId}
         />
 
         {/* Floating voice overlay */}
@@ -240,6 +261,7 @@ const App: React.FC = () => {
           onClose={handleCloseOverlay}
           isPinned={isPinned}
           setIsPinned={setIsPinned}
+          activeTabId={activeTabId}
         />
       </div>
 

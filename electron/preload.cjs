@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electron', {
   writeToTerminal: (tabId, data) => ipcRenderer.send('terminal-write', { tabId, data }),
   resizeTerminal: (tabId, cols, rows) => ipcRenderer.send('terminal-resize', { tabId, cols, rows }),
   sendToTerminal: (tabId, text) => ipcRenderer.send('send-to-terminal', { tabId, text }),
+  insertToTerminal: (tabId, text) => ipcRenderer.send('insert-to-terminal', { tabId, text }),
+  getTerminalContext: (tabId) => ipcRenderer.invoke('get-terminal-context', tabId),
   onTerminalData: (callback) => {
     const handler = (_, { tabId, data }) => callback(tabId, data);
     ipcRenderer.on('terminal-data', handler);
@@ -42,4 +44,11 @@ contextBridge.exposeInMainWorld('electron', {
   // API key management (supports multiple providers: gemini, openai, anthropic, elevenlabs)
   getApiKey: (provider = 'gemini') => ipcRenderer.invoke('get-api-key', provider),
   setApiKey: (key, provider = 'gemini') => ipcRenderer.invoke('set-api-key', key, provider),
+
+  // Directory management
+  getDirectories: () => ipcRenderer.invoke('get-directories'),
+  addFavoriteDirectory: (dir) => ipcRenderer.invoke('add-favorite-directory', dir),
+  removeFavoriteDirectory: (dir) => ipcRenderer.invoke('remove-favorite-directory', dir),
+  cdToDirectory: (tabId, dir) => ipcRenderer.invoke('cd-to-directory', { tabId, dir }),
+  browseDirectory: () => ipcRenderer.invoke('browse-directory'),
 });

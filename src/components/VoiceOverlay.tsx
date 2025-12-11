@@ -6,11 +6,12 @@ interface VoiceOverlayProps {
   isOpen: boolean;
   isRecording: boolean;
   setIsRecording: (recording: boolean) => void;
-  onTranscript: (text: string) => void;
+  onTranscript: (text: string, mode: 'agent' | 'raw') => void;
   transcript: string;
   onClose: () => void;
   isPinned: boolean;
   setIsPinned: (pinned: boolean) => void;
+  activeTabId: string;
 }
 
 const MicIcon = () => (
@@ -31,6 +32,12 @@ const CloseIcon = () => (
   </svg>
 );
 
+const SendIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+  </svg>
+);
+
 const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   isOpen,
   isRecording,
@@ -40,6 +47,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   onClose,
   isPinned,
   setIsPinned,
+  activeTabId,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -205,9 +213,17 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
 
         setStatus('processing');
         try {
+          // Fetch terminal context before transcription (for agent mode)
+          if (mode === 'agent') {
+            const context = await window.electron?.getTerminalContext(activeTabId);
+            if (context) {
+              transcriptionService.setTerminalContext(context);
+            }
+          }
+
           const result = await transcriptionService.transcribeAudio(blob, mode, model, durationMs);
           if (result.text) {
-            onTranscript(result.text);
+            onTranscript(result.text, mode);
             audioFeedback.playSuccess();
           }
         } catch (err: any) {
