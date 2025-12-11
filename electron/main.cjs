@@ -18,7 +18,19 @@ let recentDirectories = [];
 let favoriteDirectories = [];
 let currentShortcuts = {
   toggleRecording: 'Alt+S',
+  cancelRecording: 'Alt+A',
   toggleWindow: 'Alt+H',
+  toggleMode: 'Alt+M',
+  clearTerminal: 'Alt+C',
+  cycleLayout: 'Alt+L',
+  focusNextTerminal: 'Alt+Right',
+  focusPrevTerminal: 'Alt+Left',
+  bookmarkDirectory: 'Alt+B',
+  resendLast: 'Alt+R',
+  switchTab1: 'Alt+1',
+  switchTab2: 'Alt+2',
+  switchTab3: 'Alt+3',
+  switchTab4: 'Alt+4',
 };
 
 const MAX_TABS = 4;
@@ -229,6 +241,23 @@ function registerShortcuts() {
     }
   }
 
+  // Cancel recording (abort without sending)
+  if (currentShortcuts.cancelRecording) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.cancelRecording, () => {
+        console.log('[AudioBash] Cancel recording triggered');
+        mainWindow?.webContents.send('cancel-recording');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered cancelRecording: ${currentShortcuts.cancelRecording}`);
+      } else {
+        console.error(`[AudioBash] Failed to register cancelRecording: ${currentShortcuts.cancelRecording} (already in use)`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register ${currentShortcuts.cancelRecording}:`, err);
+    }
+  }
+
   // Toggle window visibility
   if (currentShortcuts.toggleWindow) {
     try {
@@ -250,6 +279,129 @@ function registerShortcuts() {
       console.error(`[AudioBash] Failed to register ${currentShortcuts.toggleWindow}:`, err);
     }
   }
+
+  // Toggle mode (raw/agent)
+  if (currentShortcuts.toggleMode) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.toggleMode, () => {
+        console.log('[AudioBash] Toggle mode triggered');
+        mainWindow?.webContents.send('toggle-mode');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered toggleMode: ${currentShortcuts.toggleMode}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register toggleMode:`, err);
+    }
+  }
+
+  // Clear terminal
+  if (currentShortcuts.clearTerminal) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.clearTerminal, () => {
+        console.log('[AudioBash] Clear terminal triggered');
+        mainWindow?.webContents.send('clear-terminal');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered clearTerminal: ${currentShortcuts.clearTerminal}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register clearTerminal:`, err);
+    }
+  }
+
+  // Cycle layout
+  if (currentShortcuts.cycleLayout) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.cycleLayout, () => {
+        console.log('[AudioBash] Cycle layout triggered');
+        mainWindow?.webContents.send('cycle-layout');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered cycleLayout: ${currentShortcuts.cycleLayout}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register cycleLayout:`, err);
+    }
+  }
+
+  // Focus next terminal
+  if (currentShortcuts.focusNextTerminal) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.focusNextTerminal, () => {
+        console.log('[AudioBash] Focus next terminal triggered');
+        mainWindow?.webContents.send('focus-next-terminal');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered focusNextTerminal: ${currentShortcuts.focusNextTerminal}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register focusNextTerminal:`, err);
+    }
+  }
+
+  // Focus previous terminal
+  if (currentShortcuts.focusPrevTerminal) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.focusPrevTerminal, () => {
+        console.log('[AudioBash] Focus prev terminal triggered');
+        mainWindow?.webContents.send('focus-prev-terminal');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered focusPrevTerminal: ${currentShortcuts.focusPrevTerminal}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register focusPrevTerminal:`, err);
+    }
+  }
+
+  // Bookmark directory
+  if (currentShortcuts.bookmarkDirectory) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.bookmarkDirectory, () => {
+        console.log('[AudioBash] Bookmark directory triggered');
+        mainWindow?.webContents.send('bookmark-directory');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered bookmarkDirectory: ${currentShortcuts.bookmarkDirectory}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register bookmarkDirectory:`, err);
+    }
+  }
+
+  // Resend last transcription
+  if (currentShortcuts.resendLast) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.resendLast, () => {
+        console.log('[AudioBash] Resend last triggered');
+        mainWindow?.webContents.send('resend-last');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered resendLast: ${currentShortcuts.resendLast}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register resendLast:`, err);
+    }
+  }
+
+  // Switch tabs (Alt+1-4)
+  const tabShortcuts = ['switchTab1', 'switchTab2', 'switchTab3', 'switchTab4'];
+  tabShortcuts.forEach((key, index) => {
+    if (currentShortcuts[key]) {
+      try {
+        const success = globalShortcut.register(currentShortcuts[key], () => {
+          console.log(`[AudioBash] Switch to tab ${index + 1} triggered`);
+          mainWindow?.webContents.send('switch-tab', index);
+        });
+        if (success) {
+          console.log(`[AudioBash] Registered ${key}: ${currentShortcuts[key]}`);
+        }
+      } catch (err) {
+        console.error(`[AudioBash] Failed to register ${key}:`, err);
+      }
+    }
+  });
 }
 
 function spawnShell(tabId) {

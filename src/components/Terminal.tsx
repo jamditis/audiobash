@@ -3,6 +3,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
 import FocusIndicator from './FocusIndicator';
+import { playNotificationSound, checkForCliInputPrompt, resetOutputBuffer } from '../utils/notificationSound';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
@@ -12,6 +13,7 @@ interface TerminalProps {
   isFocused?: boolean;   // For voice commands target
   isRecording?: boolean; // For focus indicator animation
   onFocus?: () => void;  // Click callback for split view
+  cliNotificationsEnabled?: boolean; // Play sound when CLI requests input
 }
 
 const Terminal: React.FC<TerminalProps> = ({
@@ -21,14 +23,21 @@ const Terminal: React.FC<TerminalProps> = ({
   isFocused = false,
   isRecording = false,
   onFocus,
+  cliNotificationsEnabled = true,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const cliNotificationsRef = useRef(cliNotificationsEnabled);
   const { theme } = useTheme();
   const [scanlines, setScanlines] = useState(() => {
     return localStorage.getItem('audiobash-scanlines') === 'true';
   });
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    cliNotificationsRef.current = cliNotificationsEnabled;
+  }, [cliNotificationsEnabled]);
 
   // Initialize terminal
   useEffect(() => {
@@ -103,6 +112,11 @@ const Terminal: React.FC<TerminalProps> = ({
       dataCleanup = window.electron?.onTerminalData((incomingTabId: string, data: string) => {
         if (incomingTabId === tabId && xterm) {
           xterm.write(data);
+
+          // Check for CLI input prompts and play notification
+          if (cliNotificationsRef.current && checkForCliInputPrompt(data)) {
+            playNotificationSound();
+          }
         }
       });
 
@@ -128,6 +142,7 @@ const Terminal: React.FC<TerminalProps> = ({
         window.removeEventListener('resize', resizeHandler);
       }
       dataCleanup?.();
+      resetOutputBuffer(); // Clear CLI prompt detection buffer
       if (xterm) {
         xterm.dispose();
       }

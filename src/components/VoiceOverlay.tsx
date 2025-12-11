@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { transcriptionService, TranscriptionMode, ModelId, MODELS } from '../services/transcriptionService';
+import { transcriptionService, ModelId, MODELS } from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
 
 interface VoiceOverlayProps {
@@ -12,6 +12,8 @@ interface VoiceOverlayProps {
   isPinned: boolean;
   setIsPinned: (pinned: boolean) => void;
   activeTabId: string;
+  mode: 'agent' | 'raw';
+  setMode: (mode: 'agent' | 'raw') => void;
 }
 
 const MicIcon = () => (
@@ -48,6 +50,8 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   isPinned,
   setIsPinned,
   activeTabId,
+  mode,
+  setMode,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -62,7 +66,6 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
 
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [hasApiKey, setHasApiKey] = useState(false);
-  const [mode, setMode] = useState<TranscriptionMode>('agent');
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [error, setError] = useState<string | null>(null);
 
@@ -253,6 +256,36 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     setIsRecording(false);
   }, [setIsRecording]);
 
+  // Cancel recording - stops without processing/sending
+  const cancelRecording = useCallback(() => {
+    if (!isRecordingRef.current) return;
+
+    // Stop the media recorder without triggering onstop processing
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      // Remove the onstop handler temporarily to prevent transcription
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+
+    // Clean up audio resources
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    chunksRef.current = [];
+
+    setIsRecording(false);
+    setStatus('idle');
+    audioFeedback.playError(); // Play error/cancel sound
+    setError('Recording cancelled');
+    setTimeout(() => setError(null), 2000);
+  }, [setIsRecording]);
+
   const toggleRecording = useCallback(() => {
     if (isRecordingRef.current) {
       stopRecording();
@@ -261,7 +294,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     }
   }, [startRecording, stopRecording]);
 
-  // Global shortcut handler
+  // Global shortcut handler for toggle recording
   useEffect(() => {
     const handleToggle = () => {
       if (isRecordingRef.current) {
@@ -273,6 +306,15 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     const cleanup = window.electron?.onToggleRecording(handleToggle);
     return () => cleanup?.();
   }, [startRecording, stopRecording]);
+
+  // Global shortcut handler for cancel recording
+  useEffect(() => {
+    const handleCancel = () => {
+      cancelRecording();
+    };
+    const cleanup = window.electron?.onCancelRecording(handleCancel);
+    return () => cleanup?.();
+  }, [cancelRecording]);
 
   if (!isOpen) return null;
 
@@ -345,7 +387,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
               {status === 'processing' && 'Processing...'}
             </div>
             <div className="text-[10px] text-crt-white/30 mt-0.5">
-              Alt+S to toggle
+              {status === 'recording' ? 'Alt+S send · Alt+A cancel' : 'Alt+S to start'}
             </div>
           </div>
         </div>

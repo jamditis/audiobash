@@ -4,7 +4,19 @@ export type ApiProvider = 'gemini' | 'openai' | 'anthropic' | 'elevenlabs';
 
 export interface Shortcuts {
   toggleRecording: string;
+  cancelRecording: string;
   toggleWindow: string;
+  toggleMode: string;
+  clearTerminal: string;
+  cycleLayout: string;
+  focusNextTerminal: string;
+  focusPrevTerminal: string;
+  bookmarkDirectory: string;
+  resendLast: string;
+  switchTab1: string;
+  switchTab2: string;
+  switchTab3: string;
+  switchTab4: string;
 }
 
 export interface TerminalTab {
@@ -80,6 +92,17 @@ export interface ElectronAPI {
 
   // Voice recording toggle
   onToggleRecording: (callback: () => void) => (() => void);
+  onCancelRecording: (callback: () => void) => (() => void);
+
+  // Quick actions
+  onToggleMode: (callback: () => void) => (() => void);
+  onClearTerminal: (callback: () => void) => (() => void);
+  onCycleLayout: (callback: () => void) => (() => void);
+  onFocusNextTerminal: (callback: () => void) => (() => void);
+  onFocusPrevTerminal: (callback: () => void) => (() => void);
+  onBookmarkDirectory: (callback: () => void) => (() => void);
+  onResendLast: (callback: () => void) => (() => void);
+  onSwitchTab: (callback: (index: number) => void) => (() => void);
 
   // Keyboard shortcuts
   getShortcuts: () => Promise<Shortcuts>;

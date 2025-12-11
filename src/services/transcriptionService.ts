@@ -25,6 +25,20 @@ export interface TerminalContext {
   lastError?: string;             // Last error message if any
 }
 
+// Custom instructions for transcription/agent modes
+export interface CustomInstructions {
+  rawModeInstructions: string;    // Additional instructions for raw transcription
+  agentModeInstructions: string;  // Additional instructions for agent mode
+  vocabulary: VocabularyEntry[];  // Custom pronunciations/vocabulary
+}
+
+// Vocabulary entry for custom pronunciations
+export interface VocabularyEntry {
+  spoken: string;    // How the word sounds or might be transcribed
+  written: string;   // How it should be written
+  context?: string;  // Optional context hint (e.g., "programming", "name")
+}
+
 // Model identifiers
 export type ModelId =
   | 'gemini-2.0-flash'
@@ -55,8 +69,23 @@ export const MODELS: ModelInfo[] = [
   { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
 ];
 
+// Build vocabulary section for prompts
+function buildVocabularySection(vocabulary: VocabularyEntry[]): string {
+  if (!vocabulary || vocabulary.length === 0) return '';
+
+  const entries = vocabulary.map(v => {
+    const contextHint = v.context ? ` (${v.context})` : '';
+    return `- "${v.spoken}" → "${v.written}"${contextHint}`;
+  }).join('\n');
+
+  return `
+CUSTOM VOCABULARY (always use these exact spellings/terms):
+${entries}
+`;
+}
+
 // Generate a context-aware prompt based on terminal state
-function buildAgentPrompt(context?: TerminalContext): string {
+function buildAgentPrompt(context?: TerminalContext, customInstructions?: CustomInstructions): string {
   const osName = context?.os === 'windows' ? 'Windows' : context?.os === 'mac' ? 'macOS' : 'Linux';
   const shell = context?.shell || 'unknown shell';
   const cwd = context?.cwd || 'unknown directory';
@@ -140,7 +169,10 @@ UNIVERSAL EXAMPLES:
 - "start docker compose" → docker-compose up
 - "hello there" → (empty - not a command)
 - (silence) → (empty)
-
+${buildVocabularySection(customInstructions?.vocabulary || [])}${customInstructions?.agentModeInstructions ? `
+ADDITIONAL INSTRUCTIONS:
+${customInstructions.agentModeInstructions}
+` : ''}
 Convert the following speech to a ${shell} command:`;
 }
 
@@ -191,12 +223,40 @@ export class TranscriptionService {
   // Store the current terminal context for use in prompts
   private terminalContext: TerminalContext | null = null;
 
+  // Store custom instructions
+  private customInstructions: CustomInstructions = {
+    rawModeInstructions: '',
+    agentModeInstructions: '',
+    vocabulary: [],
+  };
+
   public setTerminalContext(context: TerminalContext) {
     this.terminalContext = context;
   }
 
+  public setCustomInstructions(instructions: CustomInstructions) {
+    this.customInstructions = instructions;
+  }
+
+  public getCustomInstructions(): CustomInstructions {
+    return this.customInstructions;
+  }
+
   public getTerminalContext(): TerminalContext | null {
     return this.terminalContext;
+  }
+
+  // Apply vocabulary corrections to transcribed text
+  private applyVocabularyCorrections(text: string): string {
+    if (!this.customInstructions.vocabulary.length) return text;
+
+    let corrected = text;
+    for (const entry of this.customInstructions.vocabulary) {
+      // Case-insensitive replacement
+      const regex = new RegExp(entry.spoken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      corrected = corrected.replace(regex, entry.written);
+    }
+    return corrected;
   }
 
   public async transcribeAudio(
@@ -242,10 +302,13 @@ export class TranscriptionService {
     }
 
     const base64Audio = await blobToBase64(audioBlob);
-    // Use context-aware prompt for agent mode
+    // Use context-aware prompt for agent mode, include custom instructions
+    const vocabularySection = buildVocabularySection(this.customInstructions.vocabulary);
+    const rawInstructions = this.customInstructions.rawModeInstructions;
+
     const prompt = mode === 'agent'
-      ? buildAgentPrompt(this.terminalContext || undefined)
-      : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.`;
+      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+      : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
 
     // Map model ID to actual Gemini model name (stable versions only)
     const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
@@ -292,9 +355,12 @@ export class TranscriptionService {
 
     let text = transcription.text?.trim() || "";
 
+    // Apply vocabulary corrections to raw transcription
+    text = this.applyVocabularyCorrections(text);
+
     // If agent mode and using GPT-4, process the transcription
     if (mode === 'agent' && modelId === 'openai-gpt4' && text) {
-      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined);
+      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined, this.customInstructions);
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo-preview',
         messages: [
@@ -342,13 +408,16 @@ export class TranscriptionService {
 
     let text = transcription.text?.trim() || "";
 
+    // Apply vocabulary corrections to raw transcription
+    text = this.applyVocabularyCorrections(text);
+
     // Use Claude for agent mode conversion
     if (mode === 'agent' && text) {
       const claudeModel = modelId === 'claude-haiku'
         ? 'claude-3-haiku-20240307'
         : 'claude-sonnet-4-20250514';
 
-      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined);
+      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined, this.customInstructions);
       const message = await this.anthropic.messages.create({
         model: claudeModel,
         max_tokens: 200,

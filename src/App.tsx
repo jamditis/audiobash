@@ -37,6 +37,9 @@ const App: React.FC = () => {
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // CLI notifications state
+  const [cliNotificationsEnabled, setCliNotificationsEnabled] = useState(true);
+
   // Directory picker state
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false);
 
@@ -46,6 +49,12 @@ const App: React.FC = () => {
     panes: [{ terminalId: 'tab-1', size: 100 }],
     focusedTerminalId: 'tab-1',
   });
+
+  // Voice mode state (shared with VoiceOverlay)
+  const [voiceMode, setVoiceMode] = useState<'agent' | 'raw'>('agent');
+
+  // Last transcript for resend feature
+  const [lastTranscript, setLastTranscript] = useState<{ text: string; mode: 'agent' | 'raw' } | null>(null);
 
   // Load settings and check onboarding
   useEffect(() => {
@@ -82,6 +91,12 @@ const App: React.FC = () => {
     };
     loadApiKeys();
 
+    // Load CLI notifications setting
+    const savedCliNotifications = localStorage.getItem('audiobash-cli-notifications');
+    if (savedCliNotifications !== null) {
+      setCliNotificationsEnabled(savedCliNotifications === 'true');
+    }
+
     // Check if onboarding should be shown
     const onboardingComplete = localStorage.getItem('audiobash-onboarding-complete');
     if (!onboardingComplete) {
@@ -98,6 +113,11 @@ const App: React.FC = () => {
       }
       const savedModel = localStorage.getItem('audiobash-model');
       if (savedModel) setModel(savedModel);
+
+      const savedCliNotifications = localStorage.getItem('audiobash-cli-notifications');
+      if (savedCliNotifications !== null) {
+        setCliNotificationsEnabled(savedCliNotifications === 'true');
+      }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
@@ -148,11 +168,36 @@ const App: React.FC = () => {
     return () => cleanup?.();
   }, []);
 
+  // Listen for Alt+M to toggle voice mode
+  useEffect(() => {
+    const handleToggleMode = () => {
+      setVoiceMode(prev => prev === 'agent' ? 'raw' : 'agent');
+    };
+    const cleanup = window.electron?.onToggleMode(handleToggleMode);
+    return () => cleanup?.();
+  }, []);
+
+  // Listen for Alt+C to clear terminal
+  useEffect(() => {
+    const handleClearTerminal = () => {
+      const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
+      // Send clear command based on OS
+      const clearCmd = process.platform === 'win32' ? 'cls' : 'clear';
+      window.electron?.sendToTerminal(targetId, clearCmd);
+    };
+    const cleanup = window.electron?.onClearTerminal(handleClearTerminal);
+    return () => cleanup?.();
+  }, [activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+
+
   const handleTranscript = useCallback((text: string, mode: 'agent' | 'raw') => {
     setTranscript(text);
     setStatus('idle');
 
     if (!text.trim()) return;
+
+    // Save for resend feature
+    setLastTranscript({ text, mode });
 
     // Both modes: send text to terminal with Enter when autoSend is enabled
     // Agent mode: text is a converted CLI command
@@ -281,6 +326,106 @@ const App: React.FC = () => {
     });
   }, []);
 
+  // Listen for Alt+L to cycle layout
+  useEffect(() => {
+    const layouts: LayoutMode[] = ['single', 'split-horizontal', 'split-vertical', 'grid-2x2', 'grid-3'];
+    const handleCycleLayout = () => {
+      const currentIndex = layouts.indexOf(layoutState.mode);
+      const nextIndex = (currentIndex + 1) % layouts.length;
+      const nextMode = layouts[nextIndex];
+
+      // Only switch if we have enough tabs
+      const requiredTabs = nextMode === 'single' ? 1
+        : nextMode === 'split-horizontal' || nextMode === 'split-vertical' ? 2
+        : nextMode === 'grid-2x2' ? 4 : 3;
+
+      if (tabs.length >= requiredTabs) {
+        handleSelectLayout(nextMode);
+      } else {
+        // Skip to next valid layout
+        for (let i = 1; i < layouts.length; i++) {
+          const tryIndex = (nextIndex + i) % layouts.length;
+          const tryMode = layouts[tryIndex];
+          const tryRequired = tryMode === 'single' ? 1
+            : tryMode === 'split-horizontal' || tryMode === 'split-vertical' ? 2
+            : tryMode === 'grid-2x2' ? 4 : 3;
+          if (tabs.length >= tryRequired) {
+            handleSelectLayout(tryMode);
+            break;
+          }
+        }
+      }
+    };
+    const cleanup = window.electron?.onCycleLayout(handleCycleLayout);
+    return () => cleanup?.();
+  }, [layoutState.mode, tabs.length, handleSelectLayout]);
+
+  // Listen for Alt+Right/Left to focus next/prev terminal
+  useEffect(() => {
+    const handleFocusNext = () => {
+      if (layoutState.mode === 'single') return;
+      const paneIds = layoutState.panes.map(p => p.terminalId);
+      const currentIndex = paneIds.indexOf(layoutState.focusedTerminalId);
+      const nextIndex = (currentIndex + 1) % paneIds.length;
+      handleFocusTerminal(paneIds[nextIndex]);
+    };
+    const cleanup = window.electron?.onFocusNextTerminal(handleFocusNext);
+    return () => cleanup?.();
+  }, [layoutState, handleFocusTerminal]);
+
+  useEffect(() => {
+    const handleFocusPrev = () => {
+      if (layoutState.mode === 'single') return;
+      const paneIds = layoutState.panes.map(p => p.terminalId);
+      const currentIndex = paneIds.indexOf(layoutState.focusedTerminalId);
+      const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
+      handleFocusTerminal(paneIds[prevIndex]);
+    };
+    const cleanup = window.electron?.onFocusPrevTerminal(handleFocusPrev);
+    return () => cleanup?.();
+  }, [layoutState, handleFocusTerminal]);
+
+  // Listen for Alt+B to bookmark current directory
+  useEffect(() => {
+    const handleBookmark = async () => {
+      const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
+      const context = await window.electron?.getTerminalContext(targetId);
+      if (context?.cwd) {
+        const result = await window.electron?.addFavoriteDirectory(context.cwd);
+        if (result?.success) {
+          // Could show a toast notification here
+          console.log('[AudioBash] Bookmarked:', context.cwd);
+        }
+      }
+    };
+    const cleanup = window.electron?.onBookmarkDirectory(handleBookmark);
+    return () => cleanup?.();
+  }, [activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+
+  // Listen for Alt+R to resend last transcription
+  useEffect(() => {
+    const handleResend = () => {
+      if (lastTranscript) {
+        const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
+        window.electron?.sendToTerminal(targetId, lastTranscript.text);
+      }
+    };
+    const cleanup = window.electron?.onResendLast(handleResend);
+    return () => cleanup?.();
+  }, [lastTranscript, activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+
+  // Listen for Alt+1-4 to switch tabs
+  useEffect(() => {
+    const handleSwitchTab = (index: number) => {
+      if (index < tabs.length) {
+        const tab = tabs[index];
+        handleSelectTab(tab.id);
+      }
+    };
+    const cleanup = window.electron?.onSwitchTab(handleSwitchTab);
+    return () => cleanup?.();
+  }, [tabs, handleSelectTab]);
+
   // Compute visible terminals based on layout mode
   const visibleTerminalIds = useMemo(() => {
     if (layoutState.mode === 'single') {
@@ -318,6 +463,7 @@ const App: React.FC = () => {
                 key={tab.id}
                 tabId={tab.id}
                 isActive={tab.id === activeTabId}
+                cliNotificationsEnabled={cliNotificationsEnabled}
               />
             ))
           ) : (
@@ -335,6 +481,7 @@ const App: React.FC = () => {
                   isFocused={pane.terminalId === layoutState.focusedTerminalId}
                   isRecording={isRecording}
                   onFocus={() => handleFocusTerminal(pane.terminalId)}
+                  cliNotificationsEnabled={cliNotificationsEnabled}
                 />
               ))}
             </SplitContainer>
@@ -369,6 +516,8 @@ const App: React.FC = () => {
           isPinned={isPinned}
           setIsPinned={setIsPinned}
           activeTabId={activeTabId}
+          mode={voiceMode}
+          setMode={setVoiceMode}
         />
       </div>
 

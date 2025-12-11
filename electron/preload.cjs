@@ -36,6 +36,67 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('toggle-recording', handler);
   },
 
+  // Cancel recording (abort without sending)
+  onCancelRecording: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('cancel-recording', handler);
+    return () => ipcRenderer.removeListener('cancel-recording', handler);
+  },
+
+  // Toggle mode (raw/agent)
+  onToggleMode: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('toggle-mode', handler);
+    return () => ipcRenderer.removeListener('toggle-mode', handler);
+  },
+
+  // Clear terminal
+  onClearTerminal: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('clear-terminal', handler);
+    return () => ipcRenderer.removeListener('clear-terminal', handler);
+  },
+
+  // Cycle layout
+  onCycleLayout: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('cycle-layout', handler);
+    return () => ipcRenderer.removeListener('cycle-layout', handler);
+  },
+
+  // Focus next/prev terminal
+  onFocusNextTerminal: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('focus-next-terminal', handler);
+    return () => ipcRenderer.removeListener('focus-next-terminal', handler);
+  },
+  onFocusPrevTerminal: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('focus-prev-terminal', handler);
+    return () => ipcRenderer.removeListener('focus-prev-terminal', handler);
+  },
+
+  // Bookmark directory
+  onBookmarkDirectory: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('bookmark-directory', handler);
+    return () => ipcRenderer.removeListener('bookmark-directory', handler);
+  },
+
+  // Resend last transcription
+  onResendLast: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('resend-last', handler);
+    return () => ipcRenderer.removeListener('resend-last', handler);
+  },
+
+  // Switch tab (receives tab index 0-3)
+  onSwitchTab: (callback) => {
+    const handler = (_, index) => callback(index);
+    ipcRenderer.on('switch-tab', handler);
+    return () => ipcRenderer.removeListener('switch-tab', handler);
+  },
+
   // Keyboard shortcuts management
   getShortcuts: () => ipcRenderer.invoke('get-shortcuts'),
   setShortcuts: (shortcuts) => ipcRenderer.invoke('set-shortcuts', shortcuts),

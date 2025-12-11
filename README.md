@@ -8,6 +8,9 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
 - **Context-aware agent mode** - AI understands your environment: current directory, recent output, errors
+- **Custom instructions** - Add personal instructions for transcription and agent modes
+- **Custom vocabulary** - Map spoken words to correct spellings (e.g., "next js" → "Next.js")
+- **CLI notifications** - Audio chime when CLI tools request input/approval
 - **Split view** - View up to 4 terminals simultaneously with 5 layout modes (single, horizontal, vertical, 2x2 grid, 1+2)
 - **Resizable panes** - Drag dividers to resize terminal panes in split view
 - **Focus indicator** - Voice badge shows which terminal receives voice commands in split mode
@@ -18,6 +21,7 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **Auto-copy** - Selected text is automatically copied to clipboard
 - **Always-on-top mode** - Pin the voice panel while you work
 - **System tray** - Runs quietly in background, accessible via global shortcuts
+- **Extensive keyboard shortcuts** - 14 customizable shortcuts for power users
 
 ## Installation
 
@@ -41,10 +45,32 @@ npm run electron:build
 
 ### Keyboard shortcuts
 
+#### Voice
 | Shortcut | Action |
 |----------|--------|
-| `Alt+S` | Toggle voice recording |
+| `Alt+S` | Start/stop voice recording |
+| `Alt+A` | Cancel recording (abort without sending) |
+| `Alt+M` | Toggle raw/agent mode |
+| `Alt+R` | Resend last transcription |
+
+#### Window
+| Shortcut | Action |
+|----------|--------|
 | `Alt+H` | Show/hide window |
+| `Alt+L` | Cycle through layouts |
+
+#### Terminal
+| Shortcut | Action |
+|----------|--------|
+| `Alt+C` | Clear terminal |
+| `Alt+→` | Focus next pane |
+| `Alt+←` | Focus previous pane |
+| `Alt+B` | Bookmark current directory |
+
+#### Tabs
+| Shortcut | Action |
+|----------|--------|
+| `Alt+1-4` | Switch to tab 1-4 |
 
 ### Voice panel modes
 

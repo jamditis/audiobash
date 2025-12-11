@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { transcriptionService, MODELS, ModelId } from '../services/transcriptionService';
+import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
 import { useTheme } from '../themes';
 import { Shortcuts } from '../types';
 
@@ -36,14 +36,48 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   // Keyboard shortcuts
   const [shortcuts, setShortcuts] = useState<Shortcuts>({
     toggleRecording: 'Alt+S',
+    cancelRecording: 'Alt+A',
     toggleWindow: 'Alt+H',
+    toggleMode: 'Alt+M',
+    clearTerminal: 'Alt+C',
+    cycleLayout: 'Alt+L',
+    focusNextTerminal: 'Alt+Right',
+    focusPrevTerminal: 'Alt+Left',
+    bookmarkDirectory: 'Alt+B',
+    resendLast: 'Alt+R',
+    switchTab1: 'Alt+1',
+    switchTab2: 'Alt+2',
+    switchTab3: 'Alt+3',
+    switchTab4: 'Alt+4',
   });
   const [shortcutsInput, setShortcutsInput] = useState<Shortcuts>({
     toggleRecording: 'Alt+S',
+    cancelRecording: 'Alt+A',
     toggleWindow: 'Alt+H',
+    toggleMode: 'Alt+M',
+    clearTerminal: 'Alt+C',
+    cycleLayout: 'Alt+L',
+    focusNextTerminal: 'Alt+Right',
+    focusPrevTerminal: 'Alt+Left',
+    bookmarkDirectory: 'Alt+B',
+    resendLast: 'Alt+R',
+    switchTab1: 'Alt+1',
+    switchTab2: 'Alt+2',
+    switchTab3: 'Alt+3',
+    switchTab4: 'Alt+4',
   });
-  const [recordingShortcut, setRecordingShortcut] = useState<'toggleRecording' | 'toggleWindow' | null>(null);
+  const [recordingShortcut, setRecordingShortcut] = useState<keyof Shortcuts | null>(null);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
+
+  // Custom instructions state
+  const [rawModeInstructions, setRawModeInstructions] = useState('');
+  const [agentModeInstructions, setAgentModeInstructions] = useState('');
+  const [vocabulary, setVocabulary] = useState<VocabularyEntry[]>([]);
+  const [newVocabSpoken, setNewVocabSpoken] = useState('');
+  const [newVocabWritten, setNewVocabWritten] = useState('');
+
+  // CLI notification settings
+  const [cliNotificationsEnabled, setCliNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     // Load all API keys
@@ -86,6 +120,23 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     if (savedModel) setModel(savedModel as ModelId);
     if (savedAutoSend !== null) setAutoSend(savedAutoSend === 'true');
     if (savedScanlines !== null) setScanlines(savedScanlines === 'true');
+
+    // Load custom instructions
+    const savedRawInstructions = localStorage.getItem('audiobash-raw-instructions');
+    const savedAgentInstructions = localStorage.getItem('audiobash-agent-instructions');
+    const savedVocabulary = localStorage.getItem('audiobash-vocabulary');
+    const savedCliNotifications = localStorage.getItem('audiobash-cli-notifications');
+
+    if (savedRawInstructions) setRawModeInstructions(savedRawInstructions);
+    if (savedAgentInstructions) setAgentModeInstructions(savedAgentInstructions);
+    if (savedVocabulary) {
+      try {
+        setVocabulary(JSON.parse(savedVocabulary));
+      } catch (e) {
+        console.warn('Failed to parse vocabulary:', e);
+      }
+    }
+    if (savedCliNotifications !== null) setCliNotificationsEnabled(savedCliNotifications === 'true');
 
     // Load keyboard shortcuts
     window.electron?.getShortcuts().then((savedShortcuts) => {
@@ -182,12 +233,27 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     localStorage.setItem('audiobash-autosend', String(autoSend));
     localStorage.setItem('audiobash-scanlines', String(scanlines));
 
+    // Save custom instructions
+    localStorage.setItem('audiobash-raw-instructions', rawModeInstructions);
+    localStorage.setItem('audiobash-agent-instructions', agentModeInstructions);
+    localStorage.setItem('audiobash-vocabulary', JSON.stringify(vocabulary));
+    localStorage.setItem('audiobash-cli-notifications', String(cliNotificationsEnabled));
+
+    // Update transcription service with custom instructions
+    transcriptionService.setCustomInstructions({
+      rawModeInstructions,
+      agentModeInstructions,
+      vocabulary,
+    });
+
     // Dispatch storage event for scanlines
     window.dispatchEvent(new Event('storage'));
 
     // Save keyboard shortcuts if changed
-    if (shortcutsInput.toggleRecording !== shortcuts.toggleRecording ||
-        shortcutsInput.toggleWindow !== shortcuts.toggleWindow) {
+    const shortcutsChanged = Object.keys(shortcutsInput).some(
+      key => shortcutsInput[key as keyof Shortcuts] !== shortcuts[key as keyof Shortcuts]
+    );
+    if (shortcutsChanged) {
       const result = await window.electron?.setShortcuts(shortcutsInput);
       if (result?.success) {
         setShortcuts(shortcutsInput);
@@ -505,23 +571,195 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             </label>
           </div>
 
-          {/* Keyboard Shortcuts (read-only for v1.0.1) */}
+          {/* CLI Notifications toggle */}
+          <div>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <div className="text-xs font-mono">CLI input notifications</div>
+                <div className="text-[10px] text-crt-white/30">
+                  Play sound when CLI tools request approval
+                </div>
+              </div>
+              <button
+                onClick={() => setCliNotificationsEnabled(!cliNotificationsEnabled)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${
+                  cliNotificationsEnabled ? 'bg-accent' : 'bg-void-300'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    cliNotificationsEnabled ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* Custom Instructions Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] text-crt-white/50 font-mono uppercase tracking-wider border-b border-void-300 pb-1">
+              Custom Instructions
+            </h3>
+
+            {/* Raw Mode Instructions */}
+            <div>
+              <label className="block text-[10px] text-crt-white/50 font-mono uppercase mb-1">
+                Raw transcription instructions
+              </label>
+              <textarea
+                value={rawModeInstructions}
+                onChange={(e) => setRawModeInstructions(e.target.value)}
+                placeholder="Extra context for transcription (e.g., 'I speak with a Boston accent', 'Technical terms I use often: kubectl, nginx')"
+                rows={3}
+                className="w-full bg-void-200 border border-void-300 rounded px-3 py-2 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none resize-none"
+              />
+            </div>
+
+            {/* Agent Mode Instructions */}
+            <div>
+              <label className="block text-[10px] text-crt-white/50 font-mono uppercase mb-1">
+                Agent mode instructions
+              </label>
+              <textarea
+                value={agentModeInstructions}
+                onChange={(e) => setAgentModeInstructions(e.target.value)}
+                placeholder="Instructions for AI command generation (e.g., 'Always use PowerShell syntax', 'Prefer npm over yarn')"
+                rows={3}
+                className="w-full bg-void-200 border border-void-300 rounded px-3 py-2 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Vocabulary / Pronunciations Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] text-crt-white/50 font-mono uppercase tracking-wider border-b border-void-300 pb-1">
+              Custom Vocabulary
+            </h3>
+            <div className="text-[10px] text-crt-white/30 -mt-1">
+              Map spoken words to correct spellings (e.g., "claude code" → "Claude Code")
+            </div>
+
+            {/* Add new vocabulary entry */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newVocabSpoken}
+                onChange={(e) => setNewVocabSpoken(e.target.value)}
+                placeholder="Spoken (e.g., next js)"
+                className="flex-1 bg-void-200 border border-void-300 rounded px-2 py-1.5 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none"
+              />
+              <span className="text-crt-white/30 self-center">→</span>
+              <input
+                type="text"
+                value={newVocabWritten}
+                onChange={(e) => setNewVocabWritten(e.target.value)}
+                placeholder="Written (e.g., Next.js)"
+                className="flex-1 bg-void-200 border border-void-300 rounded px-2 py-1.5 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none"
+              />
+              <button
+                onClick={() => {
+                  if (newVocabSpoken.trim() && newVocabWritten.trim()) {
+                    setVocabulary([...vocabulary, { spoken: newVocabSpoken.trim(), written: newVocabWritten.trim() }]);
+                    setNewVocabSpoken('');
+                    setNewVocabWritten('');
+                  }
+                }}
+                disabled={!newVocabSpoken.trim() || !newVocabWritten.trim()}
+                className="px-3 py-1.5 text-xs font-mono uppercase bg-accent/20 text-accent rounded hover:bg-accent/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Add
+              </button>
+            </div>
+
+            {/* Vocabulary list */}
+            {vocabulary.length > 0 && (
+              <div className="bg-void-200 rounded border border-void-300 divide-y divide-void-300 max-h-32 overflow-y-auto">
+                {vocabulary.map((entry, idx) => (
+                  <div key={idx} className="flex items-center justify-between px-3 py-1.5">
+                    <div className="flex items-center gap-2 text-xs font-mono">
+                      <span className="text-crt-white/50">{entry.spoken}</span>
+                      <span className="text-crt-white/30">→</span>
+                      <span className="text-crt-green">{entry.written}</span>
+                    </div>
+                    <button
+                      onClick={() => setVocabulary(vocabulary.filter((_, i) => i !== idx))}
+                      className="text-accent/50 hover:text-accent text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Keyboard Shortcuts */}
           <div>
             <label className="block text-[10px] text-crt-white/50 font-mono uppercase mb-2">
               Keyboard shortcuts
             </label>
-            <div className="bg-void-200 rounded p-3 space-y-2">
+
+            {/* Voice shortcuts */}
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-2">Voice</div>
+            <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-crt-white/50">Toggle recording</span>
-                <span className="px-3 py-1.5 rounded text-xs font-mono bg-void-300 text-crt-amber">
-                  Alt+S
-                </span>
+                <span className="font-mono text-crt-white/50">Start/stop recording</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+S</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono text-crt-white/50">Show/hide window</span>
-                <span className="px-3 py-1.5 rounded text-xs font-mono bg-void-300 text-crt-amber">
-                  Alt+H
-                </span>
+                <span className="font-mono text-crt-white/50">Cancel recording</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-accent">Alt+A</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Toggle raw/agent mode</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+M</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Resend last command</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+R</span>
+              </div>
+            </div>
+
+            {/* Window shortcuts */}
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Window</div>
+            <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Show/hide window</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+H</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Cycle layout</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+L</span>
+              </div>
+            </div>
+
+            {/* Terminal shortcuts */}
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Terminal</div>
+            <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Clear terminal</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+C</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Focus next pane</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+→</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Focus prev pane</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+←</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Bookmark directory</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+B</span>
+              </div>
+            </div>
+
+            {/* Tab shortcuts */}
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Tabs</div>
+            <div className="bg-void-200 rounded p-2 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Switch to tab 1-4</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+1-4</span>
               </div>
             </div>
           </div>
