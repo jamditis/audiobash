@@ -112,4 +112,25 @@ contextBridge.exposeInMainWorld('electron', {
   removeFavoriteDirectory: (dir) => ipcRenderer.invoke('remove-favorite-directory', dir),
   cdToDirectory: (tabId, dir) => ipcRenderer.invoke('cd-to-directory', { tabId, dir }),
   browseDirectory: () => ipcRenderer.invoke('browse-directory'),
+
+  // Preview pane
+  capturePreview: (url, cwd) => ipcRenderer.invoke('capture-preview', url, cwd),
+  watchFile: (filepath) => ipcRenderer.invoke('watch-file', filepath),
+  unwatchFile: (watcherId) => ipcRenderer.invoke('unwatch-file', watcherId),
+  validateFilePath: (filepath) => ipcRenderer.invoke('validate-file-path', filepath),
+  onFileChanged: (callback) => {
+    const handler = (_, { watcherId, filepath }) => callback(filepath);
+    ipcRenderer.on('file-changed', handler);
+    return () => ipcRenderer.removeListener('file-changed', handler);
+  },
+  onTogglePreview: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('toggle-preview', handler);
+    return () => ipcRenderer.removeListener('toggle-preview', handler);
+  },
+  onCaptureScreenshot: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('capture-screenshot', handler);
+    return () => ipcRenderer.removeListener('capture-screenshot', handler);
+  },
 });

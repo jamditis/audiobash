@@ -7,9 +7,11 @@ import DirectoryPicker from './components/DirectoryPicker';
 import TitleBar from './components/TitleBar';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
+import PreviewPane from './components/PreviewPane';
+import ResizeDivider from './components/ResizeDivider';
 import SplitContainer, { SplitLayoutState, PaneConfig } from './components/SplitContainer';
 import { LayoutMode } from './components/LayoutSelector';
-import { TerminalTab } from './types';
+import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
 import { transcriptionService } from './services/transcriptionService';
 
 const MAX_TABS = 4;
@@ -55,6 +57,19 @@ const App: React.FC = () => {
 
   // Last transcript for resend feature
   const [lastTranscript, setLastTranscript] = useState<{ text: string; mode: 'agent' | 'raw' } | null>(null);
+
+  // Preview pane state
+  const [previewVisible, setPreviewVisible] = useState(() => {
+    return localStorage.getItem('audiobash-preview-visible') === 'true';
+  });
+  const [previewPosition, setPreviewPosition] = useState<PreviewPosition>(() => {
+    return (localStorage.getItem('audiobash-preview-position') as PreviewPosition) || 'right';
+  });
+  const [previewAutoRefresh, setPreviewAutoRefresh] = useState(() => {
+    return localStorage.getItem('audiobash-preview-autorefresh') !== 'false';
+  });
+  const [previewWidth, setPreviewWidth] = useState(40); // percentage for right sidebar
+  const [previewHeight, setPreviewHeight] = useState(35); // percentage for bottom panel
 
   // Load settings and check onboarding
   useEffect(() => {
@@ -426,6 +441,57 @@ const App: React.FC = () => {
     return () => cleanup?.();
   }, [tabs, handleSelectTab]);
 
+  // Listen for Alt+P to toggle preview pane
+  useEffect(() => {
+    const handleTogglePreview = () => {
+      setPreviewVisible(prev => {
+        const newValue = !prev;
+        localStorage.setItem('audiobash-preview-visible', String(newValue));
+        return newValue;
+      });
+    };
+    const cleanup = window.electron?.onTogglePreview(handleTogglePreview);
+    return () => cleanup?.();
+  }, []);
+
+  // Save preview position to localStorage
+  useEffect(() => {
+    localStorage.setItem('audiobash-preview-position', previewPosition);
+  }, [previewPosition]);
+
+  // Handle preview position change
+  const handlePreviewPositionChange = useCallback((position: PreviewPosition) => {
+    setPreviewPosition(position);
+  }, []);
+
+  // Handle preview close
+  const handlePreviewClose = useCallback(() => {
+    setPreviewVisible(false);
+    localStorage.setItem('audiobash-preview-visible', 'false');
+  }, []);
+
+  // Handle screenshot taken
+  const handleScreenshotTaken = useCallback((result: ScreenshotResult) => {
+    if (result.success && result.path) {
+      // Log to console - user can paste path manually if needed
+      console.log('[AudioBash] Screenshot saved:', result.path);
+    }
+  }, []);
+
+  // Handle preview resize (right sidebar)
+  const handlePreviewResizeHorizontal = useCallback((delta: number) => {
+    const containerWidth = window.innerWidth;
+    const deltaPercent = (delta / containerWidth) * 100;
+    setPreviewWidth(prev => Math.max(20, Math.min(60, prev - deltaPercent)));
+  }, []);
+
+  // Handle preview resize (bottom panel)
+  const handlePreviewResizeVertical = useCallback((delta: number) => {
+    const containerHeight = window.innerHeight;
+    const deltaPercent = (delta / containerHeight) * 100;
+    setPreviewHeight(prev => Math.max(15, Math.min(50, prev - deltaPercent)));
+  }, []);
+
   // Compute visible terminals based on layout mode
   const visibleTerminalIds = useMemo(() => {
     if (layoutState.mode === 'single') {
@@ -452,39 +518,114 @@ const App: React.FC = () => {
         onSelectLayout={handleSelectLayout}
       />
 
-      {/* Main content - Terminal takes full width */}
+      {/* Main content - Terminal + Preview layout */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Terminals - use SplitContainer for multi-pane layouts */}
-        <div className="flex-1 min-h-0">
-          {layoutState.mode === 'single' ? (
-            // Single mode: render all terminals but only show active
-            tabs.map(tab => (
-              <Terminal
-                key={tab.id}
-                tabId={tab.id}
-                isActive={tab.id === activeTabId}
-                cliNotificationsEnabled={cliNotificationsEnabled}
-              />
-            ))
-          ) : (
-            // Split/grid mode: use SplitContainer
-            <SplitContainer
-              layoutState={layoutState}
-              onPaneResize={handlePaneResize}
-            >
-              {layoutState.panes.map(pane => (
+        {/* Main area with optional preview pane */}
+        <div className={`flex-1 min-h-0 flex ${previewVisible && previewPosition === 'bottom' ? 'flex-col' : 'flex-row'}`}>
+          {/* Terminal area */}
+          <div
+            className="min-h-0 min-w-0 overflow-hidden"
+            style={{
+              flex: previewVisible && previewPosition === 'right'
+                ? `0 0 ${100 - previewWidth}%`
+                : previewVisible && previewPosition === 'bottom'
+                ? `0 0 ${100 - previewHeight}%`
+                : '1 1 auto',
+            }}
+          >
+            {layoutState.mode === 'single' ? (
+              // Single mode: render all terminals but only show active
+              tabs.map(tab => (
                 <Terminal
-                  key={pane.terminalId}
-                  tabId={pane.terminalId}
-                  isActive={true}
-                  isVisible={true}
-                  isFocused={pane.terminalId === layoutState.focusedTerminalId}
-                  isRecording={isRecording}
-                  onFocus={() => handleFocusTerminal(pane.terminalId)}
+                  key={tab.id}
+                  tabId={tab.id}
+                  isActive={tab.id === activeTabId}
                   cliNotificationsEnabled={cliNotificationsEnabled}
                 />
-              ))}
-            </SplitContainer>
+              ))
+            ) : (
+              // Split/grid mode: use SplitContainer
+              <SplitContainer
+                layoutState={layoutState}
+                onPaneResize={handlePaneResize}
+              >
+                {layoutState.panes.map(pane => (
+                  <Terminal
+                    key={pane.terminalId}
+                    tabId={pane.terminalId}
+                    isActive={true}
+                    isVisible={true}
+                    isFocused={pane.terminalId === layoutState.focusedTerminalId}
+                    isRecording={isRecording}
+                    onFocus={() => handleFocusTerminal(pane.terminalId)}
+                    cliNotificationsEnabled={cliNotificationsEnabled}
+                  />
+                ))}
+              </SplitContainer>
+            )}
+          </div>
+
+          {/* Preview pane - right sidebar */}
+          {previewVisible && previewPosition === 'right' && (
+            <>
+              <ResizeDivider
+                orientation="horizontal"
+                onResize={handlePreviewResizeHorizontal}
+              />
+              <div style={{ flex: `0 0 ${previewWidth}%` }} className="min-w-0">
+                <PreviewPane
+                  isVisible={true}
+                  position={previewPosition}
+                  onPositionChange={handlePreviewPositionChange}
+                  onClose={handlePreviewClose}
+                  autoRefresh={previewAutoRefresh}
+                  activeTabId={activeTabId}
+                  onScreenshotTaken={handleScreenshotTaken}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Preview pane - bottom panel */}
+          {previewVisible && previewPosition === 'bottom' && (
+            <>
+              <ResizeDivider
+                orientation="vertical"
+                onResize={handlePreviewResizeVertical}
+              />
+              <div style={{ flex: `0 0 ${previewHeight}%` }} className="min-h-0">
+                <PreviewPane
+                  isVisible={true}
+                  position={previewPosition}
+                  onPositionChange={handlePreviewPositionChange}
+                  onClose={handlePreviewClose}
+                  autoRefresh={previewAutoRefresh}
+                  activeTabId={activeTabId}
+                  onScreenshotTaken={handleScreenshotTaken}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Preview pane - as a "pane" (right sidebar style for now) */}
+          {previewVisible && previewPosition === 'pane' && (
+            <>
+              <ResizeDivider
+                orientation="horizontal"
+                onResize={handlePreviewResizeHorizontal}
+              />
+              <div style={{ flex: `0 0 ${previewWidth}%` }} className="min-w-0">
+                <PreviewPane
+                  isVisible={true}
+                  position={previewPosition}
+                  onPositionChange={handlePreviewPositionChange}
+                  onClose={handlePreviewClose}
+                  autoRefresh={previewAutoRefresh}
+                  activeTabId={activeTabId}
+                  onScreenshotTaken={handleScreenshotTaken}
+                />
+              </div>
+            </>
           )}
         </div>
 

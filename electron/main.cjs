@@ -31,7 +31,13 @@ let currentShortcuts = {
   switchTab2: 'Alt+2',
   switchTab3: 'Alt+3',
   switchTab4: 'Alt+4',
+  togglePreview: 'Alt+P',
+  captureScreenshot: 'Alt+Shift+P',
 };
+
+// File watchers for preview auto-refresh
+const fileWatchers = new Map(); // watcherId -> { filepath, watcher, debounceTimer }
+let watcherIdCounter = 0;
 
 const MAX_TABS = 4;
 const isDev = !app.isPackaged;
@@ -385,6 +391,36 @@ function registerShortcuts() {
     }
   }
 
+  // Toggle preview pane
+  if (currentShortcuts.togglePreview) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.togglePreview, () => {
+        console.log('[AudioBash] Toggle preview triggered');
+        mainWindow?.webContents.send('toggle-preview');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered togglePreview: ${currentShortcuts.togglePreview}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register togglePreview:`, err);
+    }
+  }
+
+  // Capture screenshot
+  if (currentShortcuts.captureScreenshot) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.captureScreenshot, () => {
+        console.log('[AudioBash] Capture screenshot triggered');
+        mainWindow?.webContents.send('capture-screenshot');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered captureScreenshot: ${currentShortcuts.captureScreenshot}`);
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to register captureScreenshot:`, err);
+    }
+  }
+
   // Switch tabs (Alt+1-4)
   const tabShortcuts = ['switchTab1', 'switchTab2', 'switchTab3', 'switchTab4'];
   tabShortcuts.forEach((key, index) => {
@@ -711,6 +747,134 @@ function setupIPC() {
     } catch (err) {
       console.error(`[AudioBash] Failed to save ${provider} API key:`, err);
       return false;
+    }
+  });
+
+  // Preview pane: File watching for auto-refresh
+  ipcMain.handle('watch-file', async (event, filepath) => {
+    try {
+      // Validate file exists and is an absolute path
+      if (!filepath || !path.isAbsolute(filepath)) {
+        return { success: false, error: 'Invalid file path' };
+      }
+      if (!fs.existsSync(filepath)) {
+        return { success: false, error: 'File does not exist' };
+      }
+
+      const watcherId = `watcher-${watcherIdCounter++}`;
+      let debounceTimer;
+
+      const watcher = fs.watch(filepath, { persistent: false }, (eventType) => {
+        if (eventType === 'change') {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            // Check if watcher still exists before sending event (prevents race condition)
+            if (fileWatchers.has(watcherId) && mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('file-changed', { watcherId, filepath });
+            }
+          }, 300); // 300ms debounce
+        }
+      });
+
+      fileWatchers.set(watcherId, { filepath, watcher, debounceTimer });
+      console.log(`[AudioBash] Watching file: ${filepath} (${watcherId})`);
+      return { success: true, watcherId };
+    } catch (err) {
+      console.error('[AudioBash] Failed to watch file:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('unwatch-file', async (_, watcherId) => {
+    try {
+      const entry = fileWatchers.get(watcherId);
+      if (entry) {
+        clearTimeout(entry.debounceTimer);
+        entry.watcher.close();
+        fileWatchers.delete(watcherId);
+        console.log(`[AudioBash] Stopped watching: ${entry.filepath} (${watcherId})`);
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('[AudioBash] Failed to unwatch file:', err);
+      return { success: false };
+    }
+  });
+
+  // Preview pane: Validate file path
+  ipcMain.handle('validate-file-path', async (_, filepath) => {
+    try {
+      const absolutePath = path.isAbsolute(filepath) ? filepath : path.resolve(filepath);
+      const exists = fs.existsSync(absolutePath);
+      return { valid: exists, absolutePath: exists ? absolutePath : undefined };
+    } catch (err) {
+      return { valid: false, error: err.message };
+    }
+  });
+
+  // Preview pane: Capture screenshot
+  ipcMain.handle('capture-preview', async (_, url, cwd) => {
+    const { clipboard, nativeImage, BrowserWindow: BW } = require('electron');
+
+    try {
+      // Create hidden browser window for capture
+      const captureWin = new BW({
+        width: 1280,
+        height: 720,
+        show: false,
+        webPreferences: {
+          offscreen: true,
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
+      });
+
+      // Load the URL
+      await captureWin.loadURL(url);
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Capture the page
+      const image = await captureWin.webContents.capturePage();
+      const pngBuffer = image.toPNG();
+
+      // Generate filename: {url-part}-{timestamp}.png
+      const urlPart = url
+        .replace(/^https?:\/\//, '')
+        .replace(/^file:\/\//, '')
+        .replace(/[^a-zA-Z0-9-_.]/g, '-')
+        .slice(0, 40);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `${urlPart}-${timestamp}.png`;
+
+      // Determine screenshots directory (use cwd/screenshots or userData/screenshots)
+      // Security: Validate cwd to prevent path traversal attacks
+      let screenshotsDir;
+      if (cwd && path.isAbsolute(cwd) && !cwd.includes('..') && fs.existsSync(cwd)) {
+        screenshotsDir = path.join(cwd, 'screenshots');
+      } else {
+        screenshotsDir = path.join(app.getPath('userData'), 'screenshots');
+      }
+
+      // Ensure directory exists
+      if (!fs.existsSync(screenshotsDir)) {
+        fs.mkdirSync(screenshotsDir, { recursive: true });
+      }
+
+      const fullPath = path.join(screenshotsDir, filename);
+      fs.writeFileSync(fullPath, pngBuffer);
+      console.log(`[AudioBash] Screenshot saved: ${fullPath}`);
+
+      // Copy to clipboard
+      clipboard.writeImage(nativeImage.createFromBuffer(pngBuffer));
+      console.log('[AudioBash] Screenshot copied to clipboard');
+
+      captureWin.close();
+
+      return { success: true, path: fullPath, filename };
+    } catch (err) {
+      console.error('[AudioBash] Screenshot capture failed:', err);
+      return { success: false, error: err.message };
     }
   });
 }

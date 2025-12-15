@@ -17,6 +17,8 @@ export interface Shortcuts {
   switchTab2: string;
   switchTab3: string;
   switchTab4: string;
+  togglePreview: string;
+  captureScreenshot: string;
 }
 
 export interface TerminalTab {
@@ -119,6 +121,15 @@ export interface ElectronAPI {
   removeFavoriteDirectory: (dir: string) => Promise<{ success: boolean }>;
   cdToDirectory: (tabId: string, dir: string) => Promise<{ success: boolean; error?: string }>;
   browseDirectory: () => Promise<BrowseDirectoryResult>;
+
+  // Preview pane
+  capturePreview: (url: string, cwd: string) => Promise<ScreenshotResult>;
+  watchFile: (filepath: string) => Promise<FileWatchResult>;
+  unwatchFile: (watcherId: string) => Promise<{ success: boolean }>;
+  validateFilePath: (filepath: string) => Promise<ValidatePathResult>;
+  onFileChanged: (callback: (filepath: string) => void) => (() => void);
+  onTogglePreview: (callback: () => void) => (() => void);
+  onCaptureScreenshot: (callback: () => void) => (() => void);
 }
 
 declare global {
@@ -136,4 +147,34 @@ export interface TranscriptionResult {
 export interface AudioConfig {
   model: 'gemini' | 'parakeet';
   apiKey?: string;
+}
+
+// Preview Pane types
+export type PreviewPosition = 'right' | 'bottom' | 'pane';
+export type PreviewContentType = 'html' | 'localhost' | 'image' | 'markdown' | 'unknown';
+
+export interface PreviewState {
+  isVisible: boolean;
+  url: string;
+  position: PreviewPosition;
+  autoRefresh: boolean;
+}
+
+export interface ScreenshotResult {
+  success: boolean;
+  path?: string;
+  filename?: string;
+  error?: string;
+}
+
+export interface FileWatchResult {
+  success: boolean;
+  watcherId?: string;
+  error?: string;
+}
+
+export interface ValidatePathResult {
+  valid: boolean;
+  absolutePath?: string;
+  error?: string;
 }

@@ -21,7 +21,10 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **Auto-copy** - Selected text is automatically copied to clipboard
 - **Always-on-top mode** - Pin the voice panel while you work
 - **System tray** - Runs quietly in background, accessible via global shortcuts
-- **Extensive keyboard shortcuts** - 14 customizable shortcuts for power users
+- **Extensive keyboard shortcuts** - 16 customizable shortcuts for power users
+- **Preview pane** - Embedded web preview for localhost dev servers, HTML, images, and markdown
+- **Screenshot capture** - Take screenshots of the preview pane (saves to current working directory)
+- **Auto-refresh** - File watcher automatically refreshes preview when source files change
 
 <a href="[http://www.youtube.com/watch?feature=player_embedded&v=nTQUwghvy5Q](https://www.youtube.com/watch?v=EMllHx3lIyk)" target="_blank">
  <img src="https://i.imgur.com/eVs5hBZ.png" alt="Watch the video" width="100%" border="10" />
@@ -75,6 +78,12 @@ npm run electron:build
 | Shortcut | Action |
 |----------|--------|
 | `Alt+1-4` | Switch to tab 1-4 |
+
+#### Preview
+| Shortcut | Action |
+|----------|--------|
+| `Alt+P` | Toggle preview pane |
+| `Alt+Shift+P` | Capture screenshot |
 
 ### Voice panel modes
 

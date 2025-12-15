@@ -49,6 +49,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     switchTab2: 'Alt+2',
     switchTab3: 'Alt+3',
     switchTab4: 'Alt+4',
+    togglePreview: 'Alt+P',
+    captureScreenshot: 'Alt+Shift+P',
   });
   const [shortcutsInput, setShortcutsInput] = useState<Shortcuts>({
     toggleRecording: 'Alt+S',
@@ -65,6 +67,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     switchTab2: 'Alt+2',
     switchTab3: 'Alt+3',
     switchTab4: 'Alt+4',
+    togglePreview: 'Alt+P',
+    captureScreenshot: 'Alt+Shift+P',
   });
   const [recordingShortcut, setRecordingShortcut] = useState<keyof Shortcuts | null>(null);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
@@ -760,6 +764,19 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Switch to tab 1-4</span>
                 <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+1-4</span>
+              </div>
+            </div>
+
+            {/* Preview shortcuts */}
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Preview</div>
+            <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Toggle preview pane</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+P</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-crt-white/50">Screenshot preview</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+Shift+P</span>
               </div>
             </div>
           </div>
