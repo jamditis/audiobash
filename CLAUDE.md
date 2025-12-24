@@ -1,5 +1,50 @@
 # AudioBash - Voice-controlled terminal for Claude Code
 
+---
+
+## 🍎 macOS setup handoff (2024-12-24)
+
+**Context:** Joe set up macOS support from his Windows desktop. If you're running on his M1 MacBook Pro, here's what you need to know:
+
+### First-time setup on Mac
+```bash
+cd audiobash
+git pull                           # Get latest with macOS support
+npm install                        # CRITICAL: Compiles node-pty for arm64
+npm test                           # Verify 70 tests pass
+npm run electron:dev               # Run in dev mode
+# OR
+npm run electron:build:mac:arm64   # Build DMG for Apple Silicon
+```
+
+### Key cross-platform changes made
+1. **Shell detection** - Uses `$SHELL` (zsh on Mac) instead of hardcoded PowerShell
+2. **Tab titles** - Shows "Terminal" on Mac, "PowerShell" on Windows
+3. **Clear command** - Uses `clear` on Mac, `cls` on Windows
+4. **AI agent prompts** - Generates Mac-specific commands (ls -la, pwd, ps aux, etc.)
+
+### If node-pty fails to compile
+```bash
+xcode-select --install    # Install Xcode CLI tools
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Running the unsigned app
+Right-click → Open → Click "Open" in Gatekeeper dialog (first launch only)
+Or: `xattr -cr /Applications/AudioBash.app`
+
+### Known issues to investigate
+- Multi-tab/split-screen has stability issues (resize debouncing added but may need more work)
+- Test the voice recording on Mac (uses same MediaRecorder API, should work)
+
+### Relevant files for macOS
+- `docs/MACOS_BUILD.md` - Full build guide
+- `.github/workflows/build.yml` - CI/CD for multi-platform builds
+- `tests/` - 70 tests for cross-platform compatibility
+
+---
+
 ## Project overview
 AudioBash is an Electron app with an embedded terminal (xterm.js + node-pty) and push-to-talk voice input. It lets you talk to Claude Code without window switching or manual pasting.
 
