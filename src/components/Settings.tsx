@@ -83,6 +83,32 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   // CLI notification settings
   const [cliNotificationsEnabled, setCliNotificationsEnabled] = useState(true);
 
+  // Remote control status
+  const [remoteStatus, setRemoteStatus] = useState<{
+    running: boolean;
+    port: number;
+    pairingCode: string | null;
+    staticPassword: string | null;
+    hasStaticPassword: boolean;
+    addresses: string[];
+    connected: boolean;
+    deviceName: string | null;
+  }>({
+    running: false,
+    port: 8765,
+    pairingCode: null,
+    staticPassword: null,
+    hasStaticPassword: false,
+    addresses: [],
+    connected: false,
+    deviceName: null,
+  });
+
+  // Remote access settings
+  const [remotePassword, setRemotePassword] = useState('');
+  const [remotePasswordInput, setRemotePasswordInput] = useState('');
+  const [keepAwakeEnabled, setKeepAwakeEnabled] = useState(false);
+
   useEffect(() => {
     // Load all API keys
     window.electron?.getApiKey('gemini').then((key: string) => {
@@ -149,6 +175,29 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
         setShortcutsInput(savedShortcuts);
       }
     });
+
+    // Load remote control status
+    window.electron?.getRemoteStatus().then((status) => {
+      if (status) setRemoteStatus(status);
+    });
+
+    // Load remote password
+    window.electron?.getRemotePassword().then((password) => {
+      setRemotePassword(password || '');
+      setRemotePasswordInput(password || '');
+    });
+
+    // Load keep-awake setting
+    window.electron?.getKeepAwake().then((enabled) => {
+      setKeepAwakeEnabled(enabled);
+    });
+
+    // Listen for remote status changes
+    const cleanup = window.electron?.onRemoteStatusChanged((status) => {
+      setRemoteStatus(status);
+    });
+
+    return () => cleanup?.();
   }, [isOpen]);
 
   // Handle keyboard shortcut recording
@@ -597,6 +646,136 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 />
               </button>
             </label>
+          </div>
+
+          {/* Remote Control Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] text-crt-white/50 font-mono uppercase tracking-wider border-b border-void-300 pb-1">
+              Mobile remote control
+            </h3>
+
+            {/* Connection status */}
+            <div className="bg-void-200 rounded p-3 space-y-3">
+              {/* Status indicator */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${remoteStatus.connected ? 'bg-crt-green animate-pulse' : 'bg-crt-amber'}`} />
+                  <span className="text-xs font-mono">
+                    {remoteStatus.connected
+                      ? `Connected: ${remoteStatus.deviceName}`
+                      : 'Waiting for connection'}
+                  </span>
+                </div>
+                {remoteStatus.running && (
+                  <span className="text-[9px] text-crt-white/30 font-mono">
+                    Port {remoteStatus.port}
+                  </span>
+                )}
+              </div>
+
+              {/* Pairing code */}
+              {remoteStatus.pairingCode && !remoteStatus.connected && (
+                <div className="space-y-2">
+                  <div className="text-[10px] text-crt-white/50">Pairing code:</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-mono text-2xl tracking-[0.3em] text-accent font-bold">
+                      {remoteStatus.pairingCode}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newCode = await window.electron?.regeneratePairingCode();
+                        if (newCode) {
+                          setRemoteStatus(prev => ({ ...prev, pairingCode: newCode }));
+                        }
+                      }}
+                      className="text-[10px] text-crt-white/50 hover:text-accent transition-colors px-2 py-1 border border-void-300 rounded"
+                    >
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* IP addresses */}
+              {remoteStatus.addresses.length > 0 && !remoteStatus.connected && (
+                <div className="space-y-1">
+                  <div className="text-[10px] text-crt-white/50">Connect from your phone to:</div>
+                  {remoteStatus.addresses.map((ip) => (
+                    <div key={ip} className="font-mono text-xs text-crt-white/80">
+                      ws://{ip}:{remoteStatus.port}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Static password for remote access */}
+              <div className="space-y-2 pt-2 border-t border-void-300">
+                <div className="text-[10px] text-crt-white/50">
+                  Static password (for remote access outside your network):
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={remotePasswordInput}
+                    onChange={(e) => setRemotePasswordInput(e.target.value.toUpperCase())}
+                    placeholder="Set a password..."
+                    className="flex-1 bg-void-100 border border-void-300 rounded px-2 py-1.5 text-xs font-mono text-crt-white focus:border-accent focus:outline-none uppercase tracking-wider"
+                    maxLength={20}
+                  />
+                  <button
+                    onClick={async () => {
+                      await window.electron?.setRemotePassword(remotePasswordInput);
+                      setRemotePassword(remotePasswordInput);
+                    }}
+                    disabled={remotePasswordInput === remotePassword}
+                    className="text-[10px] px-3 py-1.5 bg-accent text-void rounded font-mono disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Save
+                  </button>
+                  {remotePassword && (
+                    <button
+                      onClick={async () => {
+                        await window.electron?.setRemotePassword('');
+                        setRemotePassword('');
+                        setRemotePasswordInput('');
+                      }}
+                      className="text-[10px] px-2 py-1.5 text-accent border border-accent rounded font-mono hover:bg-accent/10"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {remotePassword && (
+                  <div className="text-[9px] text-crt-green/70">
+                    Password set. Use this instead of pairing code for persistent access.
+                  </div>
+                )}
+              </div>
+
+              {/* Keep-awake toggle */}
+              <div className="flex items-center justify-between pt-2 border-t border-void-300">
+                <div>
+                  <div className="text-[10px] text-crt-white/70 font-mono">Keep computer awake</div>
+                  <div className="text-[9px] text-crt-white/30">Prevent sleep while remote access is enabled</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newState = await window.electron?.setKeepAwake(!keepAwakeEnabled);
+                    setKeepAwakeEnabled(newState);
+                  }}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${keepAwakeEnabled ? 'bg-crt-green' : 'bg-void-300'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 bg-crt-white rounded-full transition-transform ${keepAwakeEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+
+              {/* Instructions */}
+              <div className="text-[10px] text-crt-white/30 leading-relaxed pt-2">
+                {remoteStatus.connected
+                  ? 'Voice commands from your phone will execute in the terminal above.'
+                  : 'Open https://jamditis.github.io/audiobash/remote/ on your phone and enter the pairing code (or static password) to connect.'}
+              </div>
+            </div>
           </div>
 
           {/* Custom Instructions Section */}

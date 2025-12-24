@@ -12,7 +12,7 @@ import ResizeDivider from './components/ResizeDivider';
 import SplitContainer, { SplitLayoutState, PaneConfig } from './components/SplitContainer';
 import { LayoutMode } from './components/LayoutSelector';
 import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
-import { transcriptionService } from './services/transcriptionService';
+import { transcriptionService, ModelId } from './services/transcriptionService';
 
 const MAX_TABS = 4;
 
@@ -41,7 +41,7 @@ const App: React.FC = () => {
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
-  const [model, setModel] = useState('gemini-2.0-flash');
+  const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [apiKey, setApiKey] = useState('');
 
   // Onboarding state
@@ -87,7 +87,7 @@ const App: React.FC = () => {
     }
 
     const savedModel = localStorage.getItem('audiobash-model');
-    if (savedModel) setModel(savedModel);
+    if (savedModel) setModel(savedModel as ModelId);
 
     // Load ALL API keys and set them in the transcription service on startup
     const loadApiKeys = async () => {
@@ -135,7 +135,7 @@ const App: React.FC = () => {
         setAutoSend(savedAutoSend === 'true');
       }
       const savedModel = localStorage.getItem('audiobash-model');
-      if (savedModel) setModel(savedModel);
+      if (savedModel) setModel(savedModel as ModelId);
 
       const savedCliNotifications = localStorage.getItem('audiobash-cli-notifications');
       if (savedCliNotifications !== null) {
@@ -199,6 +199,82 @@ const App: React.FC = () => {
     const cleanup = window.electron?.onToggleMode(handleToggleMode);
     return () => cleanup?.();
   }, []);
+
+  // Handle remote transcription requests from mobile companion
+  useEffect(() => {
+    const handleRemoteTranscription = async (request: {
+      requestId: string;
+      audioBase64: string;
+      tabId: string;
+      mode: 'agent' | 'raw';
+    }) => {
+      try {
+        // Convert base64 back to Blob
+        const binaryString = atob(request.audioBase64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const audioBlob = new Blob([bytes], { type: 'audio/webm' });
+
+        // Get terminal context for agent mode
+        const context = await window.electron?.getTerminalContext(request.tabId);
+        if (context) {
+          transcriptionService.setTerminalContext(context);
+        }
+
+        // Transcribe using existing service
+        const result = await transcriptionService.transcribeAudio(
+          audioBlob,
+          request.mode,
+          model,
+          0 // duration not tracked for remote
+        );
+
+        // Send result back to main process
+        window.electron?.sendRemoteTranscriptionResult({
+          requestId: request.requestId,
+          success: true,
+          text: result.text,
+          executed: false, // We'll execute after sending result
+        });
+
+        // Execute the command if autoSend is enabled
+        if (result.text && autoSend) {
+          window.electron?.sendToTerminal(request.tabId, result.text);
+          // Update the result to show it was executed
+          window.electron?.sendRemoteTranscriptionResult({
+            requestId: request.requestId,
+            success: true,
+            text: result.text,
+            executed: true,
+          });
+        }
+      } catch (err) {
+        console.error('[Remote] Transcription error:', err);
+        window.electron?.sendRemoteTranscriptionResult({
+          requestId: request.requestId,
+          success: false,
+          error: (err as Error).message,
+        });
+      }
+    };
+
+    const cleanup = window.electron?.onRemoteTranscriptionRequest(handleRemoteTranscription);
+    return () => cleanup?.();
+  }, [model, autoSend]);
+
+  // Handle remote tab switch requests
+  useEffect(() => {
+    const handleRemoteSwitchTab = (tabId: string) => {
+      if (tabs.some(t => t.id === tabId)) {
+        setActiveTabId(tabId);
+        setTabs(prev => prev.map(t => ({ ...t, isActive: t.id === tabId })));
+      }
+    };
+    const cleanup = window.electron?.onRemoteSwitchTab(handleRemoteSwitchTab);
+    return () => cleanup?.();
+  }, [tabs]);
 
   // Listen for Alt+C to clear terminal
   useEffect(() => {

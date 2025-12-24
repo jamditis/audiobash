@@ -133,4 +133,30 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.on('capture-screenshot', handler);
     return () => ipcRenderer.removeListener('capture-screenshot', handler);
   },
+
+  // Remote control (mobile companion)
+  getRemoteStatus: () => ipcRenderer.invoke('get-remote-status'),
+  regeneratePairingCode: () => ipcRenderer.invoke('regenerate-pairing-code'),
+  setRemotePassword: (password) => ipcRenderer.invoke('set-remote-password', password),
+  getRemotePassword: () => ipcRenderer.invoke('get-remote-password'),
+  setKeepAwake: (enabled) => ipcRenderer.invoke('set-keep-awake', enabled),
+  getKeepAwake: () => ipcRenderer.invoke('get-keep-awake'),
+  onRemoteStatusChanged: (callback) => {
+    const handler = (_, status) => callback(status);
+    ipcRenderer.on('remote-status-changed', handler);
+    return () => ipcRenderer.removeListener('remote-status-changed', handler);
+  },
+  onRemoteTranscriptionRequest: (callback) => {
+    const handler = (_, request) => callback(request);
+    ipcRenderer.on('remote-transcription-request', handler);
+    return () => ipcRenderer.removeListener('remote-transcription-request', handler);
+  },
+  sendRemoteTranscriptionResult: (result) => {
+    ipcRenderer.send('remote-transcription-result', result);
+  },
+  onRemoteSwitchTab: (callback) => {
+    const handler = (_, tabId) => callback(tabId);
+    ipcRenderer.on('remote-switch-tab', handler);
+    return () => ipcRenderer.removeListener('remote-switch-tab', handler);
+  },
 });

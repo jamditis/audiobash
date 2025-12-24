@@ -130,6 +130,18 @@ export interface ElectronAPI {
   onFileChanged: (callback: (filepath: string) => void) => (() => void);
   onTogglePreview: (callback: () => void) => (() => void);
   onCaptureScreenshot: (callback: () => void) => (() => void);
+
+  // Remote control (mobile companion)
+  getRemoteStatus: () => Promise<RemoteStatus>;
+  regeneratePairingCode: () => Promise<string | null>;
+  setRemotePassword: (password: string) => Promise<boolean>;
+  getRemotePassword: () => Promise<string>;
+  setKeepAwake: (enabled: boolean) => Promise<boolean>;
+  getKeepAwake: () => Promise<boolean>;
+  onRemoteStatusChanged: (callback: (status: RemoteStatus) => void) => (() => void);
+  onRemoteTranscriptionRequest: (callback: (request: RemoteTranscriptionRequest) => void) => (() => void);
+  sendRemoteTranscriptionResult: (result: RemoteTranscriptionResult) => void;
+  onRemoteSwitchTab: (callback: (tabId: string) => void) => (() => void);
 }
 
 declare global {
@@ -176,5 +188,32 @@ export interface FileWatchResult {
 export interface ValidatePathResult {
   valid: boolean;
   absolutePath?: string;
+  error?: string;
+}
+
+// Remote control types
+export interface RemoteStatus {
+  running: boolean;
+  port: number;
+  pairingCode: string | null;
+  staticPassword: string | null;
+  hasStaticPassword: boolean;
+  addresses: string[];
+  connected: boolean;
+  deviceName: string | null;
+}
+
+export interface RemoteTranscriptionRequest {
+  requestId: string;
+  audioBase64: string;
+  tabId: string;
+  mode: 'agent' | 'raw';
+}
+
+export interface RemoteTranscriptionResult {
+  requestId: string;
+  success: boolean;
+  text?: string;
+  executed?: boolean;
   error?: string;
 }

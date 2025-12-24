@@ -5,6 +5,10 @@ const fs = require('fs');
 
 // node-pty will be loaded dynamically after app ready
 let pty = null;
+
+// Remote control server
+const { RemoteControlServer } = require('./websocket-server.cjs');
+let remoteServer = null;
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
 const terminalOutputBuffers = new Map(); // Map of tabId -> recent output (last ~2000 chars)
 const terminalCwds = new Map(); // Map of tabId -> current working directory
@@ -501,6 +505,11 @@ function spawnShell(tabId) {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('terminal-data', { tabId, data });
     }
+
+    // Forward to remote mobile client
+    if (remoteServer) {
+      remoteServer.sendTerminalData(tabId, data);
+    }
   });
 
   ptyProcess.onExit(({ exitCode, signal }) => {
@@ -812,6 +821,73 @@ function setupIPC() {
     }
   });
 
+  // Remote control status
+  ipcMain.handle('get-remote-status', async () => {
+    return remoteServer?.getStatus() || {
+      running: false,
+      port: 8765,
+      pairingCode: null,
+      addresses: [],
+      connected: false,
+      deviceName: null,
+    };
+  });
+
+  ipcMain.handle('regenerate-pairing-code', async () => {
+    if (remoteServer) {
+      return remoteServer.regeneratePairingCode();
+    }
+    return null;
+  });
+
+  // Set static password for remote access
+  ipcMain.handle('set-remote-password', async (_, password) => {
+    if (remoteServer) {
+      remoteServer.setStaticPassword(password);
+      // Save to electron-store
+      store.set('remotePassword', password || '');
+      return true;
+    }
+    return false;
+  });
+
+  // Get remote password
+  ipcMain.handle('get-remote-password', async () => {
+    return store.get('remotePassword', '');
+  });
+
+  // Keep-awake mode for remote access
+  let powerBlockerId = null;
+
+  ipcMain.handle('set-keep-awake', async (_, enabled) => {
+    const { powerSaveBlocker } = require('electron');
+
+    if (enabled && powerBlockerId === null) {
+      // Prevent display sleep and system sleep
+      powerBlockerId = powerSaveBlocker.start('prevent-display-sleep');
+      store.set('keepAwakeEnabled', true);
+      console.log('[AudioBash] Keep-awake enabled (power blocker ID:', powerBlockerId, ')');
+      return true;
+    } else if (!enabled && powerBlockerId !== null) {
+      powerSaveBlocker.stop(powerBlockerId);
+      powerBlockerId = null;
+      store.set('keepAwakeEnabled', false);
+      console.log('[AudioBash] Keep-awake disabled');
+      return false;
+    }
+    return enabled;
+  });
+
+  ipcMain.handle('get-keep-awake', async () => {
+    return store.get('keepAwakeEnabled', false);
+  });
+
+  // Remote transcription result (from renderer back to main)
+  ipcMain.on('remote-transcription-result', (event, result) => {
+    // This is handled by the promise in handleRemoteTranscription
+    // The event is emitted and caught by the handler registered there
+  });
+
   // Preview pane: Capture screenshot
   ipcMain.handle('capture-preview', async (_, url, cwd) => {
     const { clipboard, nativeImage, BrowserWindow: BW } = require('electron');
@@ -889,7 +965,72 @@ app.whenReady().then(() => {
   setupIPC();
   // Spawn initial shell with default tab ID
   spawnShell('tab-1');
+
+  // Start remote control server (auto-start)
+  remoteServer = new RemoteControlServer({
+    port: 8765,
+    ptyProcesses,
+    terminalOutputBuffers,
+    terminalCwds,
+    mainWindow,
+    transcribeAudio: handleRemoteTranscription,
+    onStatusChange: (status) => {
+      console.log('[RemoteControl] Status:', status.connected ? `Connected: ${status.deviceName}` : 'Waiting for connection');
+    },
+  });
+  remoteServer.start();
+
+  // Load saved static password for remote access
+  const savedRemotePassword = store.get('remotePassword', '');
+  if (savedRemotePassword) {
+    remoteServer.setStaticPassword(savedRemotePassword);
+  }
+
+  // Restore keep-awake setting
+  const keepAwakeEnabled = store.get('keepAwakeEnabled', false);
+  if (keepAwakeEnabled) {
+    const { powerSaveBlocker } = require('electron');
+    const blockerId = powerSaveBlocker.start('prevent-display-sleep');
+    console.log('[AudioBash] Keep-awake restored (power blocker ID:', blockerId, ')');
+  }
 });
+
+/**
+ * Handle audio transcription from remote mobile client
+ * This bridges the remote server to the renderer's transcription service
+ */
+async function handleRemoteTranscription(audioBuffer, tabId, mode) {
+  return new Promise((resolve) => {
+    // Send audio to renderer for transcription (reuses existing transcriptionService)
+    const requestId = `remote-${Date.now()}`;
+
+    const handler = (event, result) => {
+      if (result.requestId === requestId) {
+        ipcMain.removeListener('remote-transcription-result', handler);
+        resolve(result);
+      }
+    };
+    ipcMain.on('remote-transcription-result', handler);
+
+    // Send to renderer
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('remote-transcription-request', {
+        requestId,
+        audioBase64: audioBuffer.toString('base64'),
+        tabId,
+        mode,
+      });
+    } else {
+      resolve({ success: false, error: 'Main window not available' });
+    }
+
+    // Timeout after 30 seconds
+    setTimeout(() => {
+      ipcMain.removeListener('remote-transcription-result', handler);
+      resolve({ success: false, error: 'Transcription timeout' });
+    }, 30000);
+  });
+}
 
 app.on('window-all-closed', () => {
   // Don't quit on macOS
@@ -906,6 +1047,13 @@ app.on('activate', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+
+  // Stop WebSocket server
+  if (remoteServer) {
+    remoteServer.stop();
+    remoteServer = null;
+  }
+
   // Kill all PTY processes
   for (const [tabId, ptyProcess] of ptyProcesses) {
     ptyProcess.kill();
