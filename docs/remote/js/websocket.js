@@ -37,13 +37,29 @@ export class WebSocketManager {
       this.connectionParams = { ip, port, pairingCode, deviceName };
       this.isManualDisconnect = false;
 
+      // Validate IP format
+      if (!ip || !/^[\d.]+$/.test(ip)) {
+        reject(new Error('Invalid IP address format. Use format: 192.168.1.70 or 108.35.183.79'));
+        return;
+      }
+
       const url = `ws://${ip}:${port}`;
       console.log('[WS] Connecting to:', url);
+
+      // Check for mixed content issues (HTTPS page trying to use ws://)
+      if (window.location.protocol === 'https:' && !ip.startsWith('127.') && !ip.startsWith('localhost')) {
+        console.warn('[WS] Warning: HTTPS page connecting to ws:// - may be blocked by browser');
+      }
 
       try {
         this.ws = new WebSocket(url);
       } catch (err) {
-        reject(new Error('Invalid connection URL'));
+        console.error('[WS] WebSocket constructor failed:', err);
+        if (window.location.protocol === 'https:') {
+          reject(new Error('Connection blocked. Your browser blocks ws:// from HTTPS pages. Try opening this page with http:// instead, or use Chrome/Edge which may allow local connections.'));
+        } else {
+          reject(new Error('Invalid connection URL. Check the IP address format.'));
+        }
         return;
       }
 
