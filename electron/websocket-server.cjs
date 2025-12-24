@@ -1,15 +1,45 @@
 /**
  * WebSocket server for mobile remote control
  * Allows a phone to connect and control AudioBash terminals
+ * Supports both ws:// (local) and wss:// (secure) connections
  */
 
 const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
 const os = require('os');
+const https = require('https');
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+
+/**
+ * Generate a self-signed certificate for WSS
+ * Uses Node's built-in crypto module
+ */
+function generateSelfSignedCert() {
+  const { generateKeyPairSync, createSign } = require('crypto');
+
+  // Generate RSA key pair
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+  });
+
+  // Create a simple self-signed certificate
+  // This is a minimal implementation - for production, use proper CA
+  const now = new Date();
+  const oneYear = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+  // Export keys in PEM format
+  const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+  const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' });
+
+  return { privateKey: privateKeyPem, publicKey: publicKeyPem };
+}
 
 class RemoteControlServer {
   constructor(options = {}) {
     this.port = options.port || 8765;
+    this.securePort = options.securePort || 8766; // WSS port
     this.ptyProcesses = options.ptyProcesses;
     this.terminalOutputBuffers = options.terminalOutputBuffers;
     this.terminalCwds = options.terminalCwds;
@@ -17,8 +47,11 @@ class RemoteControlServer {
     this.transcribeAudio = options.transcribeAudio; // Function to transcribe audio
     this.onStatusChange = options.onStatusChange; // Callback for UI updates
     this.getStaticPassword = options.getStaticPassword; // Function to get saved static password
+    this.appDataPath = options.appDataPath; // Path to store certificates
 
     this.wss = null;
+    this.wssSecure = null; // Secure WebSocket server
+    this.httpsServer = null;
     this.connectedClient = null; // Single device only
     this.connectedDeviceName = null;
     this.sessionId = null;
@@ -88,7 +121,101 @@ class RemoteControlServer {
   }
 
   /**
-   * Start the WebSocket server
+   * Set up WebSocket connection handlers (shared between ws:// and wss://)
+   */
+  setupConnectionHandlers(ws, req) {
+    const clientIP = req.socket.remoteAddress;
+    console.log(`[RemoteControl] Connection attempt from: ${clientIP}`);
+
+    ws.isAlive = true;
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
+
+    ws.on('message', (data, isBinary) => {
+      this.resetInactivityTimeout();
+      this.handleMessage(ws, data, isBinary);
+    });
+
+    ws.on('close', () => {
+      this.handleDisconnect(ws);
+    });
+
+    ws.on('error', (err) => {
+      console.error('[RemoteControl] WebSocket error:', err.message);
+    });
+  }
+
+  /**
+   * Get or create SSL certificate for WSS
+   */
+  getOrCreateCertificate() {
+    // Use selfsigned package or generate with openssl
+    // For simplicity, we'll use Node's built-in TLS with a generated key
+    const certDir = this.appDataPath || os.tmpdir();
+    const keyPath = path.join(certDir, 'audiobash-key.pem');
+    const certPath = path.join(certDir, 'audiobash-cert.pem');
+
+    // Check if certificates exist
+    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+      try {
+        return {
+          key: fs.readFileSync(keyPath),
+          cert: fs.readFileSync(certPath),
+        };
+      } catch (err) {
+        console.warn('[RemoteControl] Failed to read existing certificates:', err.message);
+      }
+    }
+
+    // Generate new self-signed certificate using Node's crypto
+    console.log('[RemoteControl] Generating self-signed certificate...');
+
+    try {
+      // Use forge to create a proper self-signed certificate
+      // Since we don't have node-forge, we'll create a simple approach
+      const { execSync } = require('child_process');
+
+      // Try using openssl if available
+      try {
+        execSync(`openssl req -x509 -newkey rsa:2048 -keyout "${keyPath}" -out "${certPath}" -days 365 -nodes -subj "/CN=audiobash-local"`, {
+          stdio: 'pipe',
+          timeout: 10000,
+        });
+        console.log('[RemoteControl] Certificate generated with OpenSSL');
+        return {
+          key: fs.readFileSync(keyPath),
+          cert: fs.readFileSync(certPath),
+        };
+      } catch (opensslErr) {
+        console.warn('[RemoteControl] OpenSSL not available, using fallback');
+      }
+
+      // Fallback: Use the selfsigned package if installed, otherwise skip WSS
+      try {
+        const selfsigned = require('selfsigned');
+        const attrs = [{ name: 'commonName', value: 'audiobash-local' }];
+        const pems = selfsigned.generate(attrs, { days: 365 });
+
+        fs.writeFileSync(keyPath, pems.private);
+        fs.writeFileSync(certPath, pems.cert);
+
+        return {
+          key: pems.private,
+          cert: pems.cert,
+        };
+      } catch (selfsignedErr) {
+        console.warn('[RemoteControl] selfsigned package not available');
+        return null;
+      }
+    } catch (err) {
+      console.error('[RemoteControl] Failed to generate certificate:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Start the WebSocket server (both ws:// and wss://)
    */
   start() {
     if (this.wss) {
@@ -97,47 +224,56 @@ class RemoteControlServer {
     }
 
     try {
+      // Start regular WebSocket server (ws://)
       this.wss = new WebSocketServer({ port: this.port });
       this.generatePairingCode();
 
       this.wss.on('connection', (ws, req) => {
-        const clientIP = req.socket.remoteAddress;
-        console.log(`[RemoteControl] Connection attempt from: ${clientIP}`);
-
-        ws.isAlive = true;
-        ws.on('pong', () => {
-          ws.isAlive = true;
-        });
-
-        ws.on('message', (data, isBinary) => {
-          this.resetInactivityTimeout();
-          this.handleMessage(ws, data, isBinary);
-        });
-
-        ws.on('close', () => {
-          this.handleDisconnect(ws);
-        });
-
-        ws.on('error', (err) => {
-          console.error('[RemoteControl] WebSocket error:', err.message);
-        });
+        this.setupConnectionHandlers(ws, req);
       });
+
+      console.log(`[RemoteControl] WS server started on port ${this.port}`);
+
+      // Try to start secure WebSocket server (wss://)
+      const certs = this.getOrCreateCertificate();
+      if (certs) {
+        try {
+          this.httpsServer = https.createServer(certs);
+          this.wssSecure = new WebSocketServer({ server: this.httpsServer });
+
+          this.wssSecure.on('connection', (ws, req) => {
+            this.setupConnectionHandlers(ws, req);
+          });
+
+          this.httpsServer.listen(this.securePort, () => {
+            console.log(`[RemoteControl] WSS server started on port ${this.securePort}`);
+          });
+        } catch (wssErr) {
+          console.warn('[RemoteControl] Failed to start WSS server:', wssErr.message);
+        }
+      } else {
+        console.log('[RemoteControl] WSS not available (no certificate)');
+      }
 
       // Heartbeat to detect dead connections
       this.heartbeatInterval = setInterval(() => {
+        const checkClient = (ws) => {
+          if (ws.isAlive === false) {
+            console.log('[RemoteControl] Terminating unresponsive client');
+            return ws.terminate();
+          }
+          ws.isAlive = false;
+          ws.ping();
+        };
+
         if (this.wss) {
-          this.wss.clients.forEach((ws) => {
-            if (ws.isAlive === false) {
-              console.log('[RemoteControl] Terminating unresponsive client');
-              return ws.terminate();
-            }
-            ws.isAlive = false;
-            ws.ping();
-          });
+          this.wss.clients.forEach(checkClient);
+        }
+        if (this.wssSecure) {
+          this.wssSecure.clients.forEach(checkClient);
         }
       }, 30000);
 
-      console.log(`[RemoteControl] Server started on port ${this.port}`);
       this.notifyStatusChange();
 
       return this.getStatus();
@@ -163,6 +299,14 @@ class RemoteControlServer {
       this.wss.close();
       this.wss = null;
     }
+    if (this.wssSecure) {
+      this.wssSecure.close();
+      this.wssSecure = null;
+    }
+    if (this.httpsServer) {
+      this.httpsServer.close();
+      this.httpsServer = null;
+    }
     this.connectedClient = null;
     this.connectedDeviceName = null;
     this.sessionId = null;
@@ -177,6 +321,8 @@ class RemoteControlServer {
     return {
       running: !!this.wss,
       port: this.port,
+      securePort: this.wssSecure ? this.securePort : null, // Include secure port if available
+      hasSecure: !!this.wssSecure,
       pairingCode: this.pairingCode,
       staticPassword: this.staticPassword, // Include static password in status
       hasStaticPassword: !!this.staticPassword,

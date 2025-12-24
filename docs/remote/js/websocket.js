@@ -26,12 +26,12 @@ export class WebSocketManager {
   /**
    * Connect to the desktop WebSocket server
    * @param {string} ip - Desktop IP address
-   * @param {number} port - WebSocket port (default 8765)
+   * @param {number} port - WebSocket port (default 8766 for secure, 8765 for insecure)
    * @param {string} pairingCode - 6-character pairing code or static password
    * @param {string} deviceName - Name to identify this device
    * @returns {Promise<object>} Desktop info on success
    */
-  connect(ip, port = 8765, pairingCode, deviceName = 'Mobile Device') {
+  connect(ip, port = 8766, pairingCode, deviceName = 'Mobile Device') {
     return new Promise((resolve, reject) => {
       // Store params for reconnection
       this.connectionParams = { ip, port, pairingCode, deviceName };
@@ -43,23 +43,20 @@ export class WebSocketManager {
         return;
       }
 
-      const url = `ws://${ip}:${port}`;
-      console.log('[WS] Connecting to:', url);
+      // Use wss:// (secure) when on HTTPS page, ws:// otherwise
+      const isSecurePage = window.location.protocol === 'https:';
+      const protocol = isSecurePage ? 'wss' : 'ws';
+      // Default to secure port 8766 for wss://, 8765 for ws://
+      const effectivePort = port || (isSecurePage ? 8766 : 8765);
+      const url = `${protocol}://${ip}:${effectivePort}`;
 
-      // Check for mixed content issues (HTTPS page trying to use ws://)
-      if (window.location.protocol === 'https:' && !ip.startsWith('127.') && !ip.startsWith('localhost')) {
-        console.warn('[WS] Warning: HTTPS page connecting to ws:// - may be blocked by browser');
-      }
+      console.log('[WS] Connecting to:', url);
 
       try {
         this.ws = new WebSocket(url);
       } catch (err) {
         console.error('[WS] WebSocket constructor failed:', err);
-        if (window.location.protocol === 'https:') {
-          reject(new Error('Connection blocked. Your browser blocks ws:// from HTTPS pages. Try opening this page with http:// instead, or use Chrome/Edge which may allow local connections.'));
-        } else {
-          reject(new Error('Invalid connection URL. Check the IP address format.'));
-        }
+        reject(new Error(`Connection failed. Make sure AudioBash is running and port ${effectivePort} is forwarded.`));
         return;
       }
 

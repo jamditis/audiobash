@@ -195,6 +195,8 @@ export interface ValidatePathResult {
 export interface RemoteStatus {
   running: boolean;
   port: number;
+  securePort: number | null;
+  hasSecure: boolean;
   pairingCode: string | null;
   staticPassword: string | null;
   hasStaticPassword: boolean;

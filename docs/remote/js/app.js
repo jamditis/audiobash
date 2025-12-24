@@ -226,7 +226,9 @@ async function handleConnect() {
     const deviceName = getDeviceName();
 
     // Connect
-    const desktopInfo = await state.wsManager.connect(ip, 8765, code, deviceName);
+    // Use port 8766 for secure wss:// connections (HTTPS pages)
+    // The websocket.js will automatically use wss:// when on HTTPS
+    const desktopInfo = await state.wsManager.connect(ip, 8766, code, deviceName);
 
     // Save IP and code for next time (persistent password)
     saveConnection(ip, code);
