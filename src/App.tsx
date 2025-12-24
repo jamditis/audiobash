@@ -22,9 +22,17 @@ const App: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [autoSend, setAutoSend] = useState(true);
 
-  // Tab management state
+  // Tab management state - default title adapts to platform
+  const getDefaultShellName = () => {
+    // Navigator.platform is deprecated but works for this purpose
+    // On macOS it returns 'MacIntel' or 'MacARM', on Windows 'Win32'
+    const platform = navigator.platform?.toLowerCase() || '';
+    if (platform.includes('mac')) return 'Terminal';
+    if (platform.includes('linux')) return 'Terminal';
+    return 'PowerShell';
+  };
   const [tabs, setTabs] = useState<TerminalTab[]>([
-    { id: 'tab-1', title: 'PowerShell', isActive: true }
+    { id: 'tab-1', title: getDefaultShellName(), isActive: true }
   ]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
   const [tabCounter, setTabCounter] = useState(1);
@@ -150,7 +158,7 @@ const App: React.FC = () => {
           setTabCounter(c => c + 1);
           window.electron?.createTerminal(newTabId);
           setActiveTabId(newTabId);
-          return [{ id: newTabId, title: 'PowerShell', isActive: true }];
+          return [{ id: newTabId, title: getDefaultShellName(), isActive: true }];
         }
         // If active tab was closed, switch to another
         if (activeTabId === tabId) {
@@ -194,10 +202,11 @@ const App: React.FC = () => {
 
   // Listen for Alt+C to clear terminal
   useEffect(() => {
-    const handleClearTerminal = () => {
+    const handleClearTerminal = async () => {
       const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
-      // Send clear command based on OS
-      const clearCmd = process.platform === 'win32' ? 'cls' : 'clear';
+      // Get terminal context to determine OS, then send appropriate clear command
+      const context = await window.electron?.getTerminalContext(targetId);
+      const clearCmd = context?.os === 'windows' ? 'cls' : 'clear';
       window.electron?.sendToTerminal(targetId, clearCmd);
     };
     const cleanup = window.electron?.onClearTerminal(handleClearTerminal);
@@ -256,7 +265,7 @@ const App: React.FC = () => {
     if (result?.success) {
       setTabs(prev => [
         ...prev.map(t => ({ ...t, isActive: false })),
-        { id: newTabId, title: 'PowerShell', isActive: true }
+        { id: newTabId, title: getDefaultShellName(), isActive: true }
       ]);
       setActiveTabId(newTabId);
     }

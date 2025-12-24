@@ -32,9 +32,25 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 
 ## Installation
 
-Download the latest installer from [Releases](https://github.com/jamditis/audiobash/releases).
+### Windows
 
-Or build from source:
+Download the latest `.exe` installer from [Releases](https://github.com/jamditis/audiobash/releases).
+
+### macOS
+
+Download the `.dmg` from [Releases](https://github.com/jamditis/audiobash/releases), or build locally:
+
+```bash
+git clone https://github.com/jamditis/audiobash.git
+cd audiobash
+npm install
+npm run electron:build:mac:arm64   # Apple Silicon (M1/M2/M3/M4)
+npm run electron:build:mac:x64     # Intel Macs
+```
+
+**Note:** The macOS build is unsigned. On first launch, right-click the app and select "Open" to bypass Gatekeeper. See [macOS build guide](docs/MACOS_BUILD.md) for details.
+
+### Build from source (any platform)
 
 ```bash
 git clone https://github.com/jamditis/audiobash.git
@@ -45,8 +61,8 @@ npm run electron:build
 
 ## Usage
 
-1. **Launch AudioBash** - The app starts with a PowerShell terminal
-2. **Press Alt+S** - Opens the voice panel and starts recording
+1. **Launch AudioBash** - The app starts with your default shell (PowerShell on Windows, zsh on macOS)
+2. **Press Alt+S** (or Option+S on Mac) - Opens the voice panel and starts recording
 3. **Speak your command** - e.g., "list all files in the current directory"
 4. **Press Alt+S again** - Transcription is sent to the terminal
 

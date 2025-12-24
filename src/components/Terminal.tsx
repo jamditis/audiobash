@@ -188,23 +188,33 @@ const Terminal: React.FC<TerminalProps> = ({
   useEffect(() => {
     if (!terminalRef.current) return;
 
+    let resizeTimeout: NodeJS.Timeout | null = null;
     const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current && xtermRef.current) {
-        setTimeout(() => {
+      // Debounce resize events to prevent excessive calls
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (fitAddonRef.current && xtermRef.current) {
           try {
-            fitAddonRef.current?.fit();
-            if (xtermRef.current) {
+            const container = terminalRef.current;
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            // Only fit if container has valid dimensions
+            if (rect.width > 0 && rect.height > 0) {
+              fitAddonRef.current.fit();
               window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
             }
           } catch (err) {
             // Ignore fit errors during resize
           }
-        }, 50);
-      }
+        }
+      }, 100); // Increased debounce for stability
     });
 
     resizeObserver.observe(terminalRef.current);
-    return () => resizeObserver.disconnect();
+    return () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeObserver.disconnect();
+    };
   }, [tabId]);
 
   // Focus terminal when clicked (also notify parent in split view)

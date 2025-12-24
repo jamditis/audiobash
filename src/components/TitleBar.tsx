@@ -34,10 +34,15 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
         </span>
       </div>
 
-      {/* Status */}
+      {/* Status - shows platform-appropriate shell name */}
       <div className="flex-1 flex justify-center">
         <span className="text-[10px] text-crt-white/30 font-mono uppercase tracking-wider">
-          PowerShell
+          {(() => {
+            const platform = navigator.platform?.toLowerCase() || '';
+            if (platform.includes('mac')) return 'Terminal';
+            if (platform.includes('linux')) return 'Terminal';
+            return 'PowerShell';
+          })()}
         </span>
       </div>
 
