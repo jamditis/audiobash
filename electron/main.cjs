@@ -9,6 +9,43 @@ let pty = null;
 // Remote control server
 const { RemoteControlServer } = require('./websocket-server.cjs');
 let remoteServer = null;
+
+// Tunnel service
+const { TunnelService } = require('./tunnelService.cjs');
+let tunnelService = null;
+
+// Whisper service for local transcription
+const whisperService = require('./whisperService.cjs');
+
+// Simple persistent storage (replacement for electron-store)
+const storeFilePath = path.join(app.getPath('userData'), 'app-store.json');
+const store = {
+  data: {},
+  load() {
+    try {
+      if (fs.existsSync(storeFilePath)) {
+        this.data = JSON.parse(fs.readFileSync(storeFilePath, 'utf8'));
+      }
+    } catch (err) {
+      console.error('[Store] Failed to load:', err);
+    }
+  },
+  save() {
+    try {
+      fs.writeFileSync(storeFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (err) {
+      console.error('[Store] Failed to save:', err);
+    }
+  },
+  get(key, defaultValue) {
+    return this.data[key] !== undefined ? this.data[key] : defaultValue;
+  },
+  set(key, value) {
+    this.data[key] = value;
+    this.save();
+  }
+};
+store.load();
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
 const terminalOutputBuffers = new Map(); // Map of tabId -> recent output (last ~2000 chars)
 const terminalCwds = new Map(); // Map of tabId -> current working directory
@@ -888,6 +925,138 @@ function setupIPC() {
     // The event is emitted and caught by the handler registered there
   });
 
+  // Whisper local transcription
+  ipcMain.handle('whisper-transcribe', async (_, audioPath) => {
+    try {
+      const result = await whisperService.transcribe(audioPath);
+      return result;
+    } catch (err) {
+      console.error('[AudioBash] Whisper transcription error:', err);
+      return { text: '', error: err.message };
+    }
+  });
+
+  ipcMain.handle('whisper-set-model', async (_, modelName) => {
+    try {
+      whisperService.setModel(modelName);
+      return { success: true, model: modelName };
+    } catch (err) {
+      console.error('[AudioBash] Whisper set model error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('whisper-get-models', async () => {
+    try {
+      const models = whisperService.getAvailableModels();
+      const currentModel = whisperService.getModel();
+      return { success: true, models, currentModel };
+    } catch (err) {
+      console.error('[AudioBash] Whisper get models error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('save-temp-audio', async (_, base64Audio) => {
+    try {
+      const tempDir = path.join(app.getPath('temp'), 'audiobash');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const filename = `audio-${Date.now()}.webm`;
+      const filepath = path.join(tempDir, filename);
+
+      // Convert base64 to buffer and save
+      const buffer = Buffer.from(base64Audio, 'base64');
+      fs.writeFileSync(filepath, buffer);
+
+      console.log(`[AudioBash] Saved temp audio: ${filepath} (${buffer.length} bytes)`);
+      return { success: true, path: filepath };
+    } catch (err) {
+      console.error('[AudioBash] Save temp audio error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Tunnel service handlers
+  ipcMain.handle('tunnel-start', async (_, port) => {
+    try {
+      if (!tunnelService) {
+        console.error('[AudioBash] Tunnel service not initialized');
+        return { success: false, error: 'Tunnel service not available' };
+      }
+      await tunnelService.start(port || 8765);
+      return { success: true, status: tunnelService.getStatus() };
+    } catch (err) {
+      console.error('[AudioBash] Tunnel start error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('tunnel-stop', async () => {
+    try {
+      if (!tunnelService) {
+        return { success: false, error: 'Tunnel service not available' };
+      }
+      tunnelService.stop();
+      return { success: true };
+    } catch (err) {
+      console.error('[AudioBash] Tunnel stop error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('tunnel-status', async () => {
+    try {
+      if (!tunnelService) {
+        return {
+          status: 'disconnected',
+          tunnelUrl: null,
+          subdomain: null,
+          error: 'Tunnel service not initialized'
+        };
+      }
+      return tunnelService.getStatus();
+    } catch (err) {
+      console.error('[AudioBash] Tunnel status error:', err);
+      return {
+        status: 'error',
+        error: err.message
+      };
+    }
+  });
+
+  ipcMain.handle('tunnel-check-binary', async () => {
+    try {
+      if (!tunnelService) {
+        return {
+          available: false,
+          path: null,
+          message: 'Tunnel service not initialized'
+        };
+      }
+      return tunnelService.checkBinary();
+    } catch (err) {
+      console.error('[AudioBash] Tunnel check binary error:', err);
+      return {
+        available: false,
+        path: null,
+        message: err.message
+      };
+    }
+  });
+
+  // Save tunnel enabled preference
+  ipcMain.handle('set-tunnel-enabled', async (_, enabled) => {
+    store.set('tunnelEnabled', enabled);
+    return true;
+  });
+
+  ipcMain.handle('get-tunnel-enabled', async () => {
+    return store.get('tunnelEnabled', false);
+  });
+
   // Preview pane: Capture screenshot
   ipcMain.handle('capture-preview', async (_, url, cwd) => {
     const { clipboard, nativeImage, BrowserWindow: BW } = require('electron');
@@ -993,6 +1162,23 @@ app.whenReady().then(() => {
     const blockerId = powerSaveBlocker.start('prevent-display-sleep');
     console.log('[AudioBash] Keep-awake restored (power blocker ID:', blockerId, ')');
   }
+
+  // Initialize tunnel service
+  tunnelService = new TunnelService();
+  tunnelService.onStatusChange = (status) => {
+    console.log('[TunnelService] Status:', status.status, status.tunnelUrl || '');
+    // Notify renderer of status change
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tunnel-status-changed', status);
+    }
+  };
+
+  // Auto-start tunnel if enabled
+  const tunnelEnabled = store.get('tunnelEnabled', false);
+  if (tunnelEnabled) {
+    console.log('[AudioBash] Auto-starting tunnel (saved preference)');
+    tunnelService.start(8765);
+  }
 });
 
 /**
@@ -1047,6 +1233,12 @@ app.on('activate', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+
+  // Stop tunnel
+  if (tunnelService) {
+    tunnelService.stop();
+    tunnelService = null;
+  }
 
   // Stop WebSocket server
   if (remoteServer) {

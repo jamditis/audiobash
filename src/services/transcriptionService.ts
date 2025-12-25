@@ -48,7 +48,10 @@ export type ModelId =
   | 'claude-sonnet'
   | 'claude-haiku'
   | 'elevenlabs-scribe'
-  | 'parakeet-local';
+  | 'parakeet-local'
+  | 'whisper-local-tiny'
+  | 'whisper-local-base'
+  | 'whisper-local-small';
 
 export interface ModelInfo {
   id: ModelId;
@@ -67,6 +70,9 @@ export const MODELS: ModelInfo[] = [
   { id: 'claude-haiku', name: 'Whisper + Claude Haiku', provider: 'anthropic', description: 'Whisper → Claude Haiku (faster)', supportsAgent: true },
   { id: 'elevenlabs-scribe', name: 'ElevenLabs Scribe', provider: 'elevenlabs', description: 'High-quality speech-to-text', supportsAgent: false },
   { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
+  { id: 'whisper-local-tiny', name: 'Whisper Local (Tiny)', provider: 'local', description: '75 MB, fastest, offline', supportsAgent: false },
+  { id: 'whisper-local-base', name: 'Whisper Local (Base)', provider: 'local', description: '142 MB, balanced, offline', supportsAgent: false },
+  { id: 'whisper-local-small', name: 'Whisper Local (Small)', provider: 'local', description: '466 MB, best accuracy, offline', supportsAgent: false },
 ];
 
 // Build vocabulary section for prompts
@@ -285,7 +291,12 @@ export class TranscriptionService {
       case 'elevenlabs':
         return this.transcribeWithElevenLabs(audioBlob, durationMs);
       case 'local':
-        return this.transcribeLocal(audioBlob);
+        // Check if it's a Whisper local model or Parakeet local
+        if (modelId.startsWith('whisper-local-')) {
+          return this.transcribeLocalWhisper(audioBlob, modelId);
+        } else {
+          return this.transcribeLocal(audioBlob);
+        }
       default:
         throw new Error(`Unsupported provider: ${modelInfo.provider}`);
     }
@@ -500,6 +511,47 @@ export class TranscriptionService {
       return { text: data.text || "", cost: "$0.00 (Local)" };
     } catch (e: any) {
       throw new Error("Local Parakeet error: " + e.message);
+    }
+  }
+
+  private async transcribeLocalWhisper(blob: Blob, modelId: ModelId): Promise<TranscribeResult> {
+    try {
+      // Map model ID to Whisper model name
+      const modelMap: Record<string, string> = {
+        'whisper-local-tiny': 'tiny.en',
+        'whisper-local-base': 'base.en',
+        'whisper-local-small': 'small.en',
+      };
+
+      const whisperModel = modelMap[modelId];
+      if (!whisperModel) {
+        throw new Error(`Unknown Whisper model: ${modelId}`);
+      }
+
+      // Set the model via IPC
+      await window.electron.whisperSetModel(whisperModel);
+
+      // Convert blob to base64
+      const base64Audio = await blobToBase64(blob);
+
+      // Save audio to temp file via IPC
+      const saveResult = await window.electron.saveTempAudio(base64Audio);
+      if (!saveResult.success || !saveResult.path) {
+        throw new Error(saveResult.error || 'Failed to save temp audio file');
+      }
+
+      // Transcribe via IPC
+      const result = await window.electron.whisperTranscribe(saveResult.path);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      return {
+        text: result.text || "",
+        cost: "$0.00 (Local)"
+      };
+    } catch (e: any) {
+      throw new Error("Local Whisper error: " + e.message);
     }
   }
 }

@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { transcriptionService, ModelId, MODELS } from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
+import { useVAD } from '../hooks/useVAD';
+import { float32ToWebmBlob } from '../utils/audioConversion';
 
 interface VoiceOverlayProps {
   isOpen: boolean;
@@ -69,10 +71,86 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [error, setError] = useState<string | null>(null);
 
+  // Recording mode state
+  type RecordingMode = 'manual' | 'vad' | 'continuous';
+  const [recordingMode, setRecordingMode] = useState<RecordingMode>(() => {
+    const saved = localStorage.getItem('audiobash-recording-mode');
+    return (saved as RecordingMode) || 'manual';
+  });
+
+  // VAD hook for auto-stop and continuous modes
+  const vadStopRef = useRef<(() => void) | null>(null);
+  const recordingModeRef = useRef(recordingMode);
+
+  useEffect(() => {
+    recordingModeRef.current = recordingMode;
+  }, [recordingMode]);
+
+  const handleVADSpeechStart = useCallback(() => {
+    console.log('[VoiceOverlay] VAD detected speech start');
+  }, []);
+
+  const handleVADSpeechEnd = useCallback(async (audioFloat32: Float32Array) => {
+    console.log('[VoiceOverlay] VAD detected speech end, processing audio');
+    setStatus('processing');
+
+    try {
+      // Convert Float32Array to WebM Blob
+      const audioBlob = await float32ToWebmBlob(audioFloat32);
+      const durationMs = (audioFloat32.length / 16000) * 1000; // VAD uses 16kHz
+
+      // Fetch terminal context before transcription (for agent mode)
+      if (mode === 'agent') {
+        const context = await window.electron?.getTerminalContext(activeTabId);
+        if (context) {
+          transcriptionService.setTerminalContext(context);
+        }
+      }
+
+      const result = await transcriptionService.transcribeAudio(audioBlob, mode, model, durationMs);
+      if (result.text) {
+        onTranscript(result.text, mode);
+        audioFeedback.playSuccess();
+      }
+
+      // In continuous mode, restart VAD after processing
+      if (recordingModeRef.current === 'continuous') {
+        setStatus('recording');
+        // VAD will automatically continue listening
+      } else {
+        // In vad mode, stop after processing
+        setStatus('idle');
+        setIsRecording(false);
+        vadStopRef.current?.();
+      }
+    } catch (err: any) {
+      setError(err.message);
+      audioFeedback.playError();
+      setStatus('idle');
+      setIsRecording(false);
+      vadStopRef.current?.();
+    }
+  }, [mode, model, activeTabId, onTranscript, setIsRecording]);
+
+  const vadInstance = useVAD({
+    onSpeechStart: handleVADSpeechStart,
+    onSpeechEnd: handleVADSpeechEnd,
+  });
+
+  // Store VAD stop function in ref
+  useEffect(() => {
+    vadStopRef.current = vadInstance.stop;
+  }, [vadInstance.stop]);
+
   // Keep ref in sync with prop
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
+
+  // Save recording mode to localStorage
+  useEffect(() => {
+    localStorage.setItem('audiobash-recording-mode', recordingMode);
+  }, [recordingMode]);
 
   // Load settings and API keys
   useEffect(() => {
@@ -179,6 +257,29 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
 
     try {
       setError(null);
+
+      // Use VAD for 'vad' and 'continuous' modes
+      if (recordingMode === 'vad' || recordingMode === 'continuous') {
+        await vadInstance.start();
+        setIsRecording(true);
+        setStatus('recording');
+        audioFeedback.playStart();
+
+        // Set up analyser for visualization (VAD doesn't provide this)
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        return;
+      }
+
+      // Manual mode: use existing MediaRecorder flow
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
@@ -246,25 +347,49 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       setError('Microphone access denied');
       audioFeedback.playError();
     }
-  }, [mode, model, hasApiKey, onTranscript, setIsRecording]);
+  }, [mode, model, hasApiKey, onTranscript, setIsRecording, recordingMode, vadInstance]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+    // Stop VAD if using vad or continuous mode
+    if (recordingMode === 'vad' || recordingMode === 'continuous') {
+      vadInstance.stop();
       audioFeedback.playStop();
+
+      // Clean up visualizer
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      analyserRef.current = null;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    } else {
+      // Manual mode: stop MediaRecorder
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        audioFeedback.playStop();
+      }
     }
     setIsRecording(false);
-  }, [setIsRecording]);
+  }, [setIsRecording, recordingMode, vadInstance]);
 
   // Cancel recording - stops without processing/sending
   const cancelRecording = useCallback(() => {
     if (!isRecordingRef.current) return;
 
-    // Stop the media recorder without triggering onstop processing
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      // Remove the onstop handler temporarily to prevent transcription
-      mediaRecorderRef.current.onstop = null;
-      mediaRecorderRef.current.stop();
+    // Stop VAD if using vad or continuous mode
+    if (recordingMode === 'vad' || recordingMode === 'continuous') {
+      vadInstance.stop();
+    } else {
+      // Stop the media recorder without triggering onstop processing
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        // Remove the onstop handler temporarily to prevent transcription
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.stop();
+      }
+      chunksRef.current = [];
     }
 
     // Clean up audio resources
@@ -277,14 +402,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
-    chunksRef.current = [];
 
     setIsRecording(false);
     setStatus('idle');
     audioFeedback.playError(); // Play error/cancel sound
     setError('Recording cancelled');
     setTimeout(() => setError(null), 2000);
-  }, [setIsRecording]);
+  }, [setIsRecording, recordingMode, vadInstance]);
 
   const toggleRecording = useCallback(() => {
     if (isRecordingRef.current) {
@@ -347,13 +471,17 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         </div>
 
         {/* Visualizer */}
-        <div className="p-3">
+        <div className="p-3 relative">
           <canvas
             ref={canvasRef}
             width={280}
             height={50}
             className="w-full rounded border border-void-300"
           />
+          {/* Speaking indicator - shows when VAD detects speech */}
+          {vadInstance.isSpeaking && (
+            <div className="absolute top-5 right-5 w-2 h-2 bg-crt-green rounded-full animate-pulse" />
+          )}
         </div>
 
         {/* Mic Button & Status */}
@@ -387,15 +515,17 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
               {status === 'processing' && 'Processing...'}
             </div>
             <div className="text-[10px] text-crt-white/30 mt-0.5">
-              {status === 'recording' ? 'Alt+S send · Alt+A cancel' : 'Alt+S to start'}
+              {status === 'recording'
+                ? (recordingMode === 'manual' ? 'Alt+S send · Alt+A cancel' : 'Speak now · Alt+A cancel')
+                : 'Alt+S to start'}
             </div>
           </div>
         </div>
 
         {/* Error */}
-        {error && (
+        {(error || vadInstance.vadError) && (
           <div className="mx-3 mb-3 p-2 bg-accent/10 border border-accent/30 rounded">
-            <p className="text-[10px] text-accent font-mono">{error}</p>
+            <p className="text-[10px] text-accent font-mono">{error || vadInstance.vadError}</p>
           </div>
         )}
 
@@ -425,6 +555,45 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           </div>
           <div className="text-[9px] text-crt-white/20 mt-1 text-center">
             {mode === 'agent' ? 'Converts speech to CLI commands' : 'Verbatim transcription'}
+          </div>
+
+          {/* Recording Mode Selector */}
+          <div className="flex gap-1 mt-3 justify-center">
+            <button
+              onClick={() => setRecordingMode('manual')}
+              className={`px-2 py-1 text-[9px] font-mono uppercase border rounded transition-colors ${
+                recordingMode === 'manual'
+                  ? 'bg-void-300 border-accent/50 text-accent'
+                  : 'border-void-300 text-crt-white/30 hover:border-crt-white/20'
+              }`}
+            >
+              Manual
+            </button>
+            <button
+              onClick={() => setRecordingMode('vad')}
+              className={`px-2 py-1 text-[9px] font-mono uppercase border rounded transition-colors ${
+                recordingMode === 'vad'
+                  ? 'bg-void-300 border-accent/50 text-accent'
+                  : 'border-void-300 text-crt-white/30 hover:border-crt-white/20'
+              }`}
+            >
+              Auto-Stop
+            </button>
+            <button
+              onClick={() => setRecordingMode('continuous')}
+              className={`px-2 py-1 text-[9px] font-mono uppercase border rounded transition-colors ${
+                recordingMode === 'continuous'
+                  ? 'bg-void-300 border-accent/50 text-accent'
+                  : 'border-void-300 text-crt-white/30 hover:border-crt-white/20'
+              }`}
+            >
+              Continuous
+            </button>
+          </div>
+          <div className="text-[9px] text-crt-white/20 mt-1 text-center">
+            {recordingMode === 'manual' && 'Manual start/stop (Alt+S)'}
+            {recordingMode === 'vad' && 'Auto-stop when you finish speaking'}
+            {recordingMode === 'continuous' && 'Keeps listening after each command'}
           </div>
         </div>
 
