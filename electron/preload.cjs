@@ -134,6 +134,12 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('capture-screenshot', handler);
   },
 
+  // Whisper local transcription
+  whisperTranscribe: (audioPath) => ipcRenderer.invoke('whisper-transcribe', audioPath),
+  whisperSetModel: (modelName) => ipcRenderer.invoke('whisper-set-model', modelName),
+  whisperGetModels: () => ipcRenderer.invoke('whisper-get-models'),
+  saveTempAudio: (base64Audio) => ipcRenderer.invoke('save-temp-audio', base64Audio),
+
   // Remote control (mobile companion)
   getRemoteStatus: () => ipcRenderer.invoke('get-remote-status'),
   regeneratePairingCode: () => ipcRenderer.invoke('regenerate-pairing-code'),
@@ -158,5 +164,18 @@ contextBridge.exposeInMainWorld('electron', {
     const handler = (_, tabId) => callback(tabId);
     ipcRenderer.on('remote-switch-tab', handler);
     return () => ipcRenderer.removeListener('remote-switch-tab', handler);
+  },
+
+  // Tunnel service (tunnelto)
+  tunnelStart: (port) => ipcRenderer.invoke('tunnel-start', port),
+  tunnelStop: () => ipcRenderer.invoke('tunnel-stop'),
+  tunnelGetStatus: () => ipcRenderer.invoke('tunnel-status'),
+  tunnelCheckBinary: () => ipcRenderer.invoke('tunnel-check-binary'),
+  setTunnelEnabled: (enabled) => ipcRenderer.invoke('set-tunnel-enabled', enabled),
+  getTunnelEnabled: () => ipcRenderer.invoke('get-tunnel-enabled'),
+  onTunnelStatusChanged: (callback) => {
+    const handler = (_, status) => callback(status);
+    ipcRenderer.on('tunnel-status-changed', handler);
+    return () => ipcRenderer.removeListener('tunnel-status-changed', handler);
   },
 });

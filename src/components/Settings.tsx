@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
 import { useTheme } from '../themes';
 import { Shortcuts } from '../types';
+import TunnelStatus from './TunnelStatus';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -777,6 +778,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               </div>
             </div>
           </div>
+
+          {/* Tunnel Service (Public Access) */}
+          <TunnelStatus />
 
           {/* Custom Instructions Section */}
           <div className="space-y-3">

@@ -131,6 +131,12 @@ export interface ElectronAPI {
   onTogglePreview: (callback: () => void) => (() => void);
   onCaptureScreenshot: (callback: () => void) => (() => void);
 
+  // Whisper local transcription
+  whisperTranscribe: (audioPath: string) => Promise<WhisperTranscribeResult>;
+  whisperSetModel: (modelName: string) => Promise<WhisperSetModelResult>;
+  whisperGetModels: () => Promise<WhisperGetModelsResult>;
+  saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
+
   // Remote control (mobile companion)
   getRemoteStatus: () => Promise<RemoteStatus>;
   regeneratePairingCode: () => Promise<string | null>;
@@ -142,6 +148,15 @@ export interface ElectronAPI {
   onRemoteTranscriptionRequest: (callback: (request: RemoteTranscriptionRequest) => void) => (() => void);
   sendRemoteTranscriptionResult: (result: RemoteTranscriptionResult) => void;
   onRemoteSwitchTab: (callback: (tabId: string) => void) => (() => void);
+
+  // Tunnel service (tunnelto)
+  tunnelStart: (port?: number) => Promise<TunnelStartResult>;
+  tunnelStop: () => Promise<{ success: boolean; error?: string }>;
+  tunnelGetStatus: () => Promise<TunnelStatus>;
+  tunnelCheckBinary: () => Promise<TunnelBinaryCheck>;
+  setTunnelEnabled: (enabled: boolean) => Promise<boolean>;
+  getTunnelEnabled: () => Promise<boolean>;
+  onTunnelStatusChanged: (callback: (status: TunnelStatus) => void) => (() => void);
 }
 
 declare global {
@@ -218,4 +233,57 @@ export interface RemoteTranscriptionResult {
   text?: string;
   executed?: boolean;
   error?: string;
+}
+
+// Whisper local transcription types
+export interface WhisperTranscribeResult {
+  text: string;
+  error?: string;
+}
+
+export interface WhisperSetModelResult {
+  success: boolean;
+  model?: string;
+  error?: string;
+}
+
+export interface WhisperModelInfo {
+  id: string;
+  size: string;
+  speed: string;
+  accuracy: string;
+  description: string;
+}
+
+export interface WhisperGetModelsResult {
+  success: boolean;
+  models?: WhisperModelInfo[];
+  currentModel?: string;
+  error?: string;
+}
+
+export interface SaveTempAudioResult {
+  success: boolean;
+  path?: string;
+  error?: string;
+}
+
+// Tunnel service types
+export interface TunnelStatus {
+  status: 'disconnected' | 'connecting' | 'connected' | 'error';
+  tunnelUrl: string | null;
+  subdomain: string | null;
+  error: string | null;
+}
+
+export interface TunnelStartResult {
+  success: boolean;
+  status?: TunnelStatus;
+  error?: string;
+}
+
+export interface TunnelBinaryCheck {
+  available: boolean;
+  path: string | null;
+  message: string;
 }
