@@ -314,6 +314,35 @@ interface EnhancedContext extends TerminalContext {
 
 ---
 
+## Remote Access / Tunneling
+
+For mobile remote control from outside the local network, these tools can expose the local WebSocket server:
+
+| Tool | License | Self-Host | Notes |
+|------|---------|-----------|-------|
+| [tunnelto](https://github.com/agrinman/tunnelto) | MIT | Yes | Rust-based, custom subdomains, recommended |
+| [ngrok](https://ngrok.com/) | Proprietary | No | Commercial, rate-limited free tier |
+| [cloudflared](https://github.com/cloudflare/cloudflared) | Apache 2.0 | No | Requires Cloudflare account |
+| [bore](https://github.com/ekzhang/bore) | MIT | Yes | Simple, minimal features |
+| [localtunnel](https://github.com/localtunnel/localtunnel) | MIT | Yes | Node.js based |
+
+### tunnelto Integration Pattern
+
+```bash
+# Expose AudioBash WebSocket server
+tunnelto --port 8765 --subdomain audiobash-user123
+
+# Results in: wss://audiobash-user123.tunnelto.dev
+```
+
+**Benefits for AudioBash:**
+- Works from any network (not just local WiFi)
+- Valid HTTPS certificates (no browser warnings)
+- Memorable URLs for easy mobile connection
+- QR code can encode full connection URL
+
+---
+
 ## Resources
 
 ### Curated Lists

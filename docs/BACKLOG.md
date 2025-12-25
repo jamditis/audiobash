@@ -307,9 +307,78 @@ Goal: Make agent mode smarter and more reliable.
 
 ---
 
-## Phase 8: Integration & Extensibility (P3)
+## Phase 8: Remote Access Improvements (P2)
 
-### 8.1 VS Code Extension
+Goal: Enable remote control from anywhere, not just local network.
+
+### 8.1 Tunnel Integration (tunnelto)
+- **Status**: 🔴 Not Started
+- **Effort**: Medium (1-2 days)
+- **Dependencies**: None
+
+**Problem**: Current remote control requires same WiFi network, manual IP entry.
+
+**Solution**: Integrate [tunnelto](https://github.com/agrinman/tunnelto) for public URL access.
+
+**Tasks:**
+- [ ] Bundle tunnelto binary or use as optional download
+- [ ] Add "Enable Remote Access" toggle in Settings
+- [ ] Generate unique subdomain per user/session
+- [ ] Display QR code with tunnel URL for easy mobile scanning
+- [ ] Add tunnel status indicator
+- [ ] Handle tunnel reconnection on network changes
+- [ ] Optional: Self-hosted tunnel server for enterprise
+
+**Architecture:**
+```
+Mobile (anywhere) → wss://user123.tunnelto.dev → tunnelto client → localhost:8765
+```
+
+**Benefits:**
+- Works from any network (coffee shop, different WiFi, cellular)
+- Valid HTTPS (no certificate warnings)
+- Memorable URLs instead of IP addresses
+- QR code scanning for instant connection
+
+**Security Considerations:**
+- Tunnel URL should be ephemeral (regenerate on restart)
+- Keep pairing code requirement
+- Add optional tunnel password
+- Rate limiting on connection attempts
+
+**Alternatives Evaluated:**
+- ngrok - Commercial, rate limited free tier
+- cloudflared - Requires Cloudflare account
+- bore - Simpler but less features
+- tunnelto - MIT licensed, self-hostable, Rust-based
+
+### 8.2 QR Code Connection
+- **Status**: 🔴 Not Started
+- **Effort**: Low (0.5 days)
+- **Dependencies**: 8.1
+
+**Tasks:**
+- [ ] Generate QR code containing tunnel URL + pairing code
+- [ ] Display QR in Settings panel
+- [ ] Mobile app scans QR to auto-connect
+- [ ] Deep link support: `audiobash://connect?url=...&code=...`
+
+### 8.3 Connection Persistence
+- **Status**: 🔴 Not Started
+- **Effort**: Low (0.5 days)
+- **Dependencies**: 8.1
+
+**Tasks:**
+- [ ] Save last tunnel URL for reconnection
+- [ ] Auto-reconnect on app restart
+- [ ] Mobile remembers paired desktops
+- [ ] Multi-desktop support (home/work)
+
+---
+
+## Phase 9: Integration & Extensibility (P3)
+
+### 9.1 VS Code Extension
 - **Status**: 🔴 Not Started
 - **Effort**: High (3-5 days)
 - **Dependencies**: Core features stable
@@ -320,7 +389,7 @@ Goal: Make agent mode smarter and more reliable.
 - [ ] Voice commands for VS Code actions
 - [ ] Insert transcripts at cursor
 
-### 8.2 Plugin System
+### 9.2 Plugin System
 - **Status**: 🔴 Not Started
 - **Effort**: High (5+ days)
 - **Dependencies**: Core architecture stable
@@ -331,7 +400,7 @@ Goal: Make agent mode smarter and more reliable.
 - [ ] Custom transcription providers
 - [ ] Custom post-processors
 
-### 8.3 API/CLI Mode
+### 9.3 API/CLI Mode
 - **Status**: 🔴 Not Started
 - **Effort**: Medium (2 days)
 - **Dependencies**: 1.1
@@ -383,6 +452,11 @@ Goal: Make agent mode smarter and more reliable.
 - Enhanced terminal context (3.1)
 - Project context detection (3.2)
 - Vocabulary management UI (4.1)
+
+### v1.6.0 - Remote Anywhere
+- Tunnel integration with tunnelto (8.1)
+- QR code connection (8.2)
+- Connection persistence (8.3)
 
 ### v2.0.0 - Smart Agent
 - Continuous recording mode (2.2)
