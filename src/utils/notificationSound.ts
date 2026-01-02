@@ -72,34 +72,47 @@ export function playNotificationSound(): void {
 }
 
 // Patterns that indicate CLI tools are waiting for input/approval
-// These patterns match common CLI tool prompts
+// These patterns are designed to match ACTUAL prompts, not just mentions in text
+// Key insight: Real prompts appear at the END of output and have specific formats
 const CLI_INPUT_PATTERNS = [
-  // Claude Code patterns
-  /Do you want to proceed\?/i,
-  /Allow .+ to .+\?/i,
-  /\[Y\/n\]/i,
-  /\[y\/N\]/i,
-  /Press Enter to continue/i,
-  /Waiting for .+ approval/i,
-  /approve|reject|confirm/i,
-  // Generic y/n prompts
-  /\(y\/n\)/i,
-  /\(yes\/no\)/i,
-  // Generic input prompts
-  /Enter .+ to continue/i,
-  /Press any key/i,
-  // Git prompts
-  /Are you sure you want to/i,
-  // npm/yarn prompts
-  /Ok to proceed\?/i,
-  /Is this OK\?/i,
+  // Claude Code specific prompts - these have very specific formats
+  // The [Y/n] or (y/n) at the END is the key indicator of an actual prompt
+  /\[Y\/n\]\s*$/i,  // Prompt ending with [Y/n]
+  /\[y\/N\]\s*$/i,  // Prompt ending with [y/N]
+  /\(y\/n\)\s*$/i,  // Prompt ending with (y/n)
+  /\(yes\/no\)\s*$/i,  // Prompt ending with (yes/no)
+
+  // Claude Code tool permission prompts - very specific format
+  /Allow .+\? \[Y\/n\]/i,
+  /Do you want to proceed\? \[Y\/n\]/i,
+
+  // Generic prompts that END with clear input indicators
+  /Press Enter to continue\.?\s*$/i,
+  /Press any key to continue\.?\s*$/i,
+  /Press any key\.?\s*$/i,
+
+  // npm/yarn prompts - specific format
+  /Ok to proceed\? \(y\/n\)\s*$/i,
+  /Is this OK\? \(yes\/no\)\s*$/i,
+  /Is this OK\?\s*$/i,
+
+  // Git prompts with actual y/n indicator
+  /\(y\/n\)\?\s*$/i,
 ];
 
 // Buffer to accumulate terminal output for pattern matching
 let outputBuffer = '';
 const BUFFER_MAX_LENGTH = 2000;
 const BUFFER_CLEAR_DELAY = 5000;
+// Only check the tail of output where prompts actually appear
+const PROMPT_CHECK_LENGTH = 500;
 let bufferClearTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Strip ANSI escape codes for cleaner pattern matching
+function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+}
 
 // Check if terminal output contains a CLI input prompt
 export function checkForCliInputPrompt(data: string): boolean {
@@ -117,8 +130,25 @@ export function checkForCliInputPrompt(data: string): boolean {
     outputBuffer = '';
   }, BUFFER_CLEAR_DELAY);
 
+  // Only check the END of the buffer where prompts appear
+  // This prevents matching mentions in the middle of explanatory text
+  const tail = outputBuffer.slice(-PROMPT_CHECK_LENGTH);
+  const cleanTail = stripAnsi(tail);
+
   // Check for patterns
-  return CLI_INPUT_PATTERNS.some(pattern => pattern.test(outputBuffer));
+  const hasPrompt = CLI_INPUT_PATTERNS.some(pattern => pattern.test(cleanTail));
+
+  // If we found a prompt, clear the buffer to prevent re-triggering
+  // on the same prompt when more output arrives
+  if (hasPrompt) {
+    outputBuffer = '';
+    if (bufferClearTimeout) {
+      clearTimeout(bufferClearTimeout);
+      bufferClearTimeout = null;
+    }
+  }
+
+  return hasPrompt;
 }
 
 // Reset the output buffer (call when switching terminals, etc.)
