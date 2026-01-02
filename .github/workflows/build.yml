@@ -40,7 +40,7 @@ jobs:
         run: npm ci
 
       - name: Build macOS (arm64 + x64)
-        run: npm run electron:build:mac
+        run: npm run electron:build:mac -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           CSC_LINK: ''
@@ -71,7 +71,7 @@ jobs:
         run: npm ci
 
       - name: Build Windows
-        run: npm run electron:build:win
+        run: npm run electron:build:win -- --publish never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -82,7 +82,7 @@ jobs:
           retention-days: 30
 
   build-linux:
-    if: github.event_name == 'push' || inputs.build_linux
+    if: inputs.build_linux == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -98,7 +98,7 @@ jobs:
         run: npm ci
 
       - name: Build Linux
-        run: npm run electron:build:linux
+        run: npm run electron:build:linux -- --publish never
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
