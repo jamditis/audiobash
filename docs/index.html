@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUDIOBASH // Voice-controlled terminal</title>
-    <meta name="description" content="Voice-controlled terminal for developers. Speak commands, execute instantly.">
+    <meta name="description" content="Voice-controlled terminal for developers. Speak commands, execute instantly. Now available for Windows and macOS.">
 
     <!-- Open Graph -->
     <meta property="og:title" content="AudioBash - Voice-controlled terminal">
-    <meta property="og:description" content="Speak commands, execute instantly. Multi-tab terminal with AI-powered voice transcription.">
+    <meta property="og:description" content="Speak commands, execute instantly. Multi-tab terminal with AI-powered voice transcription. Available for Windows and macOS.">
     <meta property="og:type" content="website">
 
     <!-- Fonts -->
@@ -39,6 +39,8 @@
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
                         iceDim: 'rgba(0, 240, 255, 0.1)',
+                        apple: '#a3aaae',
+                        appleDim: 'rgba(163, 170, 174, 0.1)',
                     },
                     backgroundImage: {
                         'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
@@ -194,14 +196,14 @@
                 <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                 <div>
                     <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
-                    <p class="text-[9px] text-gray-500 tracking-[0.2em]">v1.2.0 // VOICE_TERMINAL</p>
+                    <p class="text-[9px] text-gray-500 tracking-[0.2em]">v2.0.0 // VOICE_TERMINAL</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
-                <a href="https://github.com/jamditis/audiobash/releases" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                <a href="#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
                     DOWNLOAD
                 </a>
             </div>
@@ -219,22 +221,43 @@
                     <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
 
+                <!-- NEW: v2.0 Badge -->
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-acid/10 border border-acid/30 text-acid text-sm font-mono mb-6">
+                    <span class="w-2 h-2 bg-acid rounded-full animate-pulse"></span>
+                    v2.0.0 — NOW ON macOS
+                </div>
+
                 <h2 class="font-display text-5xl md:text-7xl text-chrome mb-6 glitch-text" data-text="SPEAK_EXECUTE">SPEAK_EXECUTE</h2>
 
                 <p class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto mb-8 border-l-2 border-acid pl-4 text-left">
                     Voice-controlled terminal for developers. Speak your commands naturally, watch them execute instantly. Multi-tab terminals, multiple AI providers, fully customizable.
                 </p>
 
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                    <a href="https://github.com/jamditis/audiobash/releases/download/v1.2.0/AudioBash.Setup.1.2.0.exe" class="px-8 py-4 bg-acid text-black font-display font-bold text-lg tracking-wider hover:bg-acid/80 transition-all clip-notch animate-glow">
+                <!-- Platform Download Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe" class="px-8 py-4 bg-acid text-black font-display font-bold text-lg tracking-wider hover:bg-acid/80 transition-all clip-notch animate-glow">
                         <span class="flex items-center gap-2">
-                            <i data-lucide="download" class="w-5 h-5"></i>
-                            DOWNLOAD v1.2.0
+                            <i data-lucide="monitor" class="w-5 h-5"></i>
+                            WINDOWS
                         </span>
                     </a>
-                    <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-acid hover:text-acid transition-all">
+                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="px-8 py-4 bg-apple text-black font-display font-bold text-lg tracking-wider hover:bg-apple/80 transition-all clip-notch">
                         <span class="flex items-center gap-2">
-                            <i data-lucide="github" class="w-5 h-5"></i>
+                            <i data-lucide="apple" class="w-5 h-5"></i>
+                            macOS (Apple Silicon)
+                        </span>
+                    </a>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-apple hover:text-apple transition-all">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </span>
+                    </a>
+                    <a href="https://github.com/jamditis/audiobash" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-acid hover:text-acid transition-all">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="github" class="w-4 h-4"></i>
                             VIEW SOURCE
                         </span>
                     </a>
@@ -249,25 +272,24 @@
                             <div class="w-3 h-3 rounded-full bg-acid/50"></div>
                         </div>
                         <div class="flex gap-1">
-                            <span class="px-3 py-1 bg-void text-acid text-xs border-t border-l border-r border-white/20">PowerShell</span>
+                            <span class="px-3 py-1 bg-void text-acid text-xs border-t border-l border-r border-white/20">zsh</span>
                             <span class="px-3 py-1 text-gray-500 text-xs">Terminal 2</span>
                             <span class="px-3 py-1 text-gray-500 text-xs">+</span>
                         </div>
                         <div class="text-[10px] text-gray-500">AUDIOBASH</div>
                     </div>
                     <div class="p-6 font-mono text-sm text-left h-48 overflow-hidden">
-                        <div class="text-gray-500 mb-2">PS C:\Projects></div>
+                        <div class="text-gray-500 mb-2">~/Projects ❯</div>
                         <div class="flex items-center gap-2 mb-4">
                             <span class="text-ice">[VOICE]</span>
                             <span class="text-chrome">"list all files in this directory"</span>
                         </div>
-                        <div class="text-acid mb-2">→ dir</div>
+                        <div class="text-acid mb-2">→ ls -la</div>
                         <div class="text-gray-400 text-xs">
-                            <div>Mode                 LastWriteTime         Length Name</div>
-                            <div>----                 -------------         ------ ----</div>
-                            <div>d-----        12/10/2025   9:00 PM                src</div>
-                            <div>d-----        12/10/2025   8:45 PM                node_modules</div>
-                            <div>-a----        12/10/2025   9:15 PM           1842 package.json</div>
+                            <div>drwxr-xr-x   8 user  staff   256 Jan  2 10:00 src</div>
+                            <div>drwxr-xr-x  42 user  staff  1344 Jan  2 09:45 node_modules</div>
+                            <div>-rw-r--r--   1 user  staff  1842 Jan  2 10:15 package.json</div>
+                            <div>-rw-r--r--   1 user  staff   512 Jan  2 10:15 tsconfig.json</div>
                         </div>
                     </div>
                     <div class="bg-surface border-t border-white/10 px-4 py-2 flex items-center justify-between text-[10px] text-gray-500">
@@ -276,7 +298,34 @@
                             <span>READY</span>
                         </div>
                         <div>Gemini 2.0 Flash</div>
-                        <div>Alt+S: Voice</div>
+                        <div>Option+S: Voice</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WHAT'S NEW IN v2.0 -->
+        <section class="py-16 px-6 bg-acid/5 border-y border-acid/20">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-8">
+                    <h3 class="font-display text-2xl text-acid mb-2">NEW IN v2.0.0</h3>
+                    <p class="text-gray-500 font-mono">The macOS Edition</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                    <div class="p-4">
+                        <div class="text-3xl mb-2">🍎</div>
+                        <h4 class="font-display text-chrome mb-1">macOS Support</h4>
+                        <p class="text-gray-500 text-sm">Native Apple Silicon (M1/M2/M3/M4) and Intel builds</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="text-3xl mb-2">🐚</div>
+                        <h4 class="font-display text-chrome mb-1">zsh Integration</h4>
+                        <p class="text-gray-500 text-sm">Uses your default shell with full environment</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="text-3xl mb-2">⌨️</div>
+                        <h4 class="font-display text-chrome mb-1">Mac Shortcuts</h4>
+                        <p class="text-gray-500 text-sm">Option+S for voice, all shortcuts work natively</p>
                     </div>
                 </div>
             </div>
@@ -332,19 +381,19 @@
                     <!-- Feature 5 -->
                     <div class="bg-panel border border-white/10 p-6 hover:border-ice/50 transition-colors group">
                         <div class="w-12 h-12 bg-iceDim border border-ice/30 flex items-center justify-center mb-4 clip-notch-tl">
-                            <i data-lucide="cpu" class="w-6 h-6 text-ice"></i>
+                            <i data-lucide="smartphone" class="w-6 h-6 text-ice"></i>
                         </div>
-                        <h4 class="font-display text-lg text-chrome mb-2">LOCAL_MODE</h4>
-                        <p class="text-gray-500 text-sm">Run Parakeet locally with NVIDIA GPU. No API costs, full privacy.</p>
+                        <h4 class="font-display text-lg text-chrome mb-2">MOBILE_REMOTE</h4>
+                        <p class="text-gray-500 text-sm">Control AudioBash from your phone. Send voice commands remotely via WebSocket.</p>
                     </div>
 
                     <!-- Feature 6 -->
                     <div class="bg-panel border border-white/10 p-6 hover:border-signal/50 transition-colors group">
                         <div class="w-12 h-12 bg-signalDim border border-signal/30 flex items-center justify-center mb-4 clip-notch-tl">
-                            <i data-lucide="monitor" class="w-6 h-6 text-signal"></i>
+                            <i data-lucide="eye" class="w-6 h-6 text-signal"></i>
                         </div>
-                        <h4 class="font-display text-lg text-chrome mb-2">RETRO_FX</h4>
-                        <p class="text-gray-500 text-sm">Optional CRT scanline overlay for that authentic terminal aesthetic.</p>
+                        <h4 class="font-display text-lg text-chrome mb-2">PREVIEW_PANE</h4>
+                        <p class="text-gray-500 text-sm">Embedded web preview for localhost dev servers. Auto-refresh on file changes. Screenshot capture.</p>
                     </div>
 
                 </div>
@@ -366,7 +415,7 @@
                         <div class="w-16 h-16 bg-acid text-black font-display font-bold text-2xl flex items-center justify-center shrink-0 clip-notch">01</div>
                         <div>
                             <h4 class="font-display text-xl text-chrome mb-2">ACTIVATE</h4>
-                            <p class="text-gray-400 font-mono">Press your configured hotkey (default Alt+S) to start voice capture. The floating overlay appears.</p>
+                            <p class="text-gray-400 font-mono">Press your configured hotkey (Alt+S on Windows, Option+S on Mac) to start voice capture. The floating overlay appears.</p>
                         </div>
                     </div>
 
@@ -390,27 +439,62 @@
             </div>
         </section>
 
-        <!-- CTA SECTION -->
-        <section class="py-32 px-6">
+        <!-- DOWNLOAD SECTION -->
+        <section id="download" class="py-32 px-6">
             <div class="max-w-4xl mx-auto text-center">
 
                 <div class="bg-panel border border-acid/30 p-12 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-acid/5 blur-3xl"></div>
 
                     <h3 class="font-display text-4xl text-chrome mb-4 relative">INITIALIZE_NOW</h3>
-                    <p class="text-gray-400 font-mono mb-8 relative">Free and open source. Windows ready.</p>
+                    <p class="text-gray-400 font-mono mb-8 relative">Free and open source. Windows + macOS ready.</p>
 
-                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative">
-                        <a href="https://github.com/jamditis/audiobash/releases/download/v1.2.0/AudioBash.Setup.1.2.0.exe" class="px-8 py-4 bg-acid text-black font-display font-bold text-lg tracking-wider hover:bg-acid/80 transition-all clip-notch">
-                            <span class="flex items-center gap-2">
-                                <i data-lucide="download" class="w-5 h-5"></i>
-                                DOWNLOAD v1.2.0
-                            </span>
-                        </a>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative mb-8">
+                        <!-- Windows -->
+                        <div class="bg-void border border-white/10 p-6 text-left">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i data-lucide="monitor" class="w-8 h-8 text-ice"></i>
+                                <div>
+                                    <h4 class="font-display text-lg text-chrome">WINDOWS</h4>
+                                    <p class="text-gray-500 text-xs">Windows 10/11</p>
+                                </div>
+                            </div>
+                            <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe" class="block w-full px-6 py-3 bg-ice text-black font-display font-bold text-center tracking-wider hover:bg-ice/80 transition-all clip-notch">
+                                DOWNLOAD .EXE
+                            </a>
+                        </div>
+
+                        <!-- macOS -->
+                        <div class="bg-void border border-white/10 p-6 text-left">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i data-lucide="apple" class="w-8 h-8 text-apple"></i>
+                                <div>
+                                    <h4 class="font-display text-lg text-chrome">macOS</h4>
+                                    <p class="text-gray-500 text-xs">macOS 10.13+</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="flex-1 px-4 py-3 bg-apple text-black font-display font-bold text-center text-sm tracking-wider hover:bg-apple/80 transition-all clip-notch">
+                                    APPLE SILICON
+                                </a>
+                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="flex-1 px-4 py-3 border border-apple text-apple font-display font-bold text-center text-sm tracking-wider hover:bg-apple/10 transition-all">
+                                    INTEL
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-4 relative">
                         <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-acid hover:text-acid transition-all">
                             <span class="flex items-center gap-2">
                                 <i data-lucide="star" class="w-5 h-5"></i>
                                 STAR ON GITHUB
+                            </span>
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/blob/master/docs/USER_MANUAL.md" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-acid hover:text-acid transition-all">
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="book-open" class="w-5 h-5"></i>
+                                USER MANUAL
                             </span>
                         </a>
                     </div>
@@ -419,11 +503,43 @@
             </div>
         </section>
 
+        <!-- INSTALLATION NOTES -->
+        <section class="py-16 px-6 bg-panel/30">
+            <div class="max-w-4xl mx-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-display text-lg text-chrome mb-4 flex items-center gap-2">
+                            <i data-lucide="monitor" class="w-5 h-5 text-ice"></i>
+                            Windows Installation
+                        </h4>
+                        <ol class="text-gray-400 text-sm space-y-2 list-decimal list-inside">
+                            <li>Download the .exe installer</li>
+                            <li>Run the installer (may need to click "More info" → "Run anyway")</li>
+                            <li>Launch AudioBash from Start Menu</li>
+                            <li>Add your API key in Settings (gear icon)</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-lg text-chrome mb-4 flex items-center gap-2">
+                            <i data-lucide="apple" class="w-5 h-5 text-apple"></i>
+                            macOS Installation
+                        </h4>
+                        <ol class="text-gray-400 text-sm space-y-2 list-decimal list-inside">
+                            <li>Download the .dmg for your Mac type</li>
+                            <li>Open DMG, drag AudioBash to Applications</li>
+                            <li><strong>Right-click → Open</strong> (first time only, bypasses Gatekeeper)</li>
+                            <li>Grant microphone permission when prompted</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- FOOTER -->
         <footer class="border-t border-white/10 py-8 px-6">
             <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="text-[10px] text-gray-600 font-mono">
-                    AUDIOBASH v1.2.0 // BUILD 2025.12.15 // MIT LICENSE
+                    AUDIOBASH v2.0.0 // BUILD 2026.01.02 // MIT LICENSE
                 </div>
                 <div class="flex items-center gap-4 text-gray-500">
                     <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">

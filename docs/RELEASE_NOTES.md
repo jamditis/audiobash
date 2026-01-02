@@ -1,23 +1,71 @@
-# AudioBash v1.1.0 Release notes
+# AudioBash v2.0.0 Release Notes
 
-**Release date:** December 11, 2025
-**Download:** [AudioBash.Setup.1.1.0.exe](https://github.com/jamditis/audiobash/releases/download/v1.1.0/AudioBash.Setup.1.1.0.exe)
+**Release Date:** January 2, 2026
 
 ---
 
-## Table of contents
+## Downloads
 
-1. [What's new in v1.1.0](#whats-new-in-v110)
-2. [Complete feature guide](#complete-feature-guide)
-3. [Keyboard shortcuts reference](#keyboard-shortcuts-reference)
-4. [Configuration guide](#configuration-guide)
-5. [Known issues](#known-issues)
+### Windows
+- [AudioBash.Setup.2.0.0.exe](https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe)
+
+### macOS - Apple Silicon (M1/M2/M3)
+- [AudioBash-2.0.0-arm64.dmg](https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg)
+
+### macOS - Intel
+- [AudioBash-2.0.0-x64.dmg](https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-x64.dmg)
+
+---
+
+## Table of Contents
+
+1. [What's New in v2.0.0](#whats-new-in-v200)
+2. [Complete Feature Guide](#complete-feature-guide)
+3. [Keyboard Shortcuts Reference](#keyboard-shortcuts-reference)
+4. [Configuration Guide](#configuration-guide)
+5. [Known Issues](#known-issues)
 6. [Roadmap](#roadmap)
 7. [Changelog](#changelog)
 
 ---
 
-## What's new in v1.1.0
+## What's New in v2.0.0
+
+### macOS Support (Major Feature)
+
+AudioBash now runs natively on macOS with full feature parity to Windows!
+
+- **Apple Silicon Native**: Optimized builds for M1, M2, and M3 Macs (arm64)
+- **Intel Mac Support**: x64 builds available for Intel-based Macs
+- **macOS-Native Shell**: Uses your default shell (zsh, bash, etc.)
+- **Global Hotkeys**: Option+S for push-to-talk (with Accessibility permissions)
+- **DMG Distribution**: Easy drag-and-drop installation
+
+### Cross-Platform Improvements
+
+- **Shell Auto-Detection**: Automatically uses the correct shell for your OS
+  - Windows: PowerShell
+  - macOS: Your $SHELL (typically zsh)
+- **Platform-Aware Agent Mode**: AI generates OS-appropriate commands
+  - Windows: `dir`, `cls`, `Get-Process`
+  - macOS: `ls -la`, `clear`, `ps aux`
+- **Clear Command**: Automatically uses `cls` on Windows, `clear` on macOS/Linux
+
+### Terminal Enhancements
+
+- **Improved Focus Handling**: Fixed keyboard input issues on macOS
+- **Better Tab Management**: More reliable multi-tab support
+- **Resize Debouncing**: Smoother window resizing behavior
+
+### Developer Experience
+
+- **Comprehensive Test Suite**: 120+ tests covering cross-platform compatibility
+- **Build Scripts**: Easy one-command builds for each platform
+- **CI/CD Pipeline**: Automated builds for Windows, macOS (arm64), and macOS (x64)
+
+---
+
+## Previous Release: v1.1.0 Features
 
 ### Custom instructions
 Personalize how AudioBash transcribes and interprets your voice commands.
@@ -257,9 +305,17 @@ Add entries to correct common misheard words:
 
 ### Platform limitations
 
-- **Windows only**: macOS and Linux builds not yet available
-- **NVIDIA required for local mode**: Parakeet requires CUDA-compatible GPU
+#### macOS
+- **Unsigned App Warning**: First launch requires right-click → Open or `xattr -cr` command
+- **Accessibility Permissions**: Required for global hotkeys - must add manually in System Settings
+- **Microphone Permissions**: Grant access in System Settings → Privacy & Security
+
+#### Windows
+- **SmartScreen Warning**: First-time run shows "Windows protected your PC" - click "More info" → "Run anyway"
 - **Microphone permissions**: Windows may require manual permission grant
+
+#### General
+- **NVIDIA required for local mode**: Parakeet requires CUDA-compatible GPU
 
 ### Browser/WebView issues
 
@@ -285,10 +341,10 @@ Add entries to correct common misheard words:
 - [ ] Improved CLI notification pattern detection
 - [ ] Memory usage optimization for long sessions
 
-### v1.3.0 (future)
+### v2.1.0 (future)
 
 #### Major features
-- [ ] **macOS support**: Native macOS build
+- [x] ~~**macOS support**: Native macOS build~~ ✅ *Completed in v2.0.0!*
 - [ ] **Linux support**: AppImage and .deb packages
 - [ ] **Plugin system**: Extend functionality with custom plugins
 - [ ] **Command aliases**: Define custom voice-to-command mappings
@@ -313,6 +369,37 @@ Add entries to correct common misheard words:
 ---
 
 ## Changelog
+
+### v2.0.0 (January 2, 2026)
+**Major release: macOS support arrives!**
+
+#### Added
+- Full macOS support with native Apple Silicon (arm64) and Intel (x64) builds
+- DMG installer for macOS with drag-and-drop installation
+- Cross-platform shell detection (zsh on Mac, PowerShell on Windows)
+- Platform-aware AI agent mode (generates OS-appropriate commands)
+- Comprehensive test suite with 120+ cross-platform tests
+- CI/CD pipeline for multi-platform automated builds
+- User manual and installation guide for both platforms
+
+#### Changed
+- Version bump to 2.0.0 to celebrate cross-platform milestone
+- Terminal focus handling improved for macOS compatibility
+- Updated keyboard shortcuts to use Option key on macOS (Alt on Windows)
+- GitHub Pages updated with download options for both platforms
+
+#### Fixed
+- xterm.js focus issues on macOS (added tabIndex and requestAnimationFrame fix)
+- node-pty spawn-helper permission loss during packaging (afterPack hook)
+- postcss.config.js ESM syntax error on Node 18 (converted to CommonJS)
+- Icon size requirements for macOS DMG (512x512 minimum)
+
+#### Technical
+- Added `scripts/afterPack.cjs` to restore spawn-helper permissions after electron-builder packaging
+- Terminal container now has `tabIndex={0}` for proper macOS focus handling
+- Focus order fixed: container focused before xterm via requestAnimationFrame
+
+---
 
 ### v1.1.0 (December 11, 2025)
 **Major release with custom instructions and extensive keyboard shortcuts**

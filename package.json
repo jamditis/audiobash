@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -53,6 +53,7 @@
     "appId": "com.audiobash.app",
     "productName": "AudioBash",
     "npmRebuild": false,
+    "afterPack": "./scripts/afterPack.cjs",
     "files": [
       "dist/**/*",
       "electron/**/*",
