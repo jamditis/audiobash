@@ -133,7 +133,11 @@ const Terminal: React.FC<TerminalProps> = ({
           try {
             fitAddon.fit();
             window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
-            xterm.focus();
+            // On macOS, focus the container first, then xterm after a paint cycle
+            container.focus();
+            requestAnimationFrame(() => {
+              xterm?.focus();
+            });
             log.info('Terminal initialized successfully', {
               tabId,
               cols: xterm.cols,
@@ -177,7 +181,11 @@ const Terminal: React.FC<TerminalProps> = ({
           if (xtermRef.current) {
             window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
           }
-          xtermRef.current?.focus();
+          // On macOS, focus the container first, then xterm after a paint cycle
+          terminalRef.current?.focus();
+          requestAnimationFrame(() => {
+            xtermRef.current?.focus();
+          });
         } catch (err) {
           // Ignore fit errors
         }
@@ -236,7 +244,12 @@ const Terminal: React.FC<TerminalProps> = ({
 
   // Focus terminal when clicked (also notify parent in split view)
   const handleClick = () => {
-    xtermRef.current?.focus();
+    // On macOS, we need to ensure the DOM container has focus before xterm can receive keyboard input
+    // First focus the container element, then focus xterm after a paint cycle
+    terminalRef.current?.focus();
+    requestAnimationFrame(() => {
+      xtermRef.current?.focus();
+    });
     onFocus?.();
   };
 
@@ -251,7 +264,7 @@ const Terminal: React.FC<TerminalProps> = ({
     >
       {/* Focus indicator badge for voice command target */}
       {isFocused && <FocusIndicator isRecording={isRecording} />}
-      <div ref={terminalRef} className="h-full w-full" />
+      <div ref={terminalRef} className="h-full w-full" tabIndex={0} />
       {/* Subtle CRT scanline effect overlay (toggleable) */}
       {scanlines && (
         <div className="absolute inset-0 pointer-events-none crt-effect" style={{ opacity: 0.15 }} />
