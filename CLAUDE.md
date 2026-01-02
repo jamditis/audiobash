@@ -2,6 +2,47 @@
 
 ---
 
+## 📖 Documentation & GitHub Pages (2025-01-02)
+
+AudioBash has comprehensive web documentation hosted on GitHub Pages:
+
+### Live documentation URLs
+- **Landing page:** https://jamditis.github.io/audiobash/
+- **User manual:** https://jamditis.github.io/audiobash/manual.html
+- **macOS guide:** https://jamditis.github.io/audiobash/macos.html
+- **Release notes:** https://jamditis.github.io/audiobash/releases.html
+
+### Documentation files
+```
+docs/
+├── index.html          # Landing page with download links
+├── manual.html         # Full user manual with screenshots
+├── macos.html          # macOS-specific announcement page
+├── releases.html       # Version history and changelog
+└── screenshots/        # UI screenshots (full + web-optimized)
+    ├── 01-main-window.png
+    ├── 01-main-window-web.png (800px max width)
+    ├── 02-settings-panel.png
+    ├── ...
+```
+
+### Screenshot capture scripts
+Located in `scripts/`:
+- `auto-screenshot.py` - Fully automated capture using Windows API + hotkeys
+- `manual-screenshot.py` - Step-by-step manual capture (safer during active use)
+- `capture-screenshots.py` - Interactive guided capture
+
+**Dependencies:** `pip install pyautogui pillow`
+
+### Documentation aesthetic
+All pages follow the app's void/brutalist design:
+- Font: Chakra Petch (display), Share Tech Mono (body)
+- Colors: Void (#050505), Chrome (#e5e5e5), Acid (#ccff00)
+- Tailwind CSS via CDN with custom config
+- CRT scan line overlay effect
+
+---
+
 ## 🍎 macOS setup handoff (2024-12-24)
 
 **Context:** Joe set up macOS support from his Windows desktop. If you're running on his M1 MacBook Pro, here's what you need to know:

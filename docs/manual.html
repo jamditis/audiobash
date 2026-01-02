@@ -224,7 +224,7 @@
 
                 <!-- Hero Screenshot -->
                 <div class="mt-8">
-                    <img src="screenshots/01-main-window-web.png" alt="AudioBash main window" class="w-full rounded-lg border border-white/10 shadow-xl">
+                    <img src="screenshots/voice-and-nav-web.png" alt="AudioBash main window with voice input and quick navigation" class="w-full rounded-lg border border-white/10 shadow-xl">
                 </div>
             </div>
 
@@ -534,8 +534,8 @@
 
                         <!-- Voice Recording Screenshot -->
                         <div class="mb-6">
-                            <img src="screenshots/03-voice-recording-web.png" alt="Voice recording active" class="w-full max-w-2xl rounded-lg border border-acid/30">
-                            <p class="text-gray-500 text-xs mt-2">Voice recording in progress</p>
+                            <img src="screenshots/voice-recording-web.png" alt="Voice recording active" class="w-full max-w-2xl rounded-lg border border-acid/30">
+                            <p class="text-gray-500 text-xs mt-2">Voice input panel with waveform visualization and RAW/AGENT mode toggle</p>
                         </div>
 
                         <h4 class="font-display text-chrome mb-3">Recording states</h4>
@@ -599,16 +599,10 @@
                         </ul>
                         <p class="text-gray-500 text-sm mt-4">Each tab maintains its own working directory, command history, and shell session.</p>
 
-                        <!-- Split View Screenshots -->
-                        <div class="grid md:grid-cols-2 gap-4 mt-6">
-                            <div>
-                                <img src="screenshots/04-split-view-horizontal-web.png" alt="Horizontal split view" class="w-full rounded-lg border border-white/10">
-                                <p class="text-gray-500 text-xs mt-2 text-center">Horizontal split</p>
-                            </div>
-                            <div>
-                                <img src="screenshots/05-split-view-vertical-web.png" alt="Vertical split view" class="w-full rounded-lg border border-white/10">
-                                <p class="text-gray-500 text-xs mt-2 text-center">Vertical split</p>
-                            </div>
+                        <!-- Quick Navigation Screenshot -->
+                        <div class="mt-6">
+                            <img src="screenshots/quick-nav-web.png" alt="Quick navigation panel" class="w-full max-w-2xl rounded-lg border border-white/10">
+                            <p class="text-gray-500 text-xs mt-2">Quick navigation with favorites and recent directories</p>
                         </div>
                     </div>
                 </section>
@@ -622,10 +616,24 @@
 
                     <p class="text-gray-400 mb-6">Access settings by clicking the <strong>gear icon</strong> in the top-right corner.</p>
 
-                    <!-- Settings Screenshot -->
-                    <div class="mb-8">
-                        <img src="screenshots/02-settings-panel-web.png" alt="Settings panel" class="w-full max-w-2xl rounded-lg border border-white/10">
-                        <p class="text-gray-500 text-xs mt-2">Settings panel with API key configuration</p>
+                    <!-- Settings Screenshots Grid -->
+                    <div class="grid md:grid-cols-2 gap-4 mb-8">
+                        <div>
+                            <img src="screenshots/settings-themes-web.png" alt="Settings - API keys and themes" class="w-full rounded-lg border border-white/10">
+                            <p class="text-gray-500 text-xs mt-2 text-center">API keys and visual themes</p>
+                        </div>
+                        <div>
+                            <img src="screenshots/settings-providers-web.png" alt="Settings - Transcription providers" class="w-full rounded-lg border border-white/10">
+                            <p class="text-gray-500 text-xs mt-2 text-center">Transcription model selection</p>
+                        </div>
+                        <div>
+                            <img src="screenshots/settings-custom-web.png" alt="Settings - Custom instructions" class="w-full rounded-lg border border-white/10">
+                            <p class="text-gray-500 text-xs mt-2 text-center">Custom instructions and vocabulary</p>
+                        </div>
+                        <div>
+                            <img src="screenshots/settings-shortcuts-web.png" alt="Settings - Keyboard shortcuts" class="w-full rounded-lg border border-white/10">
+                            <p class="text-gray-500 text-xs mt-2 text-center">All keyboard shortcuts</p>
+                        </div>
                     </div>
 
                     <div class="space-y-6">
@@ -663,6 +671,20 @@
                                 <li><strong>Groq Whisper</strong> - Ultra-fast processing</li>
                                 <li><strong>Claude</strong> - Uses Anthropic's model</li>
                             </ul>
+                        </div>
+
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">Mobile remote control</h4>
+                            <p class="text-gray-400 text-sm mb-4">Control AudioBash from your phone using the built-in WebSocket server:</p>
+                            <div class="flex gap-4 items-start">
+                                <img src="screenshots/settings-remote-web.png" alt="Mobile remote control settings" class="w-64 rounded-lg border border-white/10">
+                                <ul class="text-gray-400 space-y-1 text-sm">
+                                    <li>1. Open Settings and scroll to "Mobile Remote Control"</li>
+                                    <li>2. Note the pairing code and WebSocket URL</li>
+                                    <li>3. Connect from your phone's browser</li>
+                                    <li>4. Use voice commands remotely</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </section>
