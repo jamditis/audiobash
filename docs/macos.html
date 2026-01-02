@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AudioBash for macOS - Now Available</title>
+    <meta name="description" content="AudioBash v2.0 brings native macOS support! Voice-controlled terminal for developers, now on Apple Silicon and Intel Macs.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AudioBash for macOS - Now Available">
+    <meta property="og:description" content="Voice-controlled terminal for developers. Native Apple Silicon and Intel Mac support. Speak commands, execute instantly.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jamditis.github.io/audiobash/macos.html">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AudioBash for macOS - Now Available">
+    <meta name="twitter:description" content="Voice-controlled terminal for developers. Native Apple Silicon and Intel Mac support.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        acid: '#ccff00',
+                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                        apple: '#a3aaae',
+                        appleDim: 'rgba(163, 170, 174, 0.15)',
+                        appleGlow: 'rgba(163, 170, 174, 0.3)',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow-apple': 'glowApple 2s ease-in-out infinite alternate',
+                        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+                        'fade-in': 'fadeIn 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        glowApple: {
+                            '0%': { boxShadow: '0 0 20px rgba(163, 170, 174, 0.2)' },
+                            '100%': { boxShadow: '0 0 40px rgba(163, 170, 174, 0.4)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #a3aaae;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #a3aaae; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.08;
+        }
+
+        .apple-gradient {
+            background: linear-gradient(135deg, #a3aaae 0%, #7a8185 50%, #a3aaae 100%);
+        }
+
+        .section-animate {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .section-animate:nth-child(1) { animation-delay: 0.1s; }
+        .section-animate:nth-child(2) { animation-delay: 0.2s; }
+        .section-animate:nth-child(3) { animation-delay: 0.3s; }
+        .section-animate:nth-child(4) { animation-delay: 0.4s; }
+        .section-animate:nth-child(5) { animation-delay: 0.5s; }
+
+        code {
+            background: #1a1a1a;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1em;
+            overflow-x: auto;
+            border-radius: 4px;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-grid-pattern bg-[size:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
+
+    <!-- Apple-style radial gradient -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-appleDim to-transparent rounded-full blur-3xl opacity-50"></div>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div class="w-10 h-10 bg-apple text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-apple tracking-[0.2em]">macOS EDITION</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-16">
+
+        <!-- HERO -->
+        <section class="text-center mb-20 section-animate">
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm font-mono mb-8">
+                <span class="w-2 h-2 bg-apple rounded-full animate-pulse-slow"></span>
+                v2.0.0 — January 2, 2026
+            </div>
+
+            <!-- Apple Icon -->
+            <div class="flex justify-center mb-8">
+                <div class="w-24 h-24 bg-appleDim border-2 border-apple/40 rounded-2xl flex items-center justify-center animate-glow-apple">
+                    <i data-lucide="apple" class="w-12 h-12 text-apple"></i>
+                </div>
+            </div>
+
+            <h1 class="font-display text-4xl md:text-6xl text-chrome mb-6">
+                AUDIOBASH<br><span class="text-apple">FOR macOS</span>
+            </h1>
+
+            <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10">
+                Voice-controlled terminal for developers. Native Apple Silicon and Intel Mac support.
+                Speak commands, execute instantly.
+            </p>
+
+            <!-- Download Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch animate-glow-apple">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="cpu" class="w-5 h-5"></i>
+                        Apple Silicon (M1/M2/M3/M4)
+                    </span>
+                </a>
+                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="px-8 py-4 border-2 border-apple text-apple font-display font-bold text-lg tracking-wider hover:bg-appleDim transition-all">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="laptop" class="w-5 h-5"></i>
+                        Intel Mac
+                    </span>
+                </a>
+            </div>
+
+            <p class="text-gray-500 text-sm">
+                Also available: <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe" class="text-ice hover:underline">Windows installer</a>
+            </p>
+        </section>
+
+        <!-- WHAT'S NEW -->
+        <section class="mb-20 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="font-display text-3xl text-chrome mb-2">WHAT'S_NEW</h2>
+                <p class="text-gray-500">The macOS edition brings full feature parity</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-panel border border-apple/20 p-6 hover:border-apple/40 transition-colors">
+                    <div class="w-12 h-12 bg-appleDim border border-apple/30 flex items-center justify-center mb-4 rounded-lg">
+                        <i data-lucide="cpu" class="w-6 h-6 text-apple"></i>
+                    </div>
+                    <h3 class="font-display text-lg text-chrome mb-2">Native builds</h3>
+                    <p class="text-gray-400 text-sm">Separate arm64 and x64 builds. Runs at native speed on M1, M2, M3, M4, and Intel Macs.</p>
+                </div>
+
+                <div class="bg-panel border border-apple/20 p-6 hover:border-apple/40 transition-colors">
+                    <div class="w-12 h-12 bg-appleDim border border-apple/30 flex items-center justify-center mb-4 rounded-lg">
+                        <i data-lucide="terminal" class="w-6 h-6 text-apple"></i>
+                    </div>
+                    <h3 class="font-display text-lg text-chrome mb-2">Shell integration</h3>
+                    <p class="text-gray-400 text-sm">Uses your default shell (zsh, bash, fish). Full environment variable support. Just like Terminal.app.</p>
+                </div>
+
+                <div class="bg-panel border border-apple/20 p-6 hover:border-apple/40 transition-colors">
+                    <div class="w-12 h-12 bg-appleDim border border-apple/30 flex items-center justify-center mb-4 rounded-lg">
+                        <i data-lucide="keyboard" class="w-6 h-6 text-apple"></i>
+                    </div>
+                    <h3 class="font-display text-lg text-chrome mb-2">Mac shortcuts</h3>
+                    <p class="text-gray-400 text-sm"><code>Option+S</code> for push-to-talk. All 14 global shortcuts work with the Option key.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- INSTALLATION -->
+        <section class="mb-20 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="font-display text-3xl text-chrome mb-2">INSTALLATION</h2>
+                <p class="text-gray-500">Get up and running in 60 seconds</p>
+            </div>
+
+            <div class="bg-panel border border-white/10 p-8">
+                <div class="space-y-8">
+                    <!-- Step 1 -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-apple text-black font-display font-bold flex items-center justify-center shrink-0">1</div>
+                        <div>
+                            <h4 class="font-display text-chrome text-lg mb-2">Download the DMG</h4>
+                            <p class="text-gray-400 text-sm mb-3">Choose the right version for your Mac:</p>
+                            <div class="flex flex-wrap gap-3">
+                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Apple Silicon DMG
+                                </a>
+                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="inline-flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 text-sm hover:border-apple hover:text-apple transition-colors">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Intel DMG
+                                </a>
+                            </div>
+                            <p class="text-gray-500 text-xs mt-2">Not sure? Apple menu → About This Mac → Chip (M1/M2/M3/M4 = Apple Silicon)</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-apple text-black font-display font-bold flex items-center justify-center shrink-0">2</div>
+                        <div>
+                            <h4 class="font-display text-chrome text-lg mb-2">Drag to Applications</h4>
+                            <p class="text-gray-400 text-sm">Open the DMG and drag AudioBash.app to your Applications folder.</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-signal text-black font-display font-bold flex items-center justify-center shrink-0">3</div>
+                        <div>
+                            <h4 class="font-display text-chrome text-lg mb-2">Bypass Gatekeeper (important!)</h4>
+                            <p class="text-gray-400 text-sm mb-3">AudioBash isn't notarized by Apple (costs $99/year), so you need to bypass Gatekeeper on first launch:</p>
+
+                            <div class="bg-void border border-signal/30 p-4 mb-3">
+                                <p class="text-signal font-display text-sm mb-2">Option A: Right-click method (easiest)</p>
+                                <p class="text-gray-400 text-sm">Finder → Applications → <strong>Right-click</strong> AudioBash.app → "Open" → Click "Open" in the dialog</p>
+                            </div>
+
+                            <div class="bg-void border border-white/10 p-4">
+                                <p class="text-gray-500 font-display text-sm mb-2">Option B: Terminal command</p>
+                                <pre><code>xattr -cr /Applications/AudioBash.app</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-apple text-black font-display font-bold flex items-center justify-center shrink-0">4</div>
+                        <div>
+                            <h4 class="font-display text-chrome text-lg mb-2">Grant permissions</h4>
+                            <p class="text-gray-400 text-sm mb-3">macOS will ask for these permissions on first use:</p>
+                            <ul class="text-gray-400 text-sm space-y-2">
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="mic" class="w-4 h-4 text-apple mt-0.5 shrink-0"></i>
+                                    <span><strong class="text-chrome">Microphone</strong> - Required for voice recording</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="shield" class="w-4 h-4 text-apple mt-0.5 shrink-0"></i>
+                                    <span><strong class="text-chrome">Accessibility</strong> - Required for global hotkeys (Option+S, etc.)</span>
+                                </li>
+                            </ul>
+                            <p class="text-gray-500 text-xs mt-3">System Settings → Privacy & Security → [Microphone/Accessibility] → Enable AudioBash</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 5 -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-acid text-black font-display font-bold flex items-center justify-center shrink-0">5</div>
+                        <div>
+                            <h4 class="font-display text-chrome text-lg mb-2">Add your API key</h4>
+                            <p class="text-gray-400 text-sm mb-3">Click the gear icon and enter your transcription API key. We recommend Gemini (free tier available):</p>
+                            <a href="https://aistudio.google.com/app/apikey" class="inline-flex items-center gap-2 text-acid hover:underline text-sm">
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                                Get a free Gemini API key
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW TO USE -->
+        <section class="mb-20 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="font-display text-3xl text-chrome mb-2">HOW_TO_USE</h2>
+                <p class="text-gray-500">Voice-to-terminal in three steps</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-acid text-black font-display font-bold text-2xl flex items-center justify-center mx-auto mb-4 clip-notch">01</div>
+                    <h4 class="font-display text-lg text-chrome mb-2">Press Option+S</h4>
+                    <p class="text-gray-400 text-sm">Start recording. The voice panel appears with a pulsing indicator.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-ice text-black font-display font-bold text-2xl flex items-center justify-center mx-auto mb-4 clip-notch">02</div>
+                    <h4 class="font-display text-lg text-chrome mb-2">Speak naturally</h4>
+                    <p class="text-gray-400 text-sm">"List all JavaScript files" or "git status" or "run npm test"</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-signal text-black font-display font-bold text-2xl flex items-center justify-center mx-auto mb-4 clip-notch">03</div>
+                    <h4 class="font-display text-lg text-chrome mb-2">Release to execute</h4>
+                    <p class="text-gray-400 text-sm">Press Option+S again. AI transcribes and executes in your terminal.</p>
+                </div>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div class="mt-12 bg-panel border border-white/10 p-6">
+                <h4 class="font-display text-chrome mb-4 text-center">Keyboard shortcuts (macOS)</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div class="text-center">
+                        <code class="text-apple">Option+S</code>
+                        <p class="text-gray-500 mt-1">Start/stop recording</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Option+A</code>
+                        <p class="text-gray-500 mt-1">Cancel recording</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Option+M</code>
+                        <p class="text-gray-500 mt-1">Toggle raw/agent mode</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Option+H</code>
+                        <p class="text-gray-500 mt-1">Show/hide window</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Option+C</code>
+                        <p class="text-gray-500 mt-1">Clear terminal</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Option+L</code>
+                        <p class="text-gray-500 mt-1">Cycle layouts</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Cmd+T</code>
+                        <p class="text-gray-500 mt-1">New tab</p>
+                    </div>
+                    <div class="text-center">
+                        <code class="text-apple">Cmd+W</code>
+                        <p class="text-gray-500 mt-1">Close tab</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURES -->
+        <section class="mb-20 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="font-display text-3xl text-chrome mb-2">FULL_FEATURES</h2>
+                <p class="text-gray-500">Everything included in v2.0.0</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="bg-panel border border-white/10 p-6">
+                    <h4 class="font-display text-chrome mb-4 flex items-center gap-2">
+                        <i data-lucide="mic" class="w-5 h-5 text-acid"></i>
+                        Voice input
+                    </h4>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li>• Push-to-talk with global hotkey</li>
+                        <li>• Multiple AI providers: Gemini, OpenAI, Claude, Groq</li>
+                        <li>• Raw mode (verbatim) or Agent mode (AI interprets intent)</li>
+                        <li>• Custom vocabulary for technical terms</li>
+                        <li>• Custom instructions per mode</li>
+                    </ul>
+                </div>
+
+                <div class="bg-panel border border-white/10 p-6">
+                    <h4 class="font-display text-chrome mb-4 flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 text-ice"></i>
+                        Terminal features
+                    </h4>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li>• Up to 4 tabs, each with its own shell session</li>
+                        <li>• 5 split layouts: single, horizontal, vertical, 2x2, 1+2</li>
+                        <li>• Resizable panes with drag dividers</li>
+                        <li>• Quick directory navigation (recent + favorites)</li>
+                        <li>• xterm.js with full ANSI support</li>
+                    </ul>
+                </div>
+
+                <div class="bg-panel border border-white/10 p-6">
+                    <h4 class="font-display text-chrome mb-4 flex items-center gap-2">
+                        <i data-lucide="brain" class="w-5 h-5 text-signal"></i>
+                        Agent mode
+                    </h4>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li>• Context-aware: knows your cwd, recent output, errors</li>
+                        <li>• Platform-aware: generates macOS-appropriate commands</li>
+                        <li>• Natural language to CLI translation</li>
+                        <li>• Customizable system prompt</li>
+                    </ul>
+                </div>
+
+                <div class="bg-panel border border-white/10 p-6">
+                    <h4 class="font-display text-chrome mb-4 flex items-center gap-2">
+                        <i data-lucide="bell" class="w-5 h-5 text-apple"></i>
+                        Quality of life
+                    </h4>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li>• CLI notification chimes (approval prompts, etc.)</li>
+                        <li>• System tray / menu bar integration</li>
+                        <li>• 5 themes: Void, Cyberpunk, Matrix, Amber, Ice</li>
+                        <li>• CRT scanline effect (optional)</li>
+                        <li>• Mobile remote control via WebSocket</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- KNOWN ISSUES -->
+        <section class="mb-20 section-animate">
+            <div class="text-center mb-10">
+                <h2 class="font-display text-3xl text-chrome mb-2">KNOWN_ISSUES</h2>
+                <p class="text-gray-500">What we're still working on</p>
+            </div>
+
+            <div class="bg-panel border border-signal/20 p-6">
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <span class="px-2 py-1 bg-signal/20 text-signal text-xs font-mono shrink-0">macOS</span>
+                        <div>
+                            <h4 class="text-chrome text-sm mb-1">Unsigned app warning</h4>
+                            <p class="text-gray-500 text-xs">You must right-click → Open on first launch or run <code>xattr -cr</code>. This is expected for apps not notarized by Apple.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="px-2 py-1 bg-signal/20 text-signal text-xs font-mono shrink-0">macOS</span>
+                        <div>
+                            <h4 class="text-chrome text-sm mb-1">Accessibility permission required for hotkeys</h4>
+                            <p class="text-gray-500 text-xs">Global shortcuts (Option+S, etc.) require Accessibility permission. Grant this in System Settings → Privacy & Security → Accessibility.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-mono shrink-0">ALL</span>
+                        <div>
+                            <h4 class="text-chrome text-sm mb-1">Split view resize flicker</h4>
+                            <p class="text-gray-500 text-xs">Rapidly resizing split panes may cause brief visual flicker. Working on improved debouncing.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <span class="px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-mono shrink-0">ALL</span>
+                        <div>
+                            <h4 class="text-chrome text-sm mb-1">Long recordings may delay</h4>
+                            <p class="text-gray-500 text-xs">Recordings over 30 seconds may take longer to transcribe. Keep recordings short for best experience.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-center text-gray-500 text-sm mt-6">
+                Found a bug? <a href="https://github.com/jamditis/audiobash/issues" class="text-acid hover:underline">Report it on GitHub</a>
+            </p>
+        </section>
+
+        <!-- CTA -->
+        <section class="text-center section-animate">
+            <div class="bg-appleDim border border-apple/30 p-12 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-apple/5 blur-3xl"></div>
+
+                <h3 class="font-display text-3xl text-chrome mb-4 relative">READY_TO_TRY?</h3>
+                <p class="text-gray-400 mb-8 relative">Free and open source. Your voice, your terminal.</p>
+
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative">
+                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch">
+                        DOWNLOAD FOR MAC
+                    </a>
+                    <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-apple hover:text-apple transition-all">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="star" class="w-5 h-5"></i>
+                            STAR ON GITHUB
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6 relative z-10">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                AUDIOBASH v2.0.0 // macOS EDITION // MIT LICENSE
+            </div>
+            <div class="flex items-center gap-4 text-gray-500 text-sm">
+                <a href="index.html" class="hover:text-apple transition-colors">Home</a>
+                <a href="manual.html" class="hover:text-apple transition-colors">Manual</a>
+                <a href="releases.html" class="hover:text-apple transition-colors">Releases</a>
+                <a href="https://github.com/jamditis" class="hover:text-apple transition-colors">@jamditis</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

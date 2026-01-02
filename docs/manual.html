@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Manual // AUDIOBASH</title>
+    <meta name="description" content="Complete user guide for AudioBash - Voice-controlled terminal for developers. Installation, setup, and usage instructions for Windows and macOS.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AudioBash User Manual">
+    <meta property="og:description" content="Complete guide to installing and using AudioBash on Windows and macOS.">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        acid: '#ccff00',
+                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                        apple: '#a3aaae',
+                        appleDim: 'rgba(163, 170, 174, 0.1)',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ccff00;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .clip-notch-tl {
+            clip-path: polygon(
+                12px 0,
+                100% 0,
+                100% 100%,
+                0 100%,
+                0 12px
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.1;
+        }
+
+        .doc-section h2 {
+            scroll-margin-top: 100px;
+        }
+
+        .toc-link:hover {
+            color: #ccff00;
+        }
+
+        .toc-link.active {
+            color: #ccff00;
+            border-left-color: #ccff00;
+        }
+
+        code {
+            background: #1a1a1a;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1em;
+            overflow-x: auto;
+            border-radius: 4px;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #222;
+            padding: 0.75em;
+            text-align: left;
+        }
+
+        th {
+            background: #111;
+            color: #ccff00;
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #0a0a0a;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-grid-pattern bg-[size:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">USER_MANUAL</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display">RELEASES</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="index.html#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex max-w-6xl mx-auto px-6 pt-24 pb-16 relative z-10">
+
+        <!-- SIDEBAR TOC -->
+        <aside class="hidden lg:block w-64 shrink-0 pr-8">
+            <div class="sticky top-24">
+                <h3 class="font-display text-sm text-gray-500 mb-4 tracking-wider">CONTENTS</h3>
+                <nav class="space-y-1 text-sm">
+                    <a href="#introduction" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Introduction</a>
+                    <a href="#installation" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Installation</a>
+                    <a href="#windows" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Windows</a>
+                    <a href="#macos" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">macOS</a>
+                    <a href="#setup" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">First-time setup</a>
+                    <a href="#usage" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Using AudioBash</a>
+                    <a href="#shortcuts" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Keyboard shortcuts</a>
+                    <a href="#voice" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Voice recording</a>
+                    <a href="#modes" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Terminal modes</a>
+                    <a href="#tabs" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Multi-tab interface</a>
+                    <a href="#settings" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Settings</a>
+                    <a href="#troubleshooting" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Troubleshooting</a>
+                    <a href="#faq" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">FAQ</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 min-w-0">
+
+            <!-- HEADER -->
+            <div class="mb-12">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-acid/10 border border-acid/30 text-acid text-xs font-mono mb-4">
+                    <span class="w-2 h-2 bg-acid rounded-full"></span>
+                    v2.0.0
+                </div>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
+                <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows and macOS.</p>
+            </div>
+
+            <!-- CONTENT SECTIONS -->
+            <div class="doc-section space-y-16 text-gray-300">
+
+                <!-- INTRODUCTION -->
+                <section id="introduction">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">01</span>
+                        INTRODUCTION
+                    </h2>
+                    <div class="space-y-4">
+                        <p>AudioBash is a voice-controlled terminal application designed to work seamlessly with Claude Code. Instead of typing commands, you can speak them directly into your terminal. The application transcribes your voice input using AI-powered speech recognition and executes commands in a real terminal environment.</p>
+
+                        <div class="bg-panel border border-white/10 p-6 mt-6">
+                            <h4 class="font-display text-chrome mb-4">Key features</h4>
+                            <ul class="space-y-2 text-gray-400">
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="mic" class="w-4 h-4 text-acid mt-1 shrink-0"></i>
+                                    <span><strong class="text-chrome">Push-to-talk voice input</strong> - Hold a hotkey to record, release to transcribe and execute</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4 text-ice mt-1 shrink-0"></i>
+                                    <span><strong class="text-chrome">Multi-provider transcription</strong> - Choose from Gemini, OpenAI Whisper, Claude, or Groq</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="terminal" class="w-4 h-4 text-signal mt-1 shrink-0"></i>
+                                    <span><strong class="text-chrome">Real terminal environment</strong> - Full PTY (pseudo-terminal) with shell access</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="brain" class="w-4 h-4 text-acid mt-1 shrink-0"></i>
+                                    <span><strong class="text-chrome">Agent mode</strong> - AI-powered command generation for complex tasks</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <i data-lucide="monitor" class="w-4 h-4 text-ice mt-1 shrink-0"></i>
+                                    <span><strong class="text-chrome">Cross-platform</strong> - Works on Windows 10/11 and macOS (Intel & Apple Silicon)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- INSTALLATION -->
+                <section id="installation">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">02</span>
+                        INSTALLATION
+                    </h2>
+
+                    <!-- Windows -->
+                    <div id="windows" class="mb-10">
+                        <h3 class="font-display text-xl text-ice mb-4 flex items-center gap-2">
+                            <i data-lucide="monitor" class="w-5 h-5"></i>
+                            Windows installation
+                        </h3>
+
+                        <div class="bg-panel border border-ice/20 p-6 mb-6">
+                            <h4 class="font-display text-chrome mb-3">System requirements</h4>
+                            <ul class="text-gray-400 space-y-1 text-sm">
+                                <li>Windows 10 or Windows 11</li>
+                                <li>4GB RAM minimum (8GB recommended)</li>
+                                <li>200MB disk space</li>
+                                <li>Microphone for voice input</li>
+                            </ul>
+                        </div>
+
+                        <h4 class="font-display text-chrome mb-3">Installation steps</h4>
+                        <ol class="space-y-4 text-gray-400">
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-ice text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
+                                <div>
+                                    <strong class="text-chrome">Download the installer</strong>
+                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-acid hover:underline">releases page</a> and download <code>AudioBash.Setup.2.0.0.exe</code></p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-ice text-black font-display font-bold text-sm flex items-center justify-center shrink-0">2</span>
+                                <div>
+                                    <strong class="text-chrome">Run the installer</strong>
+                                    <p class="text-sm mt-1">Double-click the .exe file. If Windows SmartScreen appears, click "More info" then "Run anyway"</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-ice text-black font-display font-bold text-sm flex items-center justify-center shrink-0">3</span>
+                                <div>
+                                    <strong class="text-chrome">Launch AudioBash</strong>
+                                    <p class="text-sm mt-1">Find AudioBash in your Start Menu or use the desktop shortcut</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-ice text-black font-display font-bold text-sm flex items-center justify-center shrink-0">4</span>
+                                <div>
+                                    <strong class="text-chrome">Grant microphone access</strong>
+                                    <p class="text-sm mt-1">Windows will prompt for permission on first use - click "Yes" to allow</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <!-- macOS -->
+                    <div id="macos">
+                        <h3 class="font-display text-xl text-apple mb-4 flex items-center gap-2">
+                            <i data-lucide="apple" class="w-5 h-5"></i>
+                            macOS installation
+                        </h3>
+
+                        <div class="bg-panel border border-apple/20 p-6 mb-6">
+                            <h4 class="font-display text-chrome mb-3">System requirements</h4>
+                            <ul class="text-gray-400 space-y-1 text-sm">
+                                <li>macOS 11 (Big Sur) or later</li>
+                                <li>Apple Silicon (M1/M2/M3/M4) or Intel processor</li>
+                                <li>4GB RAM minimum (8GB recommended)</li>
+                                <li>200MB disk space</li>
+                                <li>Microphone for voice input</li>
+                            </ul>
+                        </div>
+
+                        <h4 class="font-display text-chrome mb-3">Installation steps</h4>
+                        <ol class="space-y-4 text-gray-400">
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
+                                <div>
+                                    <strong class="text-chrome">Download the DMG</strong>
+                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-acid hover:underline">releases page</a> and download:</p>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li><strong>Apple Silicon (M1/M2/M3/M4):</strong> <code>AudioBash-2.0.0-arm64.dmg</code></li>
+                                        <li><strong>Intel Macs:</strong> <code>AudioBash-2.0.0.dmg</code></li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">2</span>
+                                <div>
+                                    <strong class="text-chrome">Install the app</strong>
+                                    <p class="text-sm mt-1">Double-click the DMG, drag AudioBash.app to Applications, then eject the DMG</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">3</span>
+                                <div>
+                                    <strong class="text-chrome">First launch (important!)</strong>
+                                    <p class="text-sm mt-1">Because AudioBash is not notarized by Apple, you must bypass Gatekeeper:</p>
+                                    <div class="bg-void border border-white/10 p-4 mt-3 text-sm">
+                                        <p class="text-chrome font-display mb-2">Method 1 - Right-click (recommended)</p>
+                                        <p>Open Finder → Applications → <strong>Right-click</strong> AudioBash.app → Select "Open" → Click "Open" in the dialog</p>
+                                    </div>
+                                    <div class="bg-void border border-white/10 p-4 mt-2 text-sm">
+                                        <p class="text-chrome font-display mb-2">Method 2 - Terminal command</p>
+                                        <pre><code>xattr -cr /Applications/AudioBash.app</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">4</span>
+                                <div>
+                                    <strong class="text-chrome">Grant permissions</strong>
+                                    <p class="text-sm mt-1">macOS will request:</p>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li><strong>Microphone access:</strong> System Settings → Privacy & Security → Microphone</li>
+                                        <li><strong>Accessibility access:</strong> System Settings → Privacy & Security → Accessibility (required for global hotkeys)</li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                </section>
+
+                <!-- FIRST-TIME SETUP -->
+                <section id="setup">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">03</span>
+                        FIRST-TIME SETUP
+                    </h2>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">Step 1: Choose your transcription provider</h4>
+                            <p class="text-gray-400 mb-4">AudioBash supports multiple AI providers for speech-to-text:</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Provider</th>
+                                        <th>Best for</th>
+                                        <th>Get API key</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-acid">Gemini (recommended)</td>
+                                        <td>Fast, accurate, free tier</td>
+                                        <td><a href="https://aistudio.google.com/app/apikey" class="text-ice hover:underline">aistudio.google.com</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>OpenAI Whisper</td>
+                                        <td>High accuracy</td>
+                                        <td><a href="https://platform.openai.com/api-keys" class="text-ice hover:underline">platform.openai.com</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Claude</td>
+                                        <td>Anthropic ecosystem</td>
+                                        <td><a href="https://console.anthropic.com/" class="text-ice hover:underline">console.anthropic.com</a></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Groq</td>
+                                        <td>Very fast</td>
+                                        <td><a href="https://console.groq.com/keys" class="text-ice hover:underline">console.groq.com</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">Step 2: Enter your API key</h4>
+                            <ol class="text-gray-400 space-y-2 text-sm">
+                                <li>1. Click the <strong>gear icon</strong> in the top-right corner</li>
+                                <li>2. Select your transcription provider from the dropdown</li>
+                                <li>3. Paste your API key in the text field</li>
+                                <li>4. Click "Save"</li>
+                            </ol>
+                        </div>
+
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">Step 3: Test voice recording</h4>
+                            <ol class="text-gray-400 space-y-2 text-sm">
+                                <li>1. Press <code>Option+S</code> (Mac) or <code>Alt+S</code> (Windows) to start recording</li>
+                                <li>2. Say a simple command: "list files in current directory"</li>
+                                <li>3. Press the hotkey again to stop</li>
+                                <li>4. Watch the transcription appear in the terminal</li>
+                            </ol>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USING AUDIOBASH -->
+                <section id="usage">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">04</span>
+                        USING AUDIOBASH
+                    </h2>
+
+                    <!-- Keyboard Shortcuts -->
+                    <div id="shortcuts" class="mb-10">
+                        <h3 class="font-display text-xl text-chrome mb-4">Keyboard shortcuts</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Windows</th>
+                                    <th>macOS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Start/stop recording</td>
+                                    <td><code>Alt+S</code></td>
+                                    <td><code>Option+S</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Cancel recording</td>
+                                    <td><code>Alt+A</code></td>
+                                    <td><code>Option+A</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Toggle raw/agent mode</td>
+                                    <td><code>Alt+M</code></td>
+                                    <td><code>Option+M</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Show/hide window</td>
+                                    <td><code>Alt+H</code></td>
+                                    <td><code>Option+H</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Clear terminal</td>
+                                    <td><code>Alt+C</code></td>
+                                    <td><code>Option+C</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Cycle layouts</td>
+                                    <td><code>Alt+L</code></td>
+                                    <td><code>Option+L</code></td>
+                                </tr>
+                                <tr>
+                                    <td>New tab</td>
+                                    <td><code>Ctrl+T</code></td>
+                                    <td><code>Cmd+T</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Close tab</td>
+                                    <td><code>Ctrl+W</code></td>
+                                    <td><code>Cmd+W</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Voice Recording -->
+                    <div id="voice" class="mb-10">
+                        <h3 class="font-display text-xl text-chrome mb-4">Voice recording</h3>
+                        <p class="text-gray-400 mb-4">AudioBash uses a <strong>push-to-talk</strong> model:</p>
+                        <ol class="text-gray-400 space-y-2 mb-6">
+                            <li>1. <strong class="text-chrome">Press</strong> the hotkey to start recording</li>
+                            <li>2. <strong class="text-chrome">Speak</strong> your command clearly</li>
+                            <li>3. <strong class="text-chrome">Release</strong> (or press again) to stop and transcribe</li>
+                        </ol>
+
+                        <h4 class="font-display text-chrome mb-3">Recording states</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-panel border border-signal/30 p-3 text-center">
+                                <div class="text-2xl mb-1">🔴</div>
+                                <div class="text-signal">Recording</div>
+                            </div>
+                            <div class="bg-panel border border-yellow-500/30 p-3 text-center">
+                                <div class="text-2xl mb-1">🟡</div>
+                                <div class="text-yellow-500">Processing</div>
+                            </div>
+                            <div class="bg-panel border border-acid/30 p-3 text-center">
+                                <div class="text-2xl mb-1">🟢</div>
+                                <div class="text-acid">Ready</div>
+                            </div>
+                            <div class="bg-panel border border-white/10 p-3 text-center">
+                                <div class="text-2xl mb-1">⚪</div>
+                                <div class="text-gray-500">Disabled</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal Modes -->
+                    <div id="modes" class="mb-10">
+                        <h3 class="font-display text-xl text-chrome mb-4">Terminal modes</h3>
+                        <p class="text-gray-400 mb-4">AudioBash has two modes for handling voice input:</p>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-panel border border-white/10 p-6">
+                                <h4 class="font-display text-acid mb-2">Raw mode (default)</h4>
+                                <p class="text-gray-400 text-sm mb-3">Transcribed text is sent directly to the terminal. What you say is exactly what gets typed.</p>
+                                <p class="text-gray-500 text-xs">Best for: Simple commands, when you know exactly what to type</p>
+                                <div class="bg-void p-3 mt-3 text-sm">
+                                    <span class="text-gray-500">Say:</span> <span class="text-chrome">"cd projects"</span><br>
+                                    <span class="text-gray-500">Types:</span> <code>cd projects</code>
+                                </div>
+                            </div>
+                            <div class="bg-panel border border-ice/30 p-6">
+                                <h4 class="font-display text-ice mb-2">Agent mode</h4>
+                                <p class="text-gray-400 text-sm mb-3">An AI interprets your intent and generates the appropriate command. Handles natural language requests.</p>
+                                <p class="text-gray-500 text-xs">Best for: Complex tasks, when you're unsure of exact syntax</p>
+                                <div class="bg-void p-3 mt-3 text-sm">
+                                    <span class="text-gray-500">Say:</span> <span class="text-chrome">"show JavaScript files modified this week"</span><br>
+                                    <span class="text-gray-500">Generates:</span> <code>find . -name "*.js" -mtime -7</code>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-gray-500 text-sm mt-4">Toggle between modes with <code>Alt+M</code> (Windows) or <code>Option+M</code> (Mac).</p>
+                    </div>
+
+                    <!-- Multi-Tab Interface -->
+                    <div id="tabs">
+                        <h3 class="font-display text-xl text-chrome mb-4">Multi-tab interface</h3>
+                        <p class="text-gray-400 mb-4">AudioBash supports multiple terminal tabs:</p>
+                        <ul class="text-gray-400 space-y-2">
+                            <li><strong class="text-chrome">New tab:</strong> Click the <code>+</code> button or press <code>Ctrl/Cmd+T</code></li>
+                            <li><strong class="text-chrome">Switch tabs:</strong> Click on tabs or use <code>Ctrl+Tab</code></li>
+                            <li><strong class="text-chrome">Close tab:</strong> Click the <code>×</code> on the tab or press <code>Ctrl/Cmd+W</code></li>
+                            <li><strong class="text-chrome">Rename tab:</strong> Double-click the tab title</li>
+                        </ul>
+                        <p class="text-gray-500 text-sm mt-4">Each tab maintains its own working directory, command history, and shell session.</p>
+                    </div>
+                </section>
+
+                <!-- SETTINGS -->
+                <section id="settings">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">05</span>
+                        SETTINGS
+                    </h2>
+
+                    <p class="text-gray-400 mb-6">Access settings by clicking the <strong>gear icon</strong> in the top-right corner.</p>
+
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">API keys</h4>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Setting</th>
+                                        <th>Purpose</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Transcription API key</td>
+                                        <td>Speech-to-text (Gemini, OpenAI, etc.)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Claude API key</td>
+                                        <td>Agent mode intelligence</td>
+                                    </tr>
+                                    <tr>
+                                        <td>ElevenLabs API key</td>
+                                        <td>Text-to-speech responses</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div>
+                            <h4 class="font-display text-chrome mb-3">Transcription providers</h4>
+                            <ul class="text-gray-400 space-y-1 text-sm">
+                                <li><strong class="text-acid">Gemini 2.0 Flash</strong> - Google's fast, accurate model (recommended)</li>
+                                <li><strong>OpenAI Whisper</strong> - Industry-standard accuracy</li>
+                                <li><strong>Groq Whisper</strong> - Ultra-fast processing</li>
+                                <li><strong>Claude</strong> - Uses Anthropic's model</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TROUBLESHOOTING -->
+                <section id="troubleshooting">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">06</span>
+                        TROUBLESHOOTING
+                    </h2>
+
+                    <div class="space-y-8">
+                        <!-- Windows Issues -->
+                        <div>
+                            <h3 class="font-display text-xl text-ice mb-4 flex items-center gap-2">
+                                <i data-lucide="monitor" class="w-5 h-5"></i>
+                                Windows issues
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">"Windows protected your PC" SmartScreen warning</h4>
+                                    <p class="text-gray-400 text-sm">Click "More info" → "Run anyway". This appears because the app isn't signed with an expensive certificate.</p>
+                                </div>
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">Global shortcuts not working</h4>
+                                    <p class="text-gray-400 text-sm">Check for conflicts with other apps, try running AudioBash as Administrator, or restart the app.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- macOS Issues -->
+                        <div>
+                            <h3 class="font-display text-xl text-apple mb-4 flex items-center gap-2">
+                                <i data-lucide="apple" class="w-5 h-5"></i>
+                                macOS issues
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">"AudioBash is damaged and can't be opened"</h4>
+                                    <p class="text-gray-400 text-sm mb-2">This is Gatekeeper blocking an unsigned app. Fix with:</p>
+                                    <pre><code>xattr -cr /Applications/AudioBash.app</code></pre>
+                                </div>
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">Global shortcuts (Option+S) not working</h4>
+                                    <p class="text-gray-400 text-sm">Go to System Settings → Privacy & Security → Accessibility. Find AudioBash, toggle it off and on, then restart the app.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- General Issues -->
+                        <div>
+                            <h3 class="font-display text-xl text-chrome mb-4">General issues</h3>
+                            <div class="space-y-4">
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">"API key is invalid" error</h4>
+                                    <p class="text-gray-400 text-sm">Double-check you copied the entire key, verify it's for the correct provider, and check that billing is set up if required.</p>
+                                </div>
+                                <div class="bg-panel border border-white/10 p-4">
+                                    <h4 class="text-chrome mb-2">Transcription is inaccurate</h4>
+                                    <p class="text-gray-400 text-sm">Speak more slowly and clearly, reduce background noise, try a different provider, or check your internet connection.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section id="faq">
+                    <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
+                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">07</span>
+                        FAQ
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">Is AudioBash free?</h4>
+                            <p class="text-gray-400 text-sm">Yes! AudioBash is free and open source. The AI transcription services require API keys, which may have usage costs depending on the provider. Gemini offers a generous free tier.</p>
+                        </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">Does AudioBash work offline?</h4>
+                            <p class="text-gray-400 text-sm">No. Voice transcription requires internet connectivity to reach the AI provider APIs.</p>
+                        </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">Can I use AudioBash with any shell?</h4>
+                            <p class="text-gray-400 text-sm">Yes. On Windows, it defaults to PowerShell. On macOS, it uses your default shell (usually zsh or bash). You can start any shell by typing its name.</p>
+                        </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">Can I use AudioBash with Claude Code CLI?</h4>
+                            <p class="text-gray-400 text-sm">Absolutely! That's exactly what it's designed for. Just type <code>claude</code> in the terminal to start Claude Code, then use voice commands to interact with it.</p>
+                        </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">Where are settings stored?</h4>
+                            <p class="text-gray-400 text-sm">
+                                <strong>Windows:</strong> <code>%APPDATA%\AudioBash\</code><br>
+                                <strong>macOS:</strong> <code>~/Library/Application Support/AudioBash/</code>
+                            </p>
+                        </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">How do I report bugs or request features?</h4>
+                            <p class="text-gray-400 text-sm">Visit <a href="https://github.com/jamditis/audiobash/issues" class="text-acid hover:underline">github.com/jamditis/audiobash/issues</a></p>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="mt-16 pt-8 border-t border-white/10">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
+                    <div>AudioBash v2.0.0 - Voice-controlled terminal for Claude Code</div>
+                    <div class="flex items-center gap-4">
+                        <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">GitHub</a>
+                        <a href="https://github.com/jamditis/audiobash/issues" class="hover:text-acid transition-colors">Issues</a>
+                        <a href="https://github.com/jamditis" class="hover:text-acid transition-colors">@jamditis</a>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Highlight active TOC link on scroll
+        const sections = document.querySelectorAll('.doc-section section');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        function highlightTOC() {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', highlightTOC);
+        highlightTOC();
+    </script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Notes // AUDIOBASH</title>
+    <meta name="description" content="AudioBash release history and changelog. Download links for all versions on Windows and macOS.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AudioBash Release Notes">
+    <meta property="og:description" content="Release history and changelog for AudioBash - Voice-controlled terminal for developers.">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        acid: '#ccff00',
+                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                        apple: '#a3aaae',
+                        appleDim: 'rgba(163, 170, 174, 0.1)',
+                    },
+                    backgroundImage: {
+                        'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ccff00;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.08;
+        }
+
+        code {
+            background: #1a1a1a;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .release-card {
+            border-left: 3px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .release-card:hover {
+            border-left-color: #ccff00;
+        }
+
+        .release-card.latest {
+            border-left-color: #ccff00;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-grid-pattern bg-[size:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">RELEASE_NOTES</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="macos.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">macOS</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="index.html#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-16">
+
+        <!-- HEADER -->
+        <div class="mb-12">
+            <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">RELEASE_NOTES</h1>
+            <p class="text-gray-400 text-lg">Version history and changelog for AudioBash.</p>
+        </div>
+
+        <!-- RELEASES -->
+        <div class="space-y-8">
+
+            <!-- v2.0.0 -->
+            <article class="release-card latest bg-panel border border-acid/30 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-acid text-black font-display font-bold text-sm">v2.0.0</span>
+                    <span class="px-3 py-1 bg-acid/20 text-acid text-xs font-mono">LATEST</span>
+                    <span class="text-gray-500 text-sm">January 2, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">macOS support</h2>
+
+                <p class="text-gray-400 mb-6">AudioBash now runs natively on macOS! This major release brings full feature parity between Windows and macOS with native Apple Silicon and Intel builds.</p>
+
+                <!-- Downloads -->
+                <div class="bg-void border border-white/10 p-4 mb-6">
+                    <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                            Windows
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            macOS (Apple Silicon)
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• Full macOS support with native arm64 and x64 builds</li>
+                            <li>• DMG installer for macOS</li>
+                            <li>• Cross-platform shell detection (zsh on Mac, PowerShell on Windows)</li>
+                            <li>• Platform-aware AI agent mode</li>
+                            <li>• 120+ cross-platform tests</li>
+                            <li>• CI/CD pipeline for multi-platform builds</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Fixed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• xterm.js focus issues on macOS</li>
+                            <li>• node-pty spawn-helper permission loss during packaging</li>
+                            <li>• postcss.config ESM syntax for Node 18</li>
+                            <li>• Icon size requirements for macOS DMG</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <a href="macos.html" class="text-acid hover:underline text-sm">Read the full macOS announcement →</a>
+                </div>
+            </article>
+
+            <!-- v1.1.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v1.1.0</span>
+                    <span class="text-gray-500 text-sm">December 11, 2025</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Custom instructions & vocabulary</h2>
+
+                <p class="text-gray-400 mb-6">Major release with personalization features and expanded keyboard shortcuts.</p>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• Custom instructions for raw and agent modes</li>
+                            <li>• Custom vocabulary/pronunciations mapping</li>
+                            <li>• CLI input notifications with audio chime</li>
+                            <li>• 14 keyboard shortcuts (Alt+A, Alt+M, Alt+C, Alt+L, etc.)</li>
+                            <li>• Resend last transcription (Alt+R)</li>
+                            <li>• Tab switching shortcuts (Alt+1-4)</li>
+                            <li>• Custom installer branding</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Changed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• Voice mode state shared between App and VoiceOverlay</li>
+                            <li>• Settings UI reorganized with categorized shortcuts</li>
+                            <li>• Last transcription saved for resend feature</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v1.0.4 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v1.0.4</span>
+                    <span class="text-gray-500 text-sm">December 11, 2025</span>
+                </div>
+
+                <h2 class="font-display text-xl text-chrome mb-4">Split view & tab management</h2>
+
+                <div>
+                    <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                    <ul class="text-gray-400 text-sm space-y-1">
+                        <li>• Split view with 5 layout modes (single, horizontal, vertical, 2x2, 1+2)</li>
+                        <li>• Resizable terminal panes with drag dividers</li>
+                        <li>• Focus indicator showing which terminal receives voice</li>
+                        <li>• Tab rename (double-click to edit)</li>
+                        <li>• Custom installer branding with images</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- v1.0.3 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v1.0.3</span>
+                    <span class="text-gray-500 text-sm">December 10, 2025</span>
+                </div>
+
+                <h2 class="font-display text-xl text-chrome mb-4">Bug fixes & stability</h2>
+
+                <div>
+                    <h4 class="font-display text-ice text-sm mb-2">Fixed</h4>
+                    <ul class="text-gray-400 text-sm space-y-1">
+                        <li>• Tray icon visibility in packaged builds</li>
+                        <li>• Icon path resolution for production</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- v1.0.2 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v1.0.2</span>
+                    <span class="text-gray-500 text-sm">December 10, 2025</span>
+                </div>
+
+                <h2 class="font-display text-xl text-chrome mb-4">Context-aware agent & quick navigation</h2>
+
+                <div>
+                    <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                    <ul class="text-gray-400 text-sm space-y-1">
+                        <li>• Context-aware agent mode (understands cwd, recent output, errors)</li>
+                        <li>• Quick directory navigation panel</li>
+                        <li>• Recent and favorite directories</li>
+                        <li>• Directory bookmarking</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- v1.0.1 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v1.0.1</span>
+                    <span class="text-gray-500 text-sm">December 9, 2025</span>
+                </div>
+
+                <h2 class="font-display text-xl text-chrome mb-4">Initial public release</h2>
+
+                <p class="text-gray-400 mb-4">The first public release of AudioBash!</p>
+
+                <div>
+                    <h4 class="font-display text-acid text-sm mb-2">Features</h4>
+                    <ul class="text-gray-400 text-sm space-y-1">
+                        <li>• Voice-to-terminal transcription</li>
+                        <li>• Multi-tab terminal support (up to 4 tabs)</li>
+                        <li>• Multiple AI provider support (Gemini, OpenAI, Claude, Groq)</li>
+                        <li>• System tray integration</li>
+                        <li>• Global keyboard shortcuts</li>
+                        <li>• Theme selection (Void, Cyberpunk, Matrix, Amber, Ice)</li>
+                        <li>• CRT scanline effect</li>
+                    </ul>
+                </div>
+            </article>
+
+        </div>
+
+        <!-- ROADMAP -->
+        <section class="mt-16">
+            <h2 class="font-display text-2xl text-chrome mb-6">ROADMAP</h2>
+
+            <div class="bg-panel border border-white/10 p-6">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-display text-acid text-sm mb-3">Planned features</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Customizable keyboard shortcuts
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Voice command history browser
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Snippet library for common commands
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Multiple configuration profiles
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Export/import settings
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-3">Future releases</h4>
+                        <ul class="text-gray-400 text-sm space-y-2">
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Linux support (AppImage, .deb)
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Plugin system
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                VS Code extension
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                SSH session support
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                                Multi-language transcription
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6 relative z-10">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                AUDIOBASH // RELEASE NOTES // MIT LICENSE
+            </div>
+            <div class="flex items-center gap-4 text-gray-500 text-sm">
+                <a href="index.html" class="hover:text-acid transition-colors">Home</a>
+                <a href="manual.html" class="hover:text-acid transition-colors">Manual</a>
+                <a href="macos.html" class="hover:text-acid transition-colors">macOS</a>
+                <a href="https://github.com/jamditis" class="hover:text-acid transition-colors">@jamditis</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
