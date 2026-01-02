@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -25,7 +25,7 @@
     "@ricky0123/vad-web": "^0.0.30",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
-    "node-pty": "^1.1.0-beta41",
+    "node-pty": "^1.1.0",
     "nodejs-whisper": "^0.2.9",
     "openai": "^6.10.0",
     "react": "^19.0.0",
