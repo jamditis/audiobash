@@ -7,6 +7,49 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { blobToBase64 } from "../utils/audioUtils";
+import { transcriptionLog as log } from "../utils/logger";
+
+/**
+ * Error class for transcription-specific errors with context
+ */
+export class TranscriptionError extends Error {
+  constructor(
+    message: string,
+    public readonly provider: string,
+    public readonly code: string,
+    public readonly details?: unknown
+  ) {
+    super(message);
+    this.name = 'TranscriptionError';
+  }
+
+  toUserMessage(): string {
+    switch (this.code) {
+      case 'NO_API_KEY':
+        return `No API key configured for ${this.provider}. Please add your API key in Settings.`;
+      case 'INVALID_API_KEY':
+        return `Invalid ${this.provider} API key. Please check your API key in Settings.`;
+      case 'RATE_LIMIT':
+        return `${this.provider} rate limit exceeded. Please wait a moment and try again.`;
+      case 'QUOTA_EXCEEDED':
+        return `${this.provider} quota exceeded. Please check your billing or try a different model.`;
+      case 'NETWORK_ERROR':
+        return `Network error connecting to ${this.provider}. Please check your internet connection.`;
+      case 'SERVER_ERROR':
+        return `${this.provider} server error. Please try again in a few moments.`;
+      case 'AUDIO_TOO_SHORT':
+        return 'Audio recording is too short. Please speak for at least 1 second.';
+      case 'AUDIO_TOO_LONG':
+        return 'Audio recording is too long. Please keep recordings under 5 minutes.';
+      case 'UNSUPPORTED_FORMAT':
+        return 'Audio format not supported. Please try again.';
+      case 'LOCAL_SERVER_UNAVAILABLE':
+        return 'Local transcription server not running. Please start the Parakeet server.';
+      default:
+        return this.message;
+    }
+  }
+}
 
 export interface TranscribeResult {
   text: string;
@@ -273,32 +316,77 @@ export class TranscriptionService {
   ): Promise<TranscribeResult> {
     const modelInfo = this.getModelInfo(modelId);
     if (!modelInfo) {
-      throw new Error(`Unknown model: ${modelId}`);
+      log.error(`Unknown model: ${modelId}`, new Error(`Unknown model ID`), { modelId });
+      throw new TranscriptionError(`Unknown model: ${modelId}`, 'unknown', 'UNKNOWN_MODEL', { modelId });
     }
+
+    log.info('Starting transcription', {
+      model: modelId,
+      provider: modelInfo.provider,
+      mode,
+      audioDurationMs: durationMs,
+      audioSizeBytes: audioBlob.size,
+    });
 
     // Force raw mode if model doesn't support agent
     if (!modelInfo.supportsAgent && mode === 'agent') {
+      log.debug('Model does not support agent mode, falling back to raw', { modelId });
       mode = 'raw';
     }
 
-    switch (modelInfo.provider) {
-      case 'gemini':
-        return this.transcribeWithGemini(audioBlob, mode, modelId, durationMs);
-      case 'openai':
-        return this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs);
-      case 'anthropic':
-        return this.transcribeWithClaude(audioBlob, mode, modelId, durationMs);
-      case 'elevenlabs':
-        return this.transcribeWithElevenLabs(audioBlob, durationMs);
-      case 'local':
-        // Check if it's a Whisper local model or Parakeet local
-        if (modelId.startsWith('whisper-local-')) {
-          return this.transcribeLocalWhisper(audioBlob, modelId);
-        } else {
-          return this.transcribeLocal(audioBlob);
-        }
-      default:
-        throw new Error(`Unsupported provider: ${modelInfo.provider}`);
+    const startTime = performance.now();
+
+    try {
+      let result: TranscribeResult;
+
+      switch (modelInfo.provider) {
+        case 'gemini':
+          result = await this.transcribeWithGemini(audioBlob, mode, modelId, durationMs);
+          break;
+        case 'openai':
+          result = await this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs);
+          break;
+        case 'anthropic':
+          result = await this.transcribeWithClaude(audioBlob, mode, modelId, durationMs);
+          break;
+        case 'elevenlabs':
+          result = await this.transcribeWithElevenLabs(audioBlob, durationMs);
+          break;
+        case 'local':
+          // Check if it's a Whisper local model or Parakeet local
+          if (modelId.startsWith('whisper-local-')) {
+            result = await this.transcribeLocalWhisper(audioBlob, modelId);
+          } else {
+            result = await this.transcribeLocal(audioBlob);
+          }
+          break;
+        default:
+          throw new TranscriptionError(
+            `Unsupported provider: ${modelInfo.provider}`,
+            modelInfo.provider,
+            'UNSUPPORTED_PROVIDER'
+          );
+      }
+
+      const elapsed = performance.now() - startTime;
+      log.info('Transcription completed', {
+        model: modelId,
+        mode,
+        textLength: result.text.length,
+        cost: result.cost,
+        elapsedMs: Math.round(elapsed),
+      });
+
+      return result;
+    } catch (error) {
+      const elapsed = performance.now() - startTime;
+      log.error('Transcription failed', error, {
+        model: modelId,
+        mode,
+        provider: modelInfo.provider,
+        elapsedMs: Math.round(elapsed),
+      });
+      throw error;
     }
   }
 
@@ -309,41 +397,69 @@ export class TranscriptionService {
     durationMs: number
   ): Promise<TranscribeResult> {
     if (!this.genAI) {
-      throw new Error("No Gemini API key configured.");
+      throw new TranscriptionError(
+        "No Gemini API key configured",
+        "Gemini",
+        "NO_API_KEY"
+      );
     }
 
-    const base64Audio = await blobToBase64(audioBlob);
-    // Use context-aware prompt for agent mode, include custom instructions
-    const vocabularySection = buildVocabularySection(this.customInstructions.vocabulary);
-    const rawInstructions = this.customInstructions.rawModeInstructions;
+    try {
+      const base64Audio = await blobToBase64(audioBlob);
+      log.debug('Audio converted to base64', { sizeBytes: base64Audio.length });
 
-    const prompt = mode === 'agent'
-      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
-      : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
+      // Use context-aware prompt for agent mode, include custom instructions
+      const vocabularySection = buildVocabularySection(this.customInstructions.vocabulary);
+      const rawInstructions = this.customInstructions.rawModeInstructions;
 
-    // Map model ID to actual Gemini model name (stable versions only)
-    const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
-    const model = this.genAI.getGenerativeModel({ model: geminiModel });
+      const prompt = mode === 'agent'
+        ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+        : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
 
-    const result = await model.generateContent([
-      { text: prompt },
-      {
-        inlineData: {
-          mimeType: 'audio/webm',
-          data: base64Audio
+      // Map model ID to actual Gemini model name (stable versions only)
+      const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
+      const model = this.genAI.getGenerativeModel({ model: geminiModel });
+
+      log.debug('Sending request to Gemini', { model: geminiModel, mode });
+
+      const result = await model.generateContent([
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType: 'audio/webm',
+            data: base64Audio
+          }
         }
+      ]);
+
+      const response = await result.response;
+      const text = response.text()?.trim() || "";
+
+      // Calculate cost (32 tokens/sec, ~$0.10 per 1M tokens for flash)
+      const seconds = durationMs / 1000;
+      const tokens = seconds * 32;
+      const cost = (tokens / 1000000) * 0.10;
+
+      return { text, cost: `$${cost.toFixed(6)}` };
+    } catch (error: any) {
+      // Parse Gemini-specific errors
+      const message = error?.message || String(error);
+
+      if (message.includes('API key')) {
+        throw new TranscriptionError(message, 'Gemini', 'INVALID_API_KEY', error);
       }
-    ]);
+      if (message.includes('quota') || message.includes('429')) {
+        throw new TranscriptionError(message, 'Gemini', 'RATE_LIMIT', error);
+      }
+      if (message.includes('network') || message.includes('fetch')) {
+        throw new TranscriptionError(message, 'Gemini', 'NETWORK_ERROR', error);
+      }
+      if (message.includes('500') || message.includes('503')) {
+        throw new TranscriptionError(message, 'Gemini', 'SERVER_ERROR', error);
+      }
 
-    const response = await result.response;
-    const text = response.text()?.trim() || "";
-
-    // Calculate cost (32 tokens/sec, ~$0.10 per 1M tokens for flash)
-    const seconds = durationMs / 1000;
-    const tokens = seconds * 32;
-    const cost = (tokens / 1000000) * 0.10;
-
-    return { text, cost: `$${cost.toFixed(6)}` };
+      throw new TranscriptionError(message, 'Gemini', 'UNKNOWN', error);
+    }
   }
 
   private async transcribeWithOpenAI(
@@ -492,6 +608,8 @@ export class TranscriptionService {
   }
 
   private async transcribeLocal(blob: Blob): Promise<TranscribeResult> {
+    log.debug('Starting local Parakeet transcription');
+
     try {
       const formData = new FormData();
       formData.append('file', blob, 'audio.webm');
@@ -503,18 +621,46 @@ export class TranscriptionService {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Local server returned ${res.status}: ${errorText}`);
+        log.error('Local Parakeet server error', new Error(errorText), {
+          status: res.status,
+          response: errorText,
+        });
+        throw new TranscriptionError(
+          `Local server returned ${res.status}: ${errorText}`,
+          'Parakeet',
+          res.status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN',
+          { status: res.status, response: errorText }
+        );
       }
 
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (data.error) {
+        throw new TranscriptionError(data.error, 'Parakeet', 'UNKNOWN', data);
+      }
+
+      log.debug('Parakeet transcription successful', { textLength: data.text?.length || 0 });
       return { text: data.text || "", cost: "$0.00 (Local)" };
     } catch (e: any) {
-      throw new Error("Local Parakeet error: " + e.message);
+      if (e instanceof TranscriptionError) throw e;
+
+      // Check for connection errors
+      if (e.message?.includes('fetch') || e.message?.includes('network') || e.name === 'TypeError') {
+        log.error('Local Parakeet server not reachable', e);
+        throw new TranscriptionError(
+          'Local Parakeet server is not running or not reachable',
+          'Parakeet',
+          'LOCAL_SERVER_UNAVAILABLE',
+          e
+        );
+      }
+
+      throw new TranscriptionError("Local Parakeet error: " + e.message, 'Parakeet', 'UNKNOWN', e);
     }
   }
 
   private async transcribeLocalWhisper(blob: Blob, modelId: ModelId): Promise<TranscribeResult> {
+    log.debug('Starting local Whisper transcription', { modelId });
+
     try {
       // Map model ID to Whisper model name
       const modelMap: Record<string, string> = {
@@ -525,33 +671,50 @@ export class TranscriptionService {
 
       const whisperModel = modelMap[modelId];
       if (!whisperModel) {
-        throw new Error(`Unknown Whisper model: ${modelId}`);
+        throw new TranscriptionError(
+          `Unknown Whisper model: ${modelId}`,
+          'Whisper',
+          'UNKNOWN_MODEL',
+          { modelId }
+        );
       }
 
       // Set the model via IPC
+      log.debug('Setting Whisper model', { whisperModel });
       await window.electron.whisperSetModel(whisperModel);
 
       // Convert blob to base64
       const base64Audio = await blobToBase64(blob);
+      log.debug('Audio converted to base64', { sizeBytes: base64Audio.length });
 
       // Save audio to temp file via IPC
       const saveResult = await window.electron.saveTempAudio(base64Audio);
       if (!saveResult.success || !saveResult.path) {
-        throw new Error(saveResult.error || 'Failed to save temp audio file');
+        log.error('Failed to save temp audio file', new Error(saveResult.error || 'Unknown error'));
+        throw new TranscriptionError(
+          saveResult.error || 'Failed to save temp audio file',
+          'Whisper',
+          'UNKNOWN',
+          saveResult
+        );
       }
+      log.debug('Audio saved to temp file', { path: saveResult.path });
 
       // Transcribe via IPC
       const result = await window.electron.whisperTranscribe(saveResult.path);
       if (result.error) {
-        throw new Error(result.error);
+        log.error('Whisper transcription error', new Error(result.error));
+        throw new TranscriptionError(result.error, 'Whisper', 'UNKNOWN', result);
       }
 
+      log.debug('Whisper transcription successful', { textLength: result.text?.length || 0 });
       return {
         text: result.text || "",
         cost: "$0.00 (Local)"
       };
     } catch (e: any) {
-      throw new Error("Local Whisper error: " + e.message);
+      if (e instanceof TranscriptionError) throw e;
+      throw new TranscriptionError("Local Whisper error: " + e.message, 'Whisper', 'UNKNOWN', e);
     }
   }
 }

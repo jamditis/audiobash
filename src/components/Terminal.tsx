@@ -4,6 +4,7 @@ import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
 import FocusIndicator from './FocusIndicator';
 import { playNotificationSound, checkForCliInputPrompt, resetOutputBuffer } from '../utils/notificationSound';
+import { terminalLog as log } from '../utils/logger';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
@@ -57,80 +58,94 @@ const Terminal: React.FC<TerminalProps> = ({
       const rect = container.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) {
         // Container not ready, retry
+        log.debug('Container not ready, retrying initialization', { tabId });
         requestAnimationFrame(initTerminal);
         return;
       }
 
-      // Create xterm instance with theme
-      xterm = new XTerm({
-        theme: themeToXtermTheme(theme),
-        fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
-        fontSize: 14,
-        lineHeight: 1.2,
-        cursorBlink: true,
-        cursorStyle: 'block',
-        scrollback: 10000,
-        allowProposedApi: true,
-      });
+      log.info('Initializing terminal', { tabId, width: rect.width, height: rect.height });
 
-      fitAddon = new FitAddon();
-      xterm.loadAddon(fitAddon);
+      try {
+        // Create xterm instance with theme
+        xterm = new XTerm({
+          theme: themeToXtermTheme(theme),
+          fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
+          fontSize: 14,
+          lineHeight: 1.2,
+          cursorBlink: true,
+          cursorStyle: 'block',
+          scrollback: 10000,
+          allowProposedApi: true,
+        });
 
-      xterm.open(container);
+        fitAddon = new FitAddon();
+        xterm.loadAddon(fitAddon);
 
-      xtermRef.current = xterm;
-      fitAddonRef.current = fitAddon;
+        xterm.open(container);
 
-      // Handle resize
-      resizeHandler = () => {
-        if (!fitAddon || !xterm) return;
-        try {
-          fitAddon.fit();
-          window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
-        } catch (err) {
-          // Ignore fit errors during resize
-        }
-      };
-      window.addEventListener('resize', resizeHandler);
+        xtermRef.current = xterm;
+        fitAddonRef.current = fitAddon;
 
-      // Handle user input - send to PTY
-      xterm.onData((data) => {
-        window.electron?.writeToTerminal(tabId, data);
-      });
+        log.debug('Terminal xterm instance created', { tabId });
 
-      // Enable copy on selection
-      xterm.onSelectionChange(() => {
-        const selection = xterm?.getSelection();
-        if (selection) {
-          navigator.clipboard.writeText(selection).catch(() => {
-            // Clipboard write failed, ignore
-          });
-        }
-      });
-
-      // Listen for PTY output (filtered by tabId)
-      dataCleanup = window.electron?.onTerminalData((incomingTabId: string, data: string) => {
-        if (incomingTabId === tabId && xterm) {
-          xterm.write(data);
-
-          // Check for CLI input prompts and play notification
-          if (cliNotificationsRef.current && checkForCliInputPrompt(data)) {
-            playNotificationSound();
+        // Handle resize
+        resizeHandler = () => {
+          if (!fitAddon || !xterm) return;
+          try {
+            fitAddon.fit();
+            window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+          } catch (err) {
+            log.warn('Terminal resize error', { tabId }, err);
           }
-        }
-      });
+        };
+        window.addEventListener('resize', resizeHandler);
 
-      // Fit after a brief delay to ensure rendering is complete
-      setTimeout(() => {
-        if (!fitAddon || !xterm || disposed) return;
-        try {
-          fitAddon.fit();
-          window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
-          xterm.focus();
-        } catch (err) {
-          console.warn('[Terminal] Initial fit failed:', err);
-        }
-      }, 100);
+        // Handle user input - send to PTY
+        xterm.onData((data) => {
+          window.electron?.writeToTerminal(tabId, data);
+        });
+
+        // Enable copy on selection
+        xterm.onSelectionChange(() => {
+          const selection = xterm?.getSelection();
+          if (selection) {
+            navigator.clipboard.writeText(selection).catch((err) => {
+              log.warn('Clipboard write failed', { tabId }, err);
+            });
+          }
+        });
+
+        // Listen for PTY output (filtered by tabId)
+        dataCleanup = window.electron?.onTerminalData((incomingTabId: string, data: string) => {
+          if (incomingTabId === tabId && xterm) {
+            xterm.write(data);
+
+            // Check for CLI input prompts and play notification
+            if (cliNotificationsRef.current && checkForCliInputPrompt(data)) {
+              playNotificationSound();
+            }
+          }
+        });
+
+        // Fit after a brief delay to ensure rendering is complete
+        setTimeout(() => {
+          if (!fitAddon || !xterm || disposed) return;
+          try {
+            fitAddon.fit();
+            window.electron?.resizeTerminal(tabId, xterm.cols, xterm.rows);
+            xterm.focus();
+            log.info('Terminal initialized successfully', {
+              tabId,
+              cols: xterm.cols,
+              rows: xterm.rows,
+            });
+          } catch (err) {
+            log.error('Terminal initial fit failed', err, { tabId });
+          }
+        }, 100);
+      } catch (err) {
+        log.error('Terminal initialization failed', err, { tabId });
+      }
     };
 
     // Start initialization
@@ -138,6 +153,7 @@ const Terminal: React.FC<TerminalProps> = ({
 
     return () => {
       disposed = true;
+      log.debug('Cleaning up terminal', { tabId });
       if (resizeHandler) {
         window.removeEventListener('resize', resizeHandler);
       }
@@ -148,6 +164,7 @@ const Terminal: React.FC<TerminalProps> = ({
       }
       xtermRef.current = null;
       fitAddonRef.current = null;
+      log.debug('Terminal cleanup complete', { tabId });
     };
   }, [tabId]);
 
@@ -204,7 +221,7 @@ const Terminal: React.FC<TerminalProps> = ({
               window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
             }
           } catch (err) {
-            // Ignore fit errors during resize
+            log.warn('Terminal fit failed during resize', { tabId }, err);
           }
         }
       }, 100); // Increased debounce for stability

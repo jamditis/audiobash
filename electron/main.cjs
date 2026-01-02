@@ -3,6 +3,9 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+// Centralized logger - must initialize after app ready
+const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
+
 // node-pty will be loaded dynamically after app ready
 let pty = null;
 
@@ -25,16 +28,17 @@ const store = {
     try {
       if (fs.existsSync(storeFilePath)) {
         this.data = JSON.parse(fs.readFileSync(storeFilePath, 'utf8'));
+        storeLog.debug('Store loaded successfully', { keys: Object.keys(this.data).length });
       }
     } catch (err) {
-      console.error('[Store] Failed to load:', err);
+      storeLog.error('Failed to load store', err, { path: storeFilePath });
     }
   },
   save() {
     try {
       fs.writeFileSync(storeFilePath, JSON.stringify(this.data, null, 2), 'utf8');
     } catch (err) {
-      console.error('[Store] Failed to save:', err);
+      storeLog.error('Failed to save store', err, { path: storeFilePath });
     }
   },
   get(key, defaultValue) {
@@ -486,80 +490,86 @@ function spawnShell(tabId) {
   if (!pty) {
     try {
       pty = require('node-pty');
+      ptyLog.info('node-pty loaded successfully');
     } catch (err) {
-      console.error('[AudioBash] Failed to load node-pty:', err);
+      ptyLog.error('Failed to load node-pty', err);
       return null;
     }
   }
 
   // Check max tabs
   if (ptyProcesses.size >= MAX_TABS) {
-    console.warn('[AudioBash] Max tabs reached');
+    ptyLog.warn('Max tabs reached', { current: ptyProcesses.size, max: MAX_TABS });
     return null;
   }
 
   // Determine shell
   const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
 
-  // Spawn PTY process
-  const ptyProcess = pty.spawn(shell, [], {
-    name: 'xterm-256color',
-    cols: 120,
-    rows: 30,
-    cwd: os.homedir(),
-    env: { ...process.env, TERM: 'xterm-256color' },
-  });
+  try {
+    // Spawn PTY process
+    const ptyProcess = pty.spawn(shell, [], {
+      name: 'xterm-256color',
+      cols: 120,
+      rows: 30,
+      cwd: os.homedir(),
+      env: { ...process.env, TERM: 'xterm-256color' },
+    });
 
-  console.log(`[AudioBash] Spawned ${shell} for tab ${tabId} with PID ${ptyProcess.pid}`);
+    ptyLog.info('Shell spawned', { tabId, shell, pid: ptyProcess.pid });
 
-  // Store the process and initialize buffers
-  ptyProcesses.set(tabId, ptyProcess);
-  terminalOutputBuffers.set(tabId, '');
-  terminalCwds.set(tabId, os.homedir());
+    // Store the process and initialize buffers
+    ptyProcesses.set(tabId, ptyProcess);
+    terminalOutputBuffers.set(tabId, '');
+    terminalCwds.set(tabId, os.homedir());
 
-  // Forward PTY output to renderer and track in buffer
-  ptyProcess.onData((data) => {
-    // Append to output buffer (keep last MAX_OUTPUT_BUFFER chars)
-    let buffer = terminalOutputBuffers.get(tabId) || '';
-    buffer += data;
-    if (buffer.length > MAX_OUTPUT_BUFFER) {
-      buffer = buffer.slice(-MAX_OUTPUT_BUFFER);
-    }
-    terminalOutputBuffers.set(tabId, buffer);
-
-    // Try to detect CWD changes from common shell prompts
-    // This is a heuristic - works for PowerShell and most Unix shells
-    const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
-    if (cwdMatch && cwdMatch[1]) {
-      const newCwd = cwdMatch[1].trim();
-      if (newCwd && newCwd !== terminalCwds.get(tabId)) {
-        terminalCwds.set(tabId, newCwd);
-        // Track as recent directory
-        addRecentDirectory(newCwd);
+    // Forward PTY output to renderer and track in buffer
+    ptyProcess.onData((data) => {
+      // Append to output buffer (keep last MAX_OUTPUT_BUFFER chars)
+      let buffer = terminalOutputBuffers.get(tabId) || '';
+      buffer += data;
+      if (buffer.length > MAX_OUTPUT_BUFFER) {
+        buffer = buffer.slice(-MAX_OUTPUT_BUFFER);
       }
-    }
+      terminalOutputBuffers.set(tabId, buffer);
 
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('terminal-data', { tabId, data });
-    }
+      // Try to detect CWD changes from common shell prompts
+      // This is a heuristic - works for PowerShell and most Unix shells
+      const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
+      if (cwdMatch && cwdMatch[1]) {
+        const newCwd = cwdMatch[1].trim();
+        if (newCwd && newCwd !== terminalCwds.get(tabId)) {
+          terminalCwds.set(tabId, newCwd);
+          // Track as recent directory
+          addRecentDirectory(newCwd);
+        }
+      }
 
-    // Forward to remote mobile client
-    if (remoteServer) {
-      remoteServer.sendTerminalData(tabId, data);
-    }
-  });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('terminal-data', { tabId, data });
+      }
 
-  ptyProcess.onExit(({ exitCode, signal }) => {
-    console.log(`[AudioBash] Shell ${tabId} exited with code ${exitCode}, signal ${signal}`);
-    ptyProcesses.delete(tabId);
-    terminalOutputBuffers.delete(tabId);
-    terminalCwds.delete(tabId);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
-    }
-  });
+      // Forward to remote mobile client
+      if (remoteServer) {
+        remoteServer.sendTerminalData(tabId, data);
+      }
+    });
 
-  return ptyProcess.pid;
+    ptyProcess.onExit(({ exitCode, signal }) => {
+      ptyLog.info('Shell exited', { tabId, exitCode, signal });
+      ptyProcesses.delete(tabId);
+      terminalOutputBuffers.delete(tabId);
+      terminalCwds.delete(tabId);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
+      }
+    });
+
+    return ptyProcess.pid;
+  } catch (err) {
+    ptyLog.error('Failed to spawn shell', err, { tabId, shell });
+    return null;
+  }
 }
 
 function killShell(tabId) {
@@ -1126,6 +1136,15 @@ function setupIPC() {
 
 // App lifecycle
 app.whenReady().then(() => {
+  // Initialize logger first
+  logger.init();
+  appLog.info('AudioBash starting', {
+    version: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    isDev,
+  });
+
   loadShortcuts();
   loadDirectories();
   createWindow();
