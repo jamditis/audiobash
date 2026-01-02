@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { transcriptionService, ModelId, MODELS } from '../services/transcriptionService';
+import { transcriptionService, ModelId, MODELS, TranscriptionError } from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
 import { useVAD } from '../hooks/useVAD';
 import { float32ToWebmBlob } from '../utils/audioConversion';
+import { voiceLog as log } from '../utils/logger';
 
 interface VoiceOverlayProps {
   isOpen: boolean;
@@ -91,7 +92,10 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   }, []);
 
   const handleVADSpeechEnd = useCallback(async (audioFloat32: Float32Array) => {
-    console.log('[VoiceOverlay] VAD detected speech end, processing audio');
+    log.info('VAD detected speech end, processing audio', {
+      audioSamples: audioFloat32.length,
+      durationMs: (audioFloat32.length / 16000) * 1000,
+    });
     setStatus('processing');
 
     try {
@@ -104,6 +108,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         const context = await window.electron?.getTerminalContext(activeTabId);
         if (context) {
           transcriptionService.setTerminalContext(context);
+          log.debug('Terminal context set for agent mode', { cwd: context.cwd });
         }
       }
 
@@ -111,6 +116,9 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       if (result.text) {
         onTranscript(result.text, mode);
         audioFeedback.playSuccess();
+        log.info('Transcription successful', { textLength: result.text.length, mode });
+      } else {
+        log.debug('Empty transcription result');
       }
 
       // In continuous mode, restart VAD after processing
@@ -124,7 +132,12 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         vadStopRef.current?.();
       }
     } catch (err: any) {
-      setError(err.message);
+      log.error('Voice transcription failed', err);
+      // Use user-friendly error message if available
+      const errorMessage = err instanceof TranscriptionError
+        ? err.toUserMessage()
+        : err.message || 'An unknown error occurred';
+      setError(errorMessage);
       audioFeedback.playError();
       setStatus('idle');
       setIsRecording(false);
@@ -305,6 +318,8 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const durationMs = Date.now() - startTimeRef.current;
 
+        log.info('Recording stopped', { durationMs, blobSize: blob.size });
+
         if (audioContextRef.current) {
           audioContextRef.current.close();
           audioContextRef.current = null;
@@ -322,6 +337,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             const context = await window.electron?.getTerminalContext(activeTabId);
             if (context) {
               transcriptionService.setTerminalContext(context);
+              log.debug('Terminal context set', { cwd: context.cwd });
             }
           }
 
@@ -329,9 +345,17 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           if (result.text) {
             onTranscript(result.text, mode);
             audioFeedback.playSuccess();
+            log.info('Transcription successful', { textLength: result.text.length, mode });
+          } else {
+            log.debug('Empty transcription result');
           }
         } catch (err: any) {
-          setError(err.message);
+          log.error('Transcription failed', err);
+          // Use user-friendly error message if available
+          const errorMessage = err instanceof TranscriptionError
+            ? err.toUserMessage()
+            : err.message || 'An unknown error occurred';
+          setError(errorMessage);
           audioFeedback.playError();
         }
         setStatus('idle');
@@ -344,7 +368,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       audioFeedback.playStart();
 
     } catch (err: any) {
-      setError('Microphone access denied');
+      log.error('Failed to start recording', err);
+      const errorMessage = err.name === 'NotAllowedError'
+        ? 'Microphone access denied. Please allow microphone access in your browser settings.'
+        : err.name === 'NotFoundError'
+        ? 'No microphone found. Please connect a microphone and try again.'
+        : `Failed to start recording: ${err.message}`;
+      setError(errorMessage);
       audioFeedback.playError();
     }
   }, [mode, model, hasApiKey, onTranscript, setIsRecording, recordingMode, vadInstance]);
@@ -525,7 +555,20 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         {/* Error */}
         {(error || vadInstance.vadError) && (
           <div className="mx-3 mb-3 p-2 bg-accent/10 border border-accent/30 rounded">
-            <p className="text-[10px] text-accent font-mono">{error || vadInstance.vadError}</p>
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-[10px] text-accent font-mono leading-relaxed">{error || vadInstance.vadError}</p>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-[9px] text-crt-white/40 hover:text-crt-white/60 mt-1 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -13,6 +13,7 @@ import SplitContainer, { SplitLayoutState, PaneConfig } from './components/Split
 import { LayoutMode } from './components/LayoutSelector';
 import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
 import { transcriptionService, ModelId } from './services/transcriptionService';
+import { appLog } from './utils/logger';
 
 const MAX_TABS = 4;
 
@@ -251,7 +252,11 @@ const App: React.FC = () => {
           });
         }
       } catch (err) {
-        console.error('[Remote] Transcription error:', err);
+        appLog.error('Remote transcription error', err as Error, {
+          requestId: request.requestId,
+          tabId: request.tabId,
+          mode: request.mode,
+        });
         window.electron?.sendRemoteTranscriptionResult({
           requestId: request.requestId,
           success: false,
