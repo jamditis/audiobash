@@ -202,12 +202,12 @@ function setupWebSocketHandlers() {
  * Handle connect button click
  */
 async function handleConnect() {
-  const ip = elements.ipInput.value.trim();
+  const address = elements.ipInput.value.trim();
   const code = elements.codeInput.value.trim().toUpperCase();
 
   // Validation
-  if (!ip) {
-    showError('Please enter the desktop IP address');
+  if (!address) {
+    showError('Please enter the IP address or tunnel URL');
     return;
   }
   if (!code) {
@@ -225,13 +225,18 @@ async function handleConnect() {
     // Get device name
     const deviceName = getDeviceName();
 
-    // Connect
-    // Use port 8766 for secure wss:// connections (HTTPS pages)
-    // The websocket.js will automatically use wss:// when on HTTPS
-    const desktopInfo = await state.wsManager.connect(ip, 8766, code, deviceName);
+    // Detect if it's a tunnel URL (no port needed) or IP address (port 8766)
+    const isTunnelUrl = address.includes('tunnelto') ||
+                        address.startsWith('wss://') ||
+                        address.startsWith('https://') ||
+                        (address.includes('.') && !/^[\d.]+$/.test(address));
 
-    // Save IP and code for next time (persistent password)
-    saveConnection(ip, code);
+    // Connect - tunnel URLs don't need a port, IP addresses use 8766
+    const port = isTunnelUrl ? null : 8766;
+    const desktopInfo = await state.wsManager.connect(address, port, code, deviceName);
+
+    // Save address and code for next time (persistent password)
+    saveConnection(address, code);
 
     // Initialize terminal
     initializeTerminal(desktopInfo);
