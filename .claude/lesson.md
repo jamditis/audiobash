@@ -194,6 +194,56 @@ expect(leaked).toBeLessThan(50);
 
 ---
 
+## 2026-01-02: Cross-Platform Release Workflow
+
+### Problem
+Need to release AudioBash for Windows, macOS ARM64, and macOS Intel from a single Mac development machine.
+
+### Challenge
+- node-pty is a native module that must be compiled on each platform
+- Can't cross-compile Windows binaries on macOS
+- GitHub Actions tag-triggered builds conflict with manual release creation
+
+### Solution
+Use a hybrid local + CI approach:
+
+1. **Build macOS locally** (native compilation works)
+2. **Create GitHub release first** with macOS DMGs only
+3. **Trigger Windows-only CI build** via `workflow_dispatch`
+4. **Download artifact and upload** to existing release
+
+```bash
+# Create release with macOS builds first
+gh release create v2.0.2 --title "v2.0.2" --notes "..." \
+  "dist/AudioBash-2.0.2-arm64.dmg" \
+  "dist/AudioBash-2.0.2.dmg"
+
+# Trigger Windows-only build (skip mac/linux)
+gh workflow run build.yml --ref master -f build_mac=false -f build_windows=true
+
+# Wait, download, upload
+gh run download [RUN_ID] -n windows-builds -D /tmp/
+gh release upload v2.0.2 "/tmp/windows-builds/AudioBash Setup 2.0.2.exe"
+```
+
+### Key Commands
+| Task | Command |
+|------|---------|
+| Check CI status | `gh run list --workflow=build.yml --limit 3` |
+| Get run details | `gh run view [ID] --json status,conclusion` |
+| Download artifact | `gh run download [ID] -n [NAME] -D /path` |
+| Upload to release | `gh release upload vX.X.X "path/to/file"` |
+| Update release notes | `gh release edit vX.X.X --notes "..."` |
+
+### Takeaway
+For native-module Electron apps:
+- Build each platform where native compilation works (macOS on Mac, Windows on Windows runner)
+- Use `workflow_dispatch` with platform flags for on-demand builds without tag conflicts
+- Create release incrementally: macOS first, then add Windows after CI completes
+- The `gh` CLI is essential for scripting this workflow
+
+---
+
 ## Template for Future Lessons
 
 ```markdown

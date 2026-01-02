@@ -106,6 +106,46 @@ The workflow (`.github/workflows/build.yml`) automatically:
 - Can be manually triggered via `workflow_dispatch`
 - Uses `--publish never` to prevent electron-builder auto-publish conflicts
 
+## Complete Release Example (v2.0.2)
+
+Here's the exact sequence used for releasing v2.0.2:
+
+```bash
+# 1. Build macOS installers locally
+npm run electron:build:mac:arm64
+
+# 2. Commit and push
+git add -A
+git commit -m "v2.0.2: Fix macOS spawn-helper permissions"
+git push origin master
+
+# 3. Create and push tag
+git tag v2.0.2
+git push origin v2.0.2
+
+# 4. Create release with macOS DMGs
+gh release create v2.0.2 --title "v2.0.2: macOS Stability" \
+  --notes "Release notes..." \
+  "dist/AudioBash-2.0.2-arm64.dmg" \
+  "dist/AudioBash-2.0.2.dmg"
+
+# 5. Trigger Windows build
+gh workflow run build.yml --ref master -f build_mac=false -f build_windows=true
+
+# 6. Wait for build (check status)
+gh run list --workflow=build.yml --limit 1
+# Watch for status: completed, conclusion: success
+
+# 7. Download Windows artifact
+gh run download [RUN_ID] -n windows-builds -D /tmp/win-builds
+
+# 8. Upload to release
+gh release upload v2.0.2 "/tmp/win-builds/AudioBash Setup 2.0.2.exe"
+
+# 9. Update release notes with Windows link
+gh release edit v2.0.2 --notes "Updated notes..."
+```
+
 ## Troubleshooting
 
 ### electron-builder auto-publish error
@@ -118,3 +158,15 @@ GitHub Personal Access Token is not set
 - Windows builds require Windows runner (use GitHub Actions)
 - macOS can build both ARM64 and x64 locally
 - Linux builds are opt-in only in the workflow
+
+### Checking CI build status
+```bash
+# List recent runs
+gh run list --workflow=build.yml --limit 3
+
+# Get detailed status
+gh run view [RUN_ID] --json status,conclusion,jobs
+
+# Watch a run in real-time
+gh run watch [RUN_ID]
+```
