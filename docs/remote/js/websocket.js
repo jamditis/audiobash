@@ -31,24 +31,49 @@ export class WebSocketManager {
    * @param {string} deviceName - Name to identify this device
    * @returns {Promise<object>} Desktop info on success
    */
-  connect(ip, port = 8766, pairingCode, deviceName = 'Mobile Device') {
+  connect(hostOrUrl, port = 8766, pairingCode, deviceName = 'Mobile Device') {
     return new Promise((resolve, reject) => {
       // Store params for reconnection
-      this.connectionParams = { ip, port, pairingCode, deviceName };
+      this.connectionParams = { ip: hostOrUrl, port, pairingCode, deviceName };
       this.isManualDisconnect = false;
 
-      // Validate IP format
-      if (!ip || !/^[\d.]+$/.test(ip)) {
-        reject(new Error('Invalid IP address format. Use format: 192.168.1.70 or 108.35.183.79'));
+      // Validate input
+      if (!hostOrUrl) {
+        reject(new Error('Please enter an IP address or tunnel URL'));
         return;
       }
 
-      // Use wss:// (secure) when on HTTPS page, ws:// otherwise
-      const isSecurePage = window.location.protocol === 'https:';
-      const protocol = isSecurePage ? 'wss' : 'ws';
-      // Default to secure port 8766 for wss://, 8765 for ws://
-      const effectivePort = port || (isSecurePage ? 8766 : 8765);
-      const url = `${protocol}://${ip}:${effectivePort}`;
+      let url;
+
+      // Check if it's already a full WebSocket URL (wss:// or ws://)
+      if (hostOrUrl.startsWith('wss://') || hostOrUrl.startsWith('ws://')) {
+        url = hostOrUrl;
+      }
+      // Check if it's an HTTPS/HTTP URL (convert to WSS/WS)
+      else if (hostOrUrl.startsWith('https://')) {
+        url = hostOrUrl.replace('https://', 'wss://');
+      }
+      else if (hostOrUrl.startsWith('http://')) {
+        url = hostOrUrl.replace('http://', 'ws://');
+      }
+      // Check if it's a hostname (tunnel URL like subdomain.tunnelto.dev)
+      else if (hostOrUrl.includes('.') && !/^[\d.]+$/.test(hostOrUrl)) {
+        // It's a hostname - always use wss:// for tunnel URLs (no port needed)
+        url = `wss://${hostOrUrl}`;
+      }
+      // Otherwise treat as IP address
+      else if (/^[\d.]+$/.test(hostOrUrl)) {
+        // Use wss:// (secure) when on HTTPS page, ws:// otherwise
+        const isSecurePage = window.location.protocol === 'https:';
+        const protocol = isSecurePage ? 'wss' : 'ws';
+        // Default to secure port 8766 for wss://, 8765 for ws://
+        const effectivePort = port || (isSecurePage ? 8766 : 8765);
+        url = `${protocol}://${hostOrUrl}:${effectivePort}`;
+      }
+      else {
+        reject(new Error('Invalid address. Use IP (192.168.1.70) or tunnel URL (xxx.tunnelto.dev)'));
+        return;
+      }
 
       console.log('[WS] Connecting to:', url);
 
@@ -140,9 +165,11 @@ export class WebSocketManager {
   getErrorMessage(error) {
     switch (error) {
       case 'invalid_code':
-        return 'Invalid pairing code or password. Check the code in AudioBash Settings.';
+        return 'Invalid pairing code or password. Check AudioBash Settings > Remote Control.';
       case 'already_connected':
-        return 'Another device is already connected. Disconnect it first.';
+        return 'Another device is already connected. Disconnect it first in AudioBash Settings.';
+      case 'connection_refused':
+        return 'Connection refused. Make sure AudioBash is running and Remote Control is enabled.';
       default:
         return error || 'Connection failed';
     }

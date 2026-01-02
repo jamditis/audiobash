@@ -25,27 +25,27 @@
 
       <div class="connect-form">
         <div class="input-group">
-          <label for="ip-input">Desktop IP address</label>
+          <label for="ip-input">IP address or tunnel URL</label>
           <input
             type="text"
             id="ip-input"
-            placeholder="192.168.1.x"
-            inputmode="text"
+            placeholder="192.168.1.x or xxx.tunnelto.dev"
+            inputmode="url"
             autocomplete="off"
           >
         </div>
 
         <div class="input-group">
-          <label for="code-input">Pairing code</label>
+          <label for="code-input">Pairing code or password</label>
           <input
             type="text"
             id="code-input"
             placeholder="A3F7X2"
-            maxlength="6"
+            maxlength="32"
             inputmode="text"
             autocapitalize="characters"
             autocomplete="off"
-            style="text-transform: uppercase; letter-spacing: 0.3em; text-align: center; font-size: 1.5rem;"
+            style="text-transform: uppercase; letter-spacing: 0.2em; text-align: center; font-size: 1.25rem;"
           >
         </div>
 
@@ -58,7 +58,7 @@
       </div>
 
       <div class="connect-help">
-        <p>Find the pairing code in AudioBash Settings on your desktop</p>
+        <p>Find connection details in AudioBash Settings &gt; Remote Control</p>
       </div>
     </div>
 
