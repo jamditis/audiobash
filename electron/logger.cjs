@@ -1,6 +1,6 @@
 /**
  * Centralized logging utility for AudioBash main process (Electron)
- * Provides structured logging with log levels, file output, and context
+ * Provides structured logging with log levels, file output, context, and diagnostics
  */
 
 const fs = require('fs');
@@ -12,6 +12,7 @@ const LOG_LEVELS = {
   info: 1,
   warn: 2,
   error: 3,
+  fatal: 4,
 };
 
 class MainLogger {
@@ -22,6 +23,25 @@ class MainLogger {
     this.maxFileSize = 5 * 1024 * 1024; // 5MB
     this.logFilePath = null;
     this.initialized = false;
+
+    // Session tracking for log correlation
+    this.sessionId = this.generateSessionId();
+
+    // Error buffer for crash reports
+    this.errorBuffer = [];
+    this.maxErrorBuffer = 100;
+
+    // Metrics tracking
+    this.metrics = {
+      startTime: Date.now(),
+      errorCount: 0,
+      warnCount: 0,
+      operations: new Map(),
+    };
+  }
+
+  generateSessionId() {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   /**
@@ -41,6 +61,7 @@ class MainLogger {
         fs.mkdirSync(logsDir, { recursive: true });
       }
       this.logFilePath = path.join(logsDir, 'audiobash.log');
+      this.logsDir = logsDir;
       this.rotateLogIfNeeded();
     }
 
@@ -48,7 +69,8 @@ class MainLogger {
     this.info('Logger', 'Logger initialized', {
       minLevel: this.minLevel,
       enableFile: this.enableFile,
-      logPath: this.logFilePath
+      logPath: this.logFilePath,
+      sessionId: this.sessionId,
     });
   }
 
@@ -109,6 +131,7 @@ class MainLogger {
   formatEntry(level, category, message, data, error) {
     const entry = {
       timestamp: new Date().toISOString(),
+      sessionId: this.sessionId,
       level: level.toUpperCase(),
       category,
       message,
@@ -147,7 +170,7 @@ class MainLogger {
     if (!this.enableConsole) return;
 
     const prefix = `[${category}]`;
-    const consoleMethod = level === 'error' ? console.error
+    const consoleMethod = level === 'error' || level === 'fatal' ? console.error
       : level === 'warn' ? console.warn
       : level === 'debug' ? console.debug
       : console.log;
@@ -174,23 +197,40 @@ class MainLogger {
 
     this.writeToConsole(level, category, message, data, error);
     this.writeToFile(entry);
+
+    // Track errors and warnings
+    if (level === 'error' || level === 'fatal') {
+      this.metrics.errorCount++;
+      this.errorBuffer.push(entry);
+      if (this.errorBuffer.length > this.maxErrorBuffer) {
+        this.errorBuffer.shift();
+      }
+    } else if (level === 'warn') {
+      this.metrics.warnCount++;
+    }
+
+    return entry;
   }
 
   // Convenience methods
   debug(category, message, data) {
-    this.log('debug', category, message, data);
+    return this.log('debug', category, message, data);
   }
 
   info(category, message, data) {
-    this.log('info', category, message, data);
+    return this.log('info', category, message, data);
   }
 
   warn(category, message, data, error) {
-    this.log('warn', category, message, data, error);
+    return this.log('warn', category, message, data, error);
   }
 
   error(category, message, error, data) {
-    this.log('error', category, message, data, error);
+    return this.log('error', category, message, data, error);
+  }
+
+  fatal(category, message, error, data) {
+    return this.log('fatal', category, message, data, error);
   }
 
   /**
@@ -203,7 +243,48 @@ class MainLogger {
       info: (message, data) => self.info(categoryName, message, data),
       warn: (message, data, error) => self.warn(categoryName, message, data, error),
       error: (message, error, data) => self.error(categoryName, message, error, data),
+      fatal: (message, error, data) => self.fatal(categoryName, message, error, data),
     };
+  }
+
+  /**
+   * Start timing an operation
+   */
+  startOperation(category, operationName) {
+    const id = `${operationName}-${Date.now()}`;
+    this.metrics.operations.set(id, {
+      name: operationName,
+      category,
+      startTime: Date.now(),
+      status: 'running',
+    });
+    this.debug(category, `Operation started: ${operationName}`, { operationId: id });
+    return id;
+  }
+
+  /**
+   * End timing an operation
+   */
+  endOperation(id, success = true, details = {}) {
+    const op = this.metrics.operations.get(id);
+    if (!op) {
+      this.warn('Logger', `Unknown operation: ${id}`);
+      return null;
+    }
+
+    const duration = Date.now() - op.startTime;
+    op.status = success ? 'completed' : 'failed';
+    op.duration = duration;
+    op.details = details;
+
+    const logMethod = success ? 'debug' : 'error';
+    this[logMethod](op.category, `Operation ${op.status}: ${op.name}`, {
+      operationId: id,
+      duration: `${duration}ms`,
+      ...details,
+    });
+
+    return { ...op };
   }
 
   /**
@@ -242,7 +323,7 @@ class MainLogger {
    */
   getErrorSummary() {
     const logs = this.getRecentLogs(500);
-    const errors = logs.filter(l => l.level === 'ERROR');
+    const errors = logs.filter(l => l.level === 'ERROR' || l.level === 'FATAL');
     return {
       total: errors.length,
       recent: errors.slice(-10),
@@ -251,7 +332,92 @@ class MainLogger {
   }
 
   /**
-   * Clear log file
+   * Get diagnostic information
+   */
+  getDiagnostics() {
+    const uptime = Date.now() - this.metrics.startTime;
+    const memoryUsage = process.memoryUsage();
+
+    return {
+      sessionId: this.sessionId,
+      uptime: `${Math.floor(uptime / 1000)}s`,
+      platform: process.platform,
+      nodeVersion: process.version,
+      electronVersion: process.versions?.electron,
+      memory: {
+        heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+        rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+      },
+      errorCount: this.metrics.errorCount,
+      warnCount: this.metrics.warnCount,
+      recentErrors: this.errorBuffer.slice(-5),
+    };
+  }
+
+  /**
+   * Generate a crash report
+   */
+  generateCrashReport(error, context = {}) {
+    const report = {
+      timestamp: new Date().toISOString(),
+      sessionId: this.sessionId,
+      error: this.formatError(error),
+      context,
+      diagnostics: this.getDiagnostics(),
+      environment: {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        electronVersion: process.versions?.electron,
+        appVersion: app.getVersion?.() || 'unknown',
+      },
+      recentErrors: this.errorBuffer.slice(-20),
+    };
+
+    // Save crash report
+    if (this.logsDir) {
+      const crashFile = path.join(
+        this.logsDir,
+        `crash-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+      );
+
+      try {
+        fs.writeFileSync(crashFile, JSON.stringify(report, null, 2));
+        this.fatal('CrashReport', `Crash report saved to: ${crashFile}`, error);
+      } catch (err) {
+        console.error('[Logger] Failed to save crash report:', err.message);
+      }
+    }
+
+    return report;
+  }
+
+  /**
+   * Clear old logs (older than specified days)
+   */
+  clearOldLogs(daysToKeep = 7) {
+    if (!this.logsDir) return;
+
+    const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
+
+    try {
+      const files = fs.readdirSync(this.logsDir);
+      for (const file of files) {
+        const filePath = path.join(this.logsDir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.mtime.getTime() < cutoff) {
+          fs.unlinkSync(filePath);
+          this.info('Logger', `Deleted old log file: ${file}`);
+        }
+      }
+    } catch (err) {
+      this.warn('Logger', 'Failed to clear old logs', { error: err.message });
+    }
+  }
+
+  /**
+   * Clear current log file
    */
   clearLogs() {
     if (this.logFilePath && fs.existsSync(this.logFilePath)) {
@@ -286,4 +452,5 @@ module.exports = {
   remoteLog,
   tunnelLog,
   whisperLog,
+  LOG_LEVELS,
 };
