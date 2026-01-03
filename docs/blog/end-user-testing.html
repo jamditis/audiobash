@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How I Learned to Break My Own App // AUDIOBASH BLOG</title>
+    <meta name="description" content="A practical guide to end-user testing with Claude Code. Learn to stress-test your apps like non-technical users.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="How I Learned to Break My Own App - AudioBash Blog">
+    <meta property="og:description" content="A practical guide to end-user testing with Claude Code. Stress-test your apps like non-technical users.">
+    <meta property="og:type" content="article">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        acid: '#ccff00',
+                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ccff00;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.15;
+        }
+
+        .prose-void {
+            color: #a1a1a1;
+            line-height: 1.8;
+        }
+        .prose-void h2 {
+            color: #e5e5e5;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #ccff00;
+            padding-left: 1rem;
+        }
+        .prose-void h3 {
+            color: #ccff00;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .prose-void p {
+            margin-bottom: 1.25rem;
+        }
+        .prose-void a {
+            color: #00f0ff;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .prose-void a:hover {
+            color: #ccff00;
+        }
+        .prose-void code {
+            background: #111;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+            color: #ccff00;
+        }
+        .prose-void pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+        }
+        .prose-void pre code {
+            background: none;
+            padding: 0;
+            color: #e5e5e5;
+        }
+        .prose-void blockquote {
+            border-left: 3px solid #00f0ff;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #888;
+            font-style: italic;
+        }
+        .prose-void ul, .prose-void ol {
+            margin: 1rem 0 1.5rem 1.5rem;
+        }
+        .prose-void li {
+            margin-bottom: 0.5rem;
+        }
+        .prose-void strong {
+            color: #e5e5e5;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, rgba(204, 255, 0, 0.05), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(204, 255, 0, 0.2);
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .insight-box::before {
+            content: "INSIGHT";
+            display: block;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #ccff00;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.05] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/80 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">BLOG</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="../manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="../releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="../blog.html" class="text-acid hover:text-acid/80 transition-colors text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-24 pb-16 px-6">
+        <article class="max-w-3xl mx-auto">
+
+            <!-- Article Header -->
+            <header class="mb-12">
+                <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                    <a href="../blog.html" class="hover:text-acid transition-colors flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        BLOG
+                    </a>
+                    <span>/</span>
+                    <span>January 2, 2026</span>
+                </div>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">How I Learned to Break My Own App</h1>
+                <p class="text-xl text-gray-400 border-l-2 border-acid pl-4">A practical guide to end-user testing with Claude Code</p>
+
+                <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-acid/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4 text-acid"></i>
+                        </div>
+                        <span class="text-sm text-gray-400">@jamditis</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>8 min read</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <div class="prose-void">
+
+                <p>So you've built something. It works on your machine. Tests pass. CI is green. Ship it, right?</p>
+
+                <p>Not so fast.</p>
+
+                <p>I just finished stress-testing <a href="https://github.com/jamditis/audiobash">AudioBash</a>, an Electron app for voice-controlled terminal sessions. Everything looked solid until I started pretending to be my least tech-savvy family member. That's when things got interesting.</p>
+
+                <h2>The Philosophy: Think Like Someone Who Doesn't Think Like You</h2>
+
+                <p>Here's the thing about developers: we use software <em>correctly</em>. We click buttons once. We wait for things to load. We read error messages.</p>
+
+                <p>Regular users? They'll double-click everything, paste 50KB of text into a single field, resize your window to 100x100 pixels, and then force-quit when it doesn't respond instantly. And honestly? That's valuable data.</p>
+
+                <p>The goal isn't to blame users - it's to build software that survives contact with reality.</p>
+
+                <h2>What I Actually Tested</h2>
+
+                <p>For AudioBash, I ran through scenarios that seem absurd until you realize someone <em>will</em> do them:</p>
+
+                <h3>The Impatient Double-Click</h3>
+
+<pre><code># User opens app, nothing happens (they think), clicks again... and again
+open "App.app"
+open "App.app"
+open "App.app"</code></pre>
+
+                <p>Does your app handle this? AudioBash uses Electron's <code>app.requestSingleInstanceLock()</code> to ensure only one instance runs. The second/third launches just focus the existing window.</p>
+
+                <h3>The Giant Paste</h3>
+
+<pre><code># User copies their entire server log and pastes it
+python3 -c "print('X' * 50000)" | pbcopy
+# Then Cmd+V</code></pre>
+
+                <p>50,000 characters. Does your input field survive? Does the UI freeze? Does the app crash? AudioBash handled this fine, but I've seen apps completely lock up.</p>
+
+                <h3>The Window Torturer</h3>
+
+<pre><code># Resize to something ridiculous
+osascript -e 'tell application "System Events" to tell process "MyApp" to set size of window 1 to {100, 100}'
+# Then blow it up
+osascript -e 'tell application "System Events" to tell process "MyApp" to set size of window 1 to {2500, 1600}'</code></pre>
+
+                <p>Responsive design doesn't mean "pretty at 1920x1080". It means "doesn't explode at any size."</p>
+
+                <h3>The Force Quit Recovery</h3>
+
+                <p>This one caught me. After force-quitting AudioBash (<code>pkill -9</code>), the app wouldn't relaunch. Silent failure. No error. Just... nothing.</p>
+
+                <p>Turns out Electron's singleton lock files were left behind in <code>~/Library/Application Support/audiobash/</code>. The app saw the lock, assumed another instance was running, and exited quietly.</p>
+
+                <p>The fix? Electron actually handles this automatically by detecting stale locks. But knowing <em>why</em> it happens is crucial for debugging.</p>
+
+                <h2>The Testing Checklist I Now Use</h2>
+
+                <p>After this experience, I formalized my approach. Here's the framework:</p>
+
+                <h3>1. Installation & First Run</h3>
+                <ul>
+                    <li>Can it run from a DMG without installing?</li>
+                    <li>What happens with Gatekeeper/quarantine?</li>
+                    <li>Does it need special permissions? Does it ask nicely?</li>
+                </ul>
+
+                <h3>2. Concurrency Chaos</h3>
+                <ul>
+                    <li>Multi-instance prevention</li>
+                    <li>Tab spam (Cmd+T x 20)</li>
+                    <li>Rapid open/close cycles</li>
+                </ul>
+
+                <h3>3. Input Abuse</h3>
+                <ul>
+                    <li>Huge pastes (10KB, 50KB, 200KB)</li>
+                    <li>Special characters (emoji, unicode, RTL text)</li>
+                    <li>Rapid keypress spam</li>
+                </ul>
+
+                <h3>4. Window Manipulation</h3>
+                <ul>
+                    <li>Extreme resize (tiny and huge)</li>
+                    <li>Minimize/restore cycles</li>
+                    <li>Multi-monitor edge cases</li>
+                </ul>
+
+                <h3>5. Recovery</h3>
+                <ul>
+                    <li>Force quit and relaunch</li>
+                    <li>Stale lock file recovery</li>
+                    <li>Crash log detection</li>
+                </ul>
+
+                <h3>6. Resource Exhaustion</h3>
+                <ul>
+                    <li>Memory usage over time</li>
+                    <li>File descriptor leaks (for apps with sockets/streams)</li>
+                    <li>CPU when idle</li>
+                </ul>
+
+                <h2>Automating the Boring Parts</h2>
+
+                <p>I wrote a test script that runs through the basics automatically:</p>
+
+<pre><code>#!/bin/bash
+# Quick sanity check
+
+APP_PATH="${1:-dist/mac-arm64/MyApp.app}"
+PASSED=0
+FAILED=0
+
+test_result() {
+    if [ $1 -eq 0 ]; then
+        echo "OK $2"
+        ((PASSED++))
+    else
+        echo "FAIL $2"
+        ((FAILED++))
+    fi
+}
+
+# Test 1: Does it launch?
+open "$APP_PATH"
+sleep 4
+pgrep MyApp > /dev/null
+test_result $? "Basic launch"
+
+# Test 2: Single instance?
+open "$APP_PATH"
+open "$APP_PATH"
+sleep 2
+COUNT=$(pgrep MyApp | wc -l | tr -d ' ')
+[ "$COUNT" -le 5 ]  # Adjust for your process count
+test_result $? "Single instance enforced"
+
+# Test 3: Survives large paste?
+python3 -c "print('X' * 50000)" | pbcopy
+osascript -e 'tell application "System Events" to keystroke "v" using command down'
+sleep 2
+pgrep MyApp > /dev/null
+test_result $? "Survives large paste"
+
+# Cleanup
+pkill MyApp 2>/dev/null
+
+echo ""
+echo "Passed: $PASSED"
+echo "Failed: $FAILED"</code></pre>
+
+                <p>Not comprehensive, but catches the obvious stuff before you embarrass yourself.</p>
+
+                <h2>For Claude Code Users: The Skills I Made</h2>
+
+                <p>If you're using Claude Code and want to adopt this testing approach, I've created skill files you can grab:</p>
+
+                <h3>General End-User Testing Skill</h3>
+
+                <p>Drop this in <code>~/.claude/skills/end-user-testing.md</code> to have Claude Code help you stress-test any app. It includes:</p>
+
+                <ul>
+                    <li>10 test categories (installation, concurrency, input, window, recovery, etc.)</li>
+                    <li>AppleScript automation examples</li>
+                    <li>Test session templates</li>
+                    <li>Common failure patterns and fixes</li>
+                </ul>
+
+                <h3>App-Specific Skills</h3>
+
+                <p>For individual apps, create <code>.claude/skills/user-testing.md</code> in your project with app-specific tests. This keeps your testing knowledge version-controlled with your code.</p>
+
+                <div class="insight-box">
+                    <p class="text-chrome mb-0">The best bugs are found by the people least qualified to find them. Your QA team thinks like developers. Your beta testers try to be helpful. But Aunt Martha? She'll resize your window while pasting her entire email inbox and wonder why it's slow.</p>
+                    <p class="text-chrome mb-0 mt-4"><strong>Build for Aunt Martha.</strong></p>
+                </div>
+
+                <h2>Resources</h2>
+
+                <ul>
+                    <li><a href="https://github.com/jamditis/audiobash/blob/master/scripts/user-test.sh">AudioBash automated test script</a></li>
+                    <li><a href="https://github.com/jamditis/audiobash/blob/master/.claude/skills/user-testing.md">AudioBash testing skill</a></li>
+                    <li><a href="https://github.com/jamditis/audiobash">AudioBash on GitHub</a></li>
+                </ul>
+
+                <p><em>Built with Claude Code. Tested by simulating chaos.</em></p>
+
+            </div>
+
+            <!-- Article Footer -->
+            <footer class="mt-16 pt-8 border-t border-white/10">
+                <div class="flex items-center justify-between">
+                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-acid transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back to Blog</span>
+                    </a>
+                    <div class="flex items-center gap-4">
+                        <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </footer>
+
+        </article>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                AUDIOBASH v2.0.2 // BLOG // MIT LICENSE
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-acid transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
