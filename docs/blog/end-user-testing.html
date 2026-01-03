@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>How I Learned to Break My Own App // AUDIOBASH BLOG</title>
+    <title>How I learned to break my own app // AUDIOBASH BLOG</title>
     <meta name="description" content="A practical guide to end-user testing with Claude Code. Learn to stress-test your apps like non-technical users.">
 
     <!-- Open Graph -->
-    <meta property="og:title" content="How I Learned to Break My Own App - AudioBash Blog">
+    <meta property="og:title" content="How I learned to break my own app - AudioBash Blog">
     <meta property="og:description" content="A practical guide to end-user testing with Claude Code. Stress-test your apps like non-technical users.">
     <meta property="og:type" content="article">
 
@@ -213,7 +213,7 @@
                     <span>/</span>
                     <span>January 2, 2026</span>
                 </div>
-                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">How I Learned to Break My Own App</h1>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">How I learned to break my own app</h1>
                 <p class="text-xl text-gray-400 border-l-2 border-acid pl-4">Testing apps like your least technical family member would</p>
 
                 <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
@@ -239,7 +239,7 @@
 
                 <p>I just finished stress-testing <a href="https://github.com/jamditis/audiobash">AudioBash</a>, an Electron app for voice-controlled terminal sessions. Everything looked solid until I started pretending to be my least tech-savvy family member.</p>
 
-                <h2>The Philosophy: Think Like Someone Who Doesn't Think Like You</h2>
+                <h2>Think like someone who doesn't think like you</h2>
 
                 <p>Developers use software <em>correctly</em>. We click buttons once. We wait for things to load. We read error messages.</p>
 
@@ -247,11 +247,11 @@
 
                 <p>The goal isn't to blame users. It's to build software that doesn't break when someone uses it wrong.</p>
 
-                <h2>What I Actually Tested</h2>
+                <h2>What I tested</h2>
 
                 <p>For AudioBash, I ran through scenarios that seem absurd until you realize someone <em>will</em> do them:</p>
 
-                <h3>The Impatient Double-Click</h3>
+                <h3>The impatient double-click</h3>
 
 <pre><code># User opens app, nothing happens (they think), clicks again... and again
 open "App.app"
@@ -260,7 +260,7 @@ open "App.app"</code></pre>
 
                 <p>Does your app handle this? AudioBash uses Electron's <code>app.requestSingleInstanceLock()</code> to ensure only one instance runs. The second/third launches just focus the existing window.</p>
 
-                <h3>The Giant Paste</h3>
+                <h3>The giant paste</h3>
 
 <pre><code># User copies their entire server log and pastes it
 python3 -c "print('X' * 50000)" | pbcopy
@@ -268,7 +268,7 @@ python3 -c "print('X' * 50000)" | pbcopy
 
                 <p>50,000 characters. Does your input field survive? Does the UI freeze? Does the app crash? AudioBash handled this fine, but I've seen apps completely lock up.</p>
 
-                <h3>The Window Torturer</h3>
+                <h3>The window torturer</h3>
 
 <pre><code># Resize to something ridiculous
 osascript -e 'tell application "System Events" to tell process "MyApp" to set size of window 1 to {100, 100}'
@@ -277,7 +277,7 @@ osascript -e 'tell application "System Events" to tell process "MyApp" to set si
 
                 <p>Responsive design doesn't mean "pretty at 1920x1080". It means "doesn't explode at any size."</p>
 
-                <h3>The Force Quit Recovery</h3>
+                <h3>The force quit recovery</h3>
 
                 <p>This one caught me. After force-quitting AudioBash (<code>pkill -9</code>), the app wouldn't relaunch. Silent failure. No error. Just... nothing.</p>
 
@@ -285,32 +285,32 @@ osascript -e 'tell application "System Events" to tell process "MyApp" to set si
 
                 <p>The fix? Electron actually handles this automatically by detecting stale locks. But knowing <em>why</em> it happens is crucial for debugging.</p>
 
-                <h2>The Testing Checklist I Now Use</h2>
+                <h2>The checklist</h2>
 
                 <p>After this experience, I formalized my approach. Here's the framework:</p>
 
-                <h3>1. Installation & First Run</h3>
+                <h3>1. Installation and first run</h3>
                 <ul>
                     <li>Can it run from a DMG without installing?</li>
                     <li>What happens with Gatekeeper/quarantine?</li>
                     <li>Does it need special permissions? Does it ask nicely?</li>
                 </ul>
 
-                <h3>2. Concurrency Chaos</h3>
+                <h3>2. Concurrency</h3>
                 <ul>
                     <li>Multi-instance prevention</li>
                     <li>Tab spam (Cmd+T x 20)</li>
                     <li>Rapid open/close cycles</li>
                 </ul>
 
-                <h3>3. Input Abuse</h3>
+                <h3>3. Input abuse</h3>
                 <ul>
                     <li>Huge pastes (10KB, 50KB, 200KB)</li>
                     <li>Special characters (emoji, unicode, RTL text)</li>
                     <li>Rapid keypress spam</li>
                 </ul>
 
-                <h3>4. Window Manipulation</h3>
+                <h3>4. Window manipulation</h3>
                 <ul>
                     <li>Extreme resize (tiny and huge)</li>
                     <li>Minimize/restore cycles</li>
@@ -324,14 +324,14 @@ osascript -e 'tell application "System Events" to tell process "MyApp" to set si
                     <li>Crash log detection</li>
                 </ul>
 
-                <h3>6. Resource Exhaustion</h3>
+                <h3>6. Resource exhaustion</h3>
                 <ul>
                     <li>Memory usage over time</li>
                     <li>File descriptor leaks (for apps with sockets/streams)</li>
                     <li>CPU when idle</li>
                 </ul>
 
-                <h2>Automating the Boring Parts</h2>
+                <h2>Automating it</h2>
 
                 <p>I wrote a test script that runs through the basics automatically:</p>
 
@@ -382,11 +382,11 @@ echo "Failed: $FAILED"</code></pre>
 
                 <p>It's not everything, but it catches the obvious stuff.</p>
 
-                <h2>Claude Code Skills</h2>
+                <h2>Claude Code skills</h2>
 
                 <p>I made skill files for this. Grab them if you want:</p>
 
-                <h3>General End-User Testing Skill</h3>
+                <h3>General skill</h3>
 
                 <p>Put this in <code>~/.claude/skills/end-user-testing.md</code>:</p>
 
@@ -397,7 +397,7 @@ echo "Failed: $FAILED"</code></pre>
                     <li>Common failure patterns and fixes</li>
                 </ul>
 
-                <h3>App-Specific Skills</h3>
+                <h3>App-specific skill</h3>
 
                 <p>For individual apps, create <code>.claude/skills/user-testing.md</code> in your project with app-specific tests. This keeps your testing knowledge version-controlled with your code.</p>
 
