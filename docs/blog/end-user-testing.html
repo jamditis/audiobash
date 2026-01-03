@@ -214,7 +214,7 @@
                     <span>January 2, 2026</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">How I Learned to Break My Own App</h1>
-                <p class="text-xl text-gray-400 border-l-2 border-acid pl-4">A practical guide to end-user testing with Claude Code</p>
+                <p class="text-xl text-gray-400 border-l-2 border-acid pl-4">Testing apps like your least technical family member would</p>
 
                 <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
                     <div class="flex items-center gap-2">
@@ -237,15 +237,15 @@
 
                 <p>Not so fast.</p>
 
-                <p>I just finished stress-testing <a href="https://github.com/jamditis/audiobash">AudioBash</a>, an Electron app for voice-controlled terminal sessions. Everything looked solid until I started pretending to be my least tech-savvy family member. That's when things got interesting.</p>
+                <p>I just finished stress-testing <a href="https://github.com/jamditis/audiobash">AudioBash</a>, an Electron app for voice-controlled terminal sessions. Everything looked solid until I started pretending to be my least tech-savvy family member.</p>
 
                 <h2>The Philosophy: Think Like Someone Who Doesn't Think Like You</h2>
 
-                <p>Here's the thing about developers: we use software <em>correctly</em>. We click buttons once. We wait for things to load. We read error messages.</p>
+                <p>Developers use software <em>correctly</em>. We click buttons once. We wait for things to load. We read error messages.</p>
 
-                <p>Regular users? They'll double-click everything, paste 50KB of text into a single field, resize your window to 100x100 pixels, and then force-quit when it doesn't respond instantly. And honestly? That's valuable data.</p>
+                <p>Regular users? They double-click everything, paste 50KB of text into a single field, resize your window to 100x100 pixels, then force-quit when it doesn't respond instantly.</p>
 
-                <p>The goal isn't to blame users - it's to build software that survives contact with reality.</p>
+                <p>The goal isn't to blame users. It's to build software that doesn't break when someone uses it wrong.</p>
 
                 <h2>What I Actually Tested</h2>
 
@@ -380,15 +380,15 @@ echo ""
 echo "Passed: $PASSED"
 echo "Failed: $FAILED"</code></pre>
 
-                <p>Not comprehensive, but catches the obvious stuff before you embarrass yourself.</p>
+                <p>It's not everything, but it catches the obvious stuff.</p>
 
-                <h2>For Claude Code Users: The Skills I Made</h2>
+                <h2>Claude Code Skills</h2>
 
-                <p>If you're using Claude Code and want to adopt this testing approach, I've created skill files you can grab:</p>
+                <p>I made skill files for this. Grab them if you want:</p>
 
                 <h3>General End-User Testing Skill</h3>
 
-                <p>Drop this in <code>~/.claude/skills/end-user-testing.md</code> to have Claude Code help you stress-test any app. It includes:</p>
+                <p>Put this in <code>~/.claude/skills/end-user-testing.md</code>:</p>
 
                 <ul>
                     <li>10 test categories (installation, concurrency, input, window, recovery, etc.)</li>
@@ -414,7 +414,7 @@ echo "Failed: $FAILED"</code></pre>
                     <li><a href="https://github.com/jamditis/audiobash">AudioBash on GitHub</a></li>
                 </ul>
 
-                <p><em>Built with Claude Code. Tested by simulating chaos.</em></p>
+                <p><em>Written with Claude Code.</em></p>
 
             </div>
 
