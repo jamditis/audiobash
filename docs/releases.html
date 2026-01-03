@@ -153,36 +153,99 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v2.0.0 -->
+            <!-- v2.0.2 -->
             <article class="release-card latest bg-panel border border-acid/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-acid text-black font-display font-bold text-sm">v2.0.0</span>
+                    <span class="px-3 py-1 bg-acid text-black font-display font-bold text-sm">v2.0.2</span>
                     <span class="px-3 py-1 bg-acid/20 text-acid text-xs font-mono">LATEST</span>
                     <span class="text-gray-500 text-sm">January 2, 2026</span>
                 </div>
 
-                <h2 class="font-display text-2xl text-chrome mb-4">macOS support</h2>
+                <h2 class="font-display text-2xl text-chrome mb-4">macOS Stability & Stress Testing</h2>
 
-                <p class="text-gray-400 mb-6">AudioBash now runs natively on macOS! This major release brings full feature parity between Windows and macOS with native Apple Silicon and Intel builds.</p>
+                <p class="text-gray-400 mb-6">Critical fix for macOS app launch failure and comprehensive stress testing suite.</p>
 
                 <!-- Downloads -->
                 <div class="bg-void border border-white/10 p-4 mb-6">
                     <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
                     <div class="grid sm:grid-cols-3 gap-3">
-                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash.Setup.2.0.0.exe" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.2/AudioBash.Setup.2.0.2.exe" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
                             <i data-lucide="monitor" class="w-4 h-4"></i>
                             Windows
                         </a>
-                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0-arm64.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.2/AudioBash-2.0.2-arm64.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
                             <i data-lucide="cpu" class="w-4 h-4"></i>
                             macOS (Apple Silicon)
                         </a>
-                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.0/AudioBash-2.0.0.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.2/AudioBash-2.0.2.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
                             <i data-lucide="laptop" class="w-4 h-4"></i>
                             macOS (Intel)
                         </a>
                     </div>
                 </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• macOS stress test suite (18 automated tests)</li>
+                            <li>• PTY spawn/destroy cycle testing</li>
+                            <li>• File descriptor leak detection</li>
+                            <li>• Manual testing checklist for macOS</li>
+                            <li>• End-user testing automation script</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Fixed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Critical:</strong> App wouldn't launch on macOS due to spawn-helper missing execute permissions</li>
+                            <li>• afterPack hook now properly fixes node-pty binary permissions</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.0.1 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v2.0.1</span>
+                    <span class="text-gray-500 text-sm">January 2, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Audio Notification Fix</h2>
+
+                <p class="text-gray-400 mb-6">Fixed false positive audio notifications when Claude Code mentions approval-related words in explanatory text.</p>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Fixed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• Audio chimes no longer trigger on words like "approve" in explanatory text</li>
+                            <li>• CLI input detection now uses end-anchored regex patterns</li>
+                            <li>• Buffer cleared after match to prevent re-triggering</li>
+                            <li>• ANSI escape codes stripped before pattern matching</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-amber-400 text-sm mb-2">Changed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• Only last 500 chars checked for prompts (was 2000)</li>
+                            <li>• Patterns require specific formats like [Y/n] at end of output</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.0.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v2.0.0</span>
+                    <span class="text-gray-500 text-sm">January 2, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">macOS Support</h2>
+
+                <p class="text-gray-400 mb-6">AudioBash now runs natively on macOS! This major release brings full feature parity between Windows and macOS with native Apple Silicon and Intel builds.</p>
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
@@ -200,7 +263,6 @@
                         <h4 class="font-display text-ice text-sm mb-2">Fixed</h4>
                         <ul class="text-gray-400 text-sm space-y-1">
                             <li>• xterm.js focus issues on macOS</li>
-                            <li>• node-pty spawn-helper permission loss during packaging</li>
                             <li>• postcss.config ESM syntax for Node 18</li>
                             <li>• Icon size requirements for macOS DMG</li>
                         </ul>
