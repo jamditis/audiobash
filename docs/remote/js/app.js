@@ -66,7 +66,16 @@ function init() {
   // Check voice recording support
   if (!VoiceRecorder.isSupported()) {
     elements.voiceBtn.disabled = true;
-    elements.voiceStatus.textContent = 'Voice not supported';
+    elements.voiceStatus.textContent = 'Voice not supported in this browser';
+    // Show detailed error in transcription preview
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    if (!isSecure) {
+      elements.transcriptionPreview.textContent = 'Voice requires HTTPS. Use a secure connection or localhost.';
+    } else if (!navigator.mediaDevices) {
+      elements.transcriptionPreview.textContent = 'Browser does not support media devices. Try Chrome, Firefox, or Safari.';
+    } else {
+      elements.transcriptionPreview.textContent = 'MediaRecorder API not available. Update your browser.';
+    }
   }
 
   console.log('[App] Initialized');
@@ -173,16 +182,31 @@ function setupWebSocketHandlers() {
     }
   });
 
-  ws.on('reconnecting', ({ attempt }) => {
+  ws.on('reconnecting', ({ attempt, maxAttempts, nextAttemptIn }) => {
     console.log('[App] Reconnecting, attempt:', attempt);
     elements.reconnectOverlay.hidden = false;
+    // Update overlay text with attempt info
+    const overlayText = elements.reconnectOverlay.querySelector('.overlay-text');
+    if (overlayText) {
+      overlayText.textContent = `Reconnecting... (${attempt}/${maxAttempts})`;
+    }
   });
 
-  ws.on('reconnect_failed', () => {
-    console.log('[App] Reconnection failed');
+  ws.on('reconnected', () => {
+    console.log('[App] Reconnected successfully');
+    elements.reconnectOverlay.hidden = true;
+    elements.connectionIndicator.classList.add('connected');
+    elements.connectionStatus.textContent = 'Connected';
+  });
+
+  ws.on('reconnect_failed', (data) => {
+    console.log('[App] Reconnection failed:', data);
     elements.reconnectOverlay.hidden = true;
     showScreen('connect');
-    showError('Connection lost. Please reconnect.');
+    const errorMsg = data?.lastError
+      ? `Connection lost: ${data.lastError}`
+      : 'Connection lost after multiple attempts. Please reconnect.';
+    showError(errorMsg);
   });
 
   ws.on('reconnect_need_code', () => {
@@ -313,6 +337,17 @@ function initializeVoiceRecorder() {
   // Handle state changes
   state.voiceRecorder.onStateChange = (voiceState) => {
     setVoiceState(voiceState);
+  };
+
+  // Handle errors from voice recorder
+  state.voiceRecorder.onError = (errorMessage) => {
+    showTranscriptionPreview(errorMessage);
+    // Auto-clear error after 5 seconds
+    setTimeout(() => {
+      if (elements.transcriptionPreview.textContent === errorMessage) {
+        elements.transcriptionPreview.textContent = '';
+      }
+    }, 5000);
   };
 }
 

@@ -9,18 +9,29 @@ export class WebSocketManager {
     this.sessionId = null;
     this.desktopInfo = null;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
+    this.maxReconnectAttempts = 10; // Increased from 5 for better mobile network resilience
     this.baseReconnectDelay = 1000;
+    this.maxReconnectDelay = 30000; // Cap at 30 seconds
     this.listeners = new Map();
     this.connectionParams = null;
     this.isManualDisconnect = false;
     this.reconnectTimeout = null;
+    this.lastError = null; // Track last error for better messaging
 
     // Monitor network changes for proactive reconnection
     if ('onLine' in navigator) {
       window.addEventListener('online', () => this.handleNetworkChange(true));
       window.addEventListener('offline', () => this.handleNetworkChange(false));
     }
+
+    // Handle visibility changes - reconnect when app comes to foreground
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.sessionId && !this.ws) {
+        console.log('[WS] App became visible, checking connection');
+        this.reconnectAttempts = 0;
+        this.attemptReconnect();
+      }
+    });
   }
 
   /**
@@ -181,7 +192,10 @@ export class WebSocketManager {
   handleDisconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('[WS] Max reconnect attempts reached');
-      this.emit('reconnect_failed');
+      this.emit('reconnect_failed', {
+        attempts: this.reconnectAttempts,
+        lastError: this.lastError,
+      });
       this.sessionId = null;
       return;
     }
@@ -189,11 +203,16 @@ export class WebSocketManager {
     this.reconnectAttempts++;
     const delay = Math.min(
       this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-      10000
+      this.maxReconnectDelay
     );
 
-    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-    this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
+    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+    this.emit('reconnecting', {
+      attempt: this.reconnectAttempts,
+      maxAttempts: this.maxReconnectAttempts,
+      delay,
+      nextAttemptIn: Math.ceil(delay / 1000),
+    });
 
     this.reconnectTimeout = setTimeout(() => {
       this.attemptReconnect();
@@ -205,7 +224,7 @@ export class WebSocketManager {
    */
   async attemptReconnect() {
     if (!this.connectionParams) {
-      this.emit('reconnect_failed');
+      this.emit('reconnect_failed', { reason: 'no_connection_params' });
       return;
     }
 
@@ -216,8 +235,19 @@ export class WebSocketManager {
       try {
         await this.connect(ip, port, pairingCode, this.connectionParams.deviceName);
         console.log('[WS] Reconnected successfully');
+        this.lastError = null;
+        this.emit('reconnected');
       } catch (err) {
         console.log('[WS] Reconnect failed:', err.message);
+        this.lastError = err.message;
+
+        // If it's an auth error (pairing code changed), don't retry
+        if (err.message.includes('Invalid pairing code') || err.message.includes('invalid_code')) {
+          console.log('[WS] Pairing code invalid, need new code');
+          this.emit('reconnect_need_code');
+          return;
+        }
+
         this.handleDisconnect();
       }
     } else {
