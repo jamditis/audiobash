@@ -734,7 +734,25 @@ class RemoteControlServer {
     }
 
     const { tabId, mode } = this.currentAudioSession;
-    const audioBuffer = Buffer.concat(this.audioChunks);
+
+    let audioBuffer;
+    try {
+      audioBuffer = Buffer.concat(this.audioChunks);
+    } catch (err) {
+      console.error('[RemoteControl] Failed to concat audio chunks:', err);
+      // Clear session state
+      this.currentAudioSession = null;
+      this.audioChunks = [];
+      // Send error response
+      this.send(this.connectedClient, {
+        type: 'transcription',
+        tabId,
+        text: '',
+        success: false,
+        error: 'Failed to process audio data: ' + err.message,
+      });
+      return;
+    }
 
     console.log(`[RemoteControl] Audio session ended, ${audioBuffer.length} bytes`);
 

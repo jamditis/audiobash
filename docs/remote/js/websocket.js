@@ -17,6 +17,7 @@ export class WebSocketManager {
     this.isManualDisconnect = false;
     this.reconnectTimeout = null;
     this.lastError = null; // Track last error for better messaging
+    this.isReconnecting = false; // Guard flag to prevent duplicate reconnection attempts
 
     // Monitor network changes for proactive reconnection
     if ('onLine' in navigator) {
@@ -54,6 +55,8 @@ export class WebSocketManager {
         return;
       }
 
+      // Define effectivePort at the start to avoid undefined reference in catch block
+      let effectivePort = port || 8766;
       let url;
 
       // Check if it's already a full WebSocket URL (wss:// or ws://)
@@ -78,7 +81,7 @@ export class WebSocketManager {
         const isSecurePage = window.location.protocol === 'https:';
         const protocol = isSecurePage ? 'wss' : 'ws';
         // Default to secure port 8766 for wss://, 8765 for ws://
-        const effectivePort = port || (isSecurePage ? 8766 : 8765);
+        effectivePort = port || (isSecurePage ? 8766 : 8765);
         url = `${protocol}://${hostOrUrl}:${effectivePort}`;
       }
       else {
@@ -190,6 +193,18 @@ export class WebSocketManager {
    * Handle unexpected disconnect - attempt reconnection
    */
   handleDisconnect() {
+    // Clear any existing reconnect timeout to prevent multiple timeouts
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
+    // Guard against duplicate reconnection attempts
+    if (this.isReconnecting) {
+      console.log('[WS] Reconnection already in progress, skipping');
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('[WS] Max reconnect attempts reached');
       this.emit('reconnect_failed', {
@@ -201,6 +216,8 @@ export class WebSocketManager {
     }
 
     this.reconnectAttempts++;
+    this.isReconnecting = true;
+
     const delay = Math.min(
       this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
       this.maxReconnectDelay
@@ -224,6 +241,7 @@ export class WebSocketManager {
    */
   async attemptReconnect() {
     if (!this.connectionParams) {
+      this.isReconnecting = false;
       this.emit('reconnect_failed', { reason: 'no_connection_params' });
       return;
     }
@@ -236,6 +254,7 @@ export class WebSocketManager {
         await this.connect(ip, port, pairingCode, this.connectionParams.deviceName);
         console.log('[WS] Reconnected successfully');
         this.lastError = null;
+        this.isReconnecting = false;
         this.emit('reconnected');
       } catch (err) {
         console.log('[WS] Reconnect failed:', err.message);
@@ -244,15 +263,18 @@ export class WebSocketManager {
         // If it's an auth error (pairing code changed), don't retry
         if (err.message.includes('Invalid pairing code') || err.message.includes('invalid_code')) {
           console.log('[WS] Pairing code invalid, need new code');
+          this.isReconnecting = false;
           this.emit('reconnect_need_code');
           return;
         }
 
+        this.isReconnecting = false;
         this.handleDisconnect();
       }
     } else {
       // No saved password, need new pairing code
       console.log('[WS] Need new pairing code');
+      this.isReconnecting = false;
       this.emit('reconnect_need_code');
     }
   }
@@ -322,6 +344,7 @@ export class WebSocketManager {
   cancelReconnect() {
     this.isManualDisconnect = true;
     this.reconnectAttempts = this.maxReconnectAttempts;
+    this.isReconnecting = false;
 
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
