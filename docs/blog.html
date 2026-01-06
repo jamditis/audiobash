@@ -36,8 +36,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -55,14 +55,14 @@
         }
 
         ::selection {
-            background-color: #ccff00;
+            background-color: #ff3333;
             color: #000;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
 
         .clip-notch {
             clip-path: polygon(
@@ -91,11 +91,11 @@
             transition: all 0.2s ease;
         }
         .post-card:hover {
-            border-color: rgba(204, 255, 0, 0.5);
+            border-color: rgba(255, 51, 51, 0.5);
             transform: translateY(-2px);
         }
         .post-card:hover .post-title {
-            color: #ccff00;
+            color: #ff3333;
         }
     </style>
 </head>
@@ -111,7 +111,7 @@
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="index.html" class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                     <div>
                         <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
                         <p class="text-[9px] text-gray-500 tracking-[0.2em]">v2.0.2 // VOICE_TERMINAL</p>
@@ -121,7 +121,7 @@
             <div class="flex items-center gap-4">
                 <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
                 <a href="releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
-                <a href="blog.html" class="text-acid hover:text-acid/80 transition-colors text-sm font-display hidden sm:block">BLOG</a>
+                <a href="blog.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">BLOG</a>
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
@@ -135,7 +135,7 @@
             <!-- Page Header -->
             <header class="mb-12">
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">TRANSMISSION_LOG</h1>
-                <p class="text-gray-400 text-lg border-l-2 border-acid pl-4">
+                <p class="text-gray-400 text-lg border-l-2 border-accent pl-4">
                     Notes on building AudioBash.
                 </p>
             </header>
@@ -148,7 +148,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex-1">
                             <div class="flex items-center gap-3 text-xs text-gray-500 mb-3">
-                                <span class="px-2 py-1 bg-acid/10 border border-acid/30 text-acid">TESTING</span>
+                                <span class="px-2 py-1 bg-accent/10 border border-accent/30 text-accent">TESTING</span>
                                 <span>January 2, 2026</span>
                                 <span class="flex items-center gap-1">
                                     <i data-lucide="clock" class="w-3 h-3"></i>
@@ -158,7 +158,7 @@
                             <h2 class="post-title font-display text-xl text-chrome mb-2 transition-colors">How I learned to break my own app</h2>
                             <p class="text-gray-400 text-sm">Stress-testing apps the way non-technical users do: double-clicks, giant pastes, window resizing to 100x100 pixels.</p>
                         </div>
-                        <div class="text-gray-500 group-hover:text-acid transition-colors">
+                        <div class="text-gray-500 group-hover:text-accent transition-colors">
                             <i data-lucide="arrow-right" class="w-5 h-5"></i>
                         </div>
                     </div>
@@ -178,7 +178,7 @@
             <div class="mt-16 bg-panel border border-white/10 p-8 text-center">
                 <h3 class="font-display text-xl text-chrome mb-2">Stay Updated</h3>
                 <p class="text-gray-400 text-sm mb-6">Star the repo to follow development progress.</p>
-                <a href="https://github.com/jamditis/audiobash" class="inline-flex items-center gap-2 px-6 py-3 bg-acid text-black font-display font-bold tracking-wider hover:bg-acid/80 transition-all clip-notch">
+                <a href="https://github.com/jamditis/audiobash" class="inline-flex items-center gap-2 px-6 py-3 bg-accent text-black font-display font-bold tracking-wider hover:bg-accent/80 transition-all clip-notch">
                     <i data-lucide="star" class="w-4 h-4"></i>
                     STAR ON GITHUB
                 </a>
@@ -194,10 +194,10 @@
                 AUDIOBASH v2.0.2 // BLOG // MIT LICENSE
             </div>
             <div class="flex items-center gap-4 text-gray-500">
-                <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
                     <i data-lucide="github" class="w-4 h-4"></i>
                 </a>
-                <a href="https://github.com/jamditis" class="hover:text-acid transition-colors text-xs font-mono">
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
                     @jamditis
                 </a>
             </div>
