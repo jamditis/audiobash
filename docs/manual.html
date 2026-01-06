@@ -33,8 +33,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -57,14 +57,14 @@
         }
 
         ::selection {
-            background-color: #ccff00;
+            background-color: #ff3333;
             color: #000;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
 
         .clip-notch {
             clip-path: polygon(
@@ -104,12 +104,12 @@
         }
 
         .toc-link:hover {
-            color: #ccff00;
+            color: #ff3333;
         }
 
         .toc-link.active {
-            color: #ccff00;
-            border-left-color: #ccff00;
+            color: #ff3333;
+            border-left-color: #ff3333;
         }
 
         code {
@@ -145,7 +145,7 @@
 
         th {
             background: #111;
-            color: #ccff00;
+            color: #ff3333;
             font-family: 'Chakra Petch', sans-serif;
             font-weight: 600;
         }
@@ -167,7 +167,7 @@
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                     <div>
                         <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
                         <p class="text-[9px] text-gray-500 tracking-[0.2em]">USER_MANUAL</p>
@@ -180,7 +180,7 @@
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
-                <a href="index.html#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                <a href="index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
                     DOWNLOAD
                 </a>
             </div>
@@ -216,8 +216,8 @@
 
             <!-- HEADER -->
             <div class="mb-12">
-                <div class="inline-flex items-center gap-2 px-3 py-1 bg-acid/10 border border-acid/30 text-acid text-xs font-mono mb-4">
-                    <span class="w-2 h-2 bg-acid rounded-full"></span>
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/30 text-accent text-xs font-mono mb-4">
+                    <span class="w-2 h-2 bg-accent rounded-full"></span>
                     v2.0.2
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
@@ -235,7 +235,7 @@
                 <!-- INTRODUCTION -->
                 <section id="introduction">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">01</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">01</span>
                         INTRODUCTION
                     </h2>
                     <div class="space-y-4">
@@ -245,7 +245,7 @@
                             <h4 class="font-display text-chrome mb-4">Key features</h4>
                             <ul class="space-y-2 text-gray-400">
                                 <li class="flex items-start gap-2">
-                                    <i data-lucide="mic" class="w-4 h-4 text-acid mt-1 shrink-0"></i>
+                                    <i data-lucide="mic" class="w-4 h-4 text-accent mt-1 shrink-0"></i>
                                     <span><strong class="text-chrome">Push-to-talk voice input</strong> - Hold a hotkey to record, release to transcribe and execute</span>
                                 </li>
                                 <li class="flex items-start gap-2">
@@ -257,7 +257,7 @@
                                     <span><strong class="text-chrome">Real terminal environment</strong> - Full PTY (pseudo-terminal) with shell access</span>
                                 </li>
                                 <li class="flex items-start gap-2">
-                                    <i data-lucide="brain" class="w-4 h-4 text-acid mt-1 shrink-0"></i>
+                                    <i data-lucide="brain" class="w-4 h-4 text-accent mt-1 shrink-0"></i>
                                     <span><strong class="text-chrome">Agent mode</strong> - AI-powered command generation for complex tasks</span>
                                 </li>
                                 <li class="flex items-start gap-2">
@@ -272,7 +272,7 @@
                 <!-- INSTALLATION -->
                 <section id="installation">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">02</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">02</span>
                         INSTALLATION
                     </h2>
 
@@ -299,7 +299,7 @@
                                 <span class="w-6 h-6 bg-ice text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
                                 <div>
                                     <strong class="text-chrome">Download the installer</strong>
-                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-acid hover:underline">releases page</a> and download <code>AudioBash.Setup.2.0.2.exe</code></p>
+                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-accent hover:underline">releases page</a> and download <code>AudioBash.Setup.2.0.2.exe</code></p>
                                 </div>
                             </li>
                             <li class="flex gap-3">
@@ -350,7 +350,7 @@
                                 <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
                                 <div>
                                     <strong class="text-chrome">Download the DMG</strong>
-                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-acid hover:underline">releases page</a> and download:</p>
+                                    <p class="text-sm mt-1">Visit the <a href="https://github.com/jamditis/audiobash/releases" class="text-accent hover:underline">releases page</a> and download:</p>
                                     <ul class="text-sm mt-2 space-y-1">
                                         <li><strong>Apple Silicon (M1/M2/M3/M4):</strong> <code>AudioBash-2.0.2-arm64.dmg</code></li>
                                         <li><strong>Intel Macs:</strong> <code>AudioBash-2.0.2.dmg</code></li>
@@ -397,7 +397,7 @@
                 <!-- FIRST-TIME SETUP -->
                 <section id="setup">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">03</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">03</span>
                         FIRST-TIME SETUP
                     </h2>
 
@@ -415,7 +415,7 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td class="text-acid">Gemini (recommended)</td>
+                                        <td class="text-accent">Gemini (recommended)</td>
                                         <td>Fast, accurate, free tier</td>
                                         <td><a href="https://aistudio.google.com/app/apikey" class="text-ice hover:underline">aistudio.google.com</a></td>
                                     </tr>
@@ -463,7 +463,7 @@
                 <!-- USING AUDIOBASH -->
                 <section id="usage">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">04</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">04</span>
                         USING AUDIOBASH
                     </h2>
 
@@ -535,7 +535,7 @@
 
                         <!-- Voice Recording Screenshot -->
                         <div class="mb-6">
-                            <img src="screenshots/voice-recording-web.png" alt="Voice recording active" class="w-full max-w-2xl rounded-lg border border-acid/30">
+                            <img src="screenshots/voice-recording-web.png" alt="Voice recording active" class="w-full max-w-2xl rounded-lg border border-accent/30">
                             <p class="text-gray-500 text-xs mt-2">Voice input panel with waveform visualization and RAW/AGENT mode toggle</p>
                         </div>
 
@@ -549,9 +549,9 @@
                                 <div class="text-2xl mb-1">🟡</div>
                                 <div class="text-yellow-500">Processing</div>
                             </div>
-                            <div class="bg-panel border border-acid/30 p-3 text-center">
+                            <div class="bg-panel border border-accent/30 p-3 text-center">
                                 <div class="text-2xl mb-1">🟢</div>
-                                <div class="text-acid">Ready</div>
+                                <div class="text-accent">Ready</div>
                             </div>
                             <div class="bg-panel border border-white/10 p-3 text-center">
                                 <div class="text-2xl mb-1">⚪</div>
@@ -567,7 +567,7 @@
 
                         <div class="grid md:grid-cols-2 gap-6">
                             <div class="bg-panel border border-white/10 p-6">
-                                <h4 class="font-display text-acid mb-2">Raw mode (default)</h4>
+                                <h4 class="font-display text-accent mb-2">Raw mode (default)</h4>
                                 <p class="text-gray-400 text-sm mb-3">Transcribed text is sent directly to the terminal. What you say is exactly what gets typed.</p>
                                 <p class="text-gray-500 text-xs">Best for: Simple commands, when you know exactly what to type</p>
                                 <div class="bg-void p-3 mt-3 text-sm">
@@ -611,7 +611,7 @@
                 <!-- SETTINGS -->
                 <section id="settings">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">05</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">05</span>
                         SETTINGS
                     </h2>
 
@@ -667,7 +667,7 @@
                         <div>
                             <h4 class="font-display text-chrome mb-3">Transcription providers</h4>
                             <ul class="text-gray-400 space-y-1 text-sm">
-                                <li><strong class="text-acid">Gemini 2.0 Flash</strong> - Google's fast, accurate model (recommended)</li>
+                                <li><strong class="text-accent">Gemini 2.0 Flash</strong> - Google's fast, accurate model (recommended)</li>
                                 <li><strong>OpenAI Whisper</strong> - Industry-standard accuracy</li>
                                 <li><strong>Groq Whisper</strong> - Ultra-fast processing</li>
                                 <li><strong>Claude</strong> - Uses Anthropic's model</li>
@@ -693,7 +693,7 @@
                 <!-- TROUBLESHOOTING -->
                 <section id="troubleshooting">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">06</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">06</span>
                         TROUBLESHOOTING
                     </h2>
 
@@ -755,7 +755,7 @@
                 <!-- FAQ -->
                 <section id="faq">
                     <h2 class="font-display text-2xl text-chrome mb-6 flex items-center gap-3">
-                        <span class="w-8 h-8 bg-acidDim border border-acid/30 flex items-center justify-center text-acid text-sm">07</span>
+                        <span class="w-8 h-8 bg-accentDim border border-accent/30 flex items-center justify-center text-accent text-sm">07</span>
                         FAQ
                     </h2>
 
@@ -785,7 +785,7 @@
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">How do I report bugs or request features?</h4>
-                            <p class="text-gray-400 text-sm">Visit <a href="https://github.com/jamditis/audiobash/issues" class="text-acid hover:underline">github.com/jamditis/audiobash/issues</a></p>
+                            <p class="text-gray-400 text-sm">Visit <a href="https://github.com/jamditis/audiobash/issues" class="text-accent hover:underline">github.com/jamditis/audiobash/issues</a></p>
                         </div>
                     </div>
                 </section>
@@ -797,9 +797,9 @@
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
                     <div>AudioBash v2.0.2 - Voice-controlled terminal for Claude Code</div>
                     <div class="flex items-center gap-4">
-                        <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">GitHub</a>
-                        <a href="https://github.com/jamditis/audiobash/issues" class="hover:text-acid transition-colors">Issues</a>
-                        <a href="https://github.com/jamditis" class="hover:text-acid transition-colors">@jamditis</a>
+                        <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>
+                        <a href="https://github.com/jamditis/audiobash/issues" class="hover:text-accent transition-colors">Issues</a>
+                        <a href="https://github.com/jamditis" class="hover:text-accent transition-colors">@jamditis</a>
                     </div>
                 </div>
             </div>

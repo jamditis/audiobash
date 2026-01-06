@@ -33,8 +33,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -57,14 +57,14 @@
         }
 
         ::selection {
-            background-color: #ccff00;
+            background-color: #ff3333;
             color: #000;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
 
         .clip-notch {
             clip-path: polygon(
@@ -102,11 +102,11 @@
         }
 
         .release-card:hover {
-            border-left-color: #ccff00;
+            border-left-color: #ff3333;
         }
 
         .release-card.latest {
-            border-left-color: #ccff00;
+            border-left-color: #ff3333;
         }
     </style>
 </head>
@@ -122,7 +122,7 @@
         <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                     <div>
                         <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
                         <p class="text-[9px] text-gray-500 tracking-[0.2em]">RELEASE_NOTES</p>
@@ -136,7 +136,7 @@
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
-                <a href="index.html#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                <a href="index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
                     DOWNLOAD
                 </a>
             </div>
@@ -155,10 +155,10 @@
         <div class="space-y-8">
 
             <!-- v2.0.2 -->
-            <article class="release-card latest bg-panel border border-acid/30 p-6">
+            <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-acid text-black font-display font-bold text-sm">v2.0.2</span>
-                    <span class="px-3 py-1 bg-acid/20 text-acid text-xs font-mono">LATEST</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.0.2</span>
+                    <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                     <span class="text-gray-500 text-sm">January 2, 2026</span>
                 </div>
 
@@ -187,7 +187,7 @@
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
-                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <h4 class="font-display text-accent text-sm mb-2">Added</h4>
                         <ul class="text-gray-400 text-sm space-y-1">
                             <li>• macOS stress test suite (18 automated tests)</li>
                             <li>• PTY spawn/destroy cycle testing</li>
@@ -250,7 +250,7 @@
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
-                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <h4 class="font-display text-accent text-sm mb-2">Added</h4>
                         <ul class="text-gray-400 text-sm space-y-1">
                             <li>• Full macOS support with native arm64 and x64 builds</li>
                             <li>• DMG installer for macOS</li>
@@ -271,7 +271,7 @@
                 </div>
 
                 <div class="mt-4 pt-4 border-t border-white/10">
-                    <a href="macos.html" class="text-acid hover:underline text-sm">Read the full macOS announcement →</a>
+                    <a href="macos.html" class="text-accent hover:underline text-sm">Read the full macOS announcement →</a>
                 </div>
             </article>
 
@@ -288,7 +288,7 @@
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>
-                        <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                        <h4 class="font-display text-accent text-sm mb-2">Added</h4>
                         <ul class="text-gray-400 text-sm space-y-1">
                             <li>• Custom instructions for raw and agent modes</li>
                             <li>• Custom vocabulary/pronunciations mapping</li>
@@ -320,7 +320,7 @@
                 <h2 class="font-display text-xl text-chrome mb-4">Split view & tab management</h2>
 
                 <div>
-                    <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                    <h4 class="font-display text-accent text-sm mb-2">Added</h4>
                     <ul class="text-gray-400 text-sm space-y-1">
                         <li>• Split view with 5 layout modes (single, horizontal, vertical, 2x2, 1+2)</li>
                         <li>• Resizable terminal panes with drag dividers</li>
@@ -359,7 +359,7 @@
                 <h2 class="font-display text-xl text-chrome mb-4">Context-aware agent & quick navigation</h2>
 
                 <div>
-                    <h4 class="font-display text-acid text-sm mb-2">Added</h4>
+                    <h4 class="font-display text-accent text-sm mb-2">Added</h4>
                     <ul class="text-gray-400 text-sm space-y-1">
                         <li>• Context-aware agent mode (understands cwd, recent output, errors)</li>
                         <li>• Quick directory navigation panel</li>
@@ -381,7 +381,7 @@
                 <p class="text-gray-400 mb-4">The first public release of AudioBash!</p>
 
                 <div>
-                    <h4 class="font-display text-acid text-sm mb-2">Features</h4>
+                    <h4 class="font-display text-accent text-sm mb-2">Features</h4>
                     <ul class="text-gray-400 text-sm space-y-1">
                         <li>• Voice-to-terminal transcription</li>
                         <li>• Multi-tab terminal support (up to 4 tabs)</li>
@@ -403,7 +403,7 @@
             <div class="bg-panel border border-white/10 p-6">
                 <div class="grid md:grid-cols-2 gap-8">
                     <div>
-                        <h4 class="font-display text-acid text-sm mb-3">Planned features</h4>
+                        <h4 class="font-display text-accent text-sm mb-3">Planned features</h4>
                         <ul class="text-gray-400 text-sm space-y-2">
                             <li class="flex items-center gap-2">
                                 <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
@@ -465,10 +465,10 @@
                 AUDIOBASH // RELEASE NOTES // MIT LICENSE
             </div>
             <div class="flex items-center gap-4 text-gray-500 text-sm">
-                <a href="index.html" class="hover:text-acid transition-colors">Home</a>
-                <a href="manual.html" class="hover:text-acid transition-colors">Manual</a>
-                <a href="macos.html" class="hover:text-acid transition-colors">macOS</a>
-                <a href="https://github.com/jamditis" class="hover:text-acid transition-colors">@jamditis</a>
+                <a href="index.html" class="hover:text-accent transition-colors">Home</a>
+                <a href="manual.html" class="hover:text-accent transition-colors">Manual</a>
+                <a href="macos.html" class="hover:text-accent transition-colors">macOS</a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors">@jamditis</a>
             </div>
         </div>
     </footer>

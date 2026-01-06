@@ -33,8 +33,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -52,14 +52,14 @@
         }
 
         ::selection {
-            background-color: #ccff00;
+            background-color: #ff3333;
             color: #000;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
 
         .clip-notch {
             clip-path: polygon(
@@ -95,11 +95,11 @@
             font-weight: 600;
             margin-top: 3rem;
             margin-bottom: 1rem;
-            border-left: 3px solid #ccff00;
+            border-left: 3px solid #ff3333;
             padding-left: 1rem;
         }
         .prose-void h3 {
-            color: #ccff00;
+            color: #ff3333;
             font-family: 'Share Tech Mono', monospace;
             font-size: 1.1rem;
             margin-top: 2rem;
@@ -114,14 +114,14 @@
             text-underline-offset: 3px;
         }
         .prose-void a:hover {
-            color: #ccff00;
+            color: #ff3333;
         }
         .prose-void code {
             background: #111;
             padding: 0.2rem 0.4rem;
             border-radius: 2px;
             font-size: 0.9em;
-            color: #ccff00;
+            color: #ff3333;
         }
         .prose-void pre {
             background: #0a0a0a;
@@ -154,8 +154,8 @@
         }
 
         .insight-box {
-            background: linear-gradient(135deg, rgba(204, 255, 0, 0.05), rgba(0, 240, 255, 0.05));
-            border: 1px solid rgba(204, 255, 0, 0.2);
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(255, 51, 51, 0.2);
             padding: 1.5rem;
             margin: 2rem 0;
         }
@@ -164,7 +164,7 @@
             display: block;
             font-family: 'Share Tech Mono', monospace;
             font-size: 0.75rem;
-            color: #ccff00;
+            color: #ff3333;
             margin-bottom: 0.75rem;
             letter-spacing: 0.1em;
         }
@@ -182,7 +182,7 @@
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <a href="../index.html" class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                     <div>
                         <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
                         <p class="text-[9px] text-gray-500 tracking-[0.2em]">BLOG</p>
@@ -192,7 +192,7 @@
             <div class="flex items-center gap-4">
                 <a href="../manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
                 <a href="../releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
-                <a href="../blog.html" class="text-acid hover:text-acid/80 transition-colors text-sm font-display hidden sm:block">BLOG</a>
+                <a href="../blog.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">BLOG</a>
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
@@ -206,7 +206,7 @@
             <!-- Article Header -->
             <header class="mb-12">
                 <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
-                    <a href="../blog.html" class="hover:text-acid transition-colors flex items-center gap-1">
+                    <a href="../blog.html" class="hover:text-accent transition-colors flex items-center gap-1">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         BLOG
                     </a>
@@ -214,12 +214,12 @@
                     <span>January 2, 2026</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">How I learned to break my own app</h1>
-                <p class="text-xl text-gray-400 border-l-2 border-acid pl-4">Testing apps like your least technical family member would</p>
+                <p class="text-xl text-gray-400 border-l-2 border-accent pl-4">Testing apps like your least technical family member would</p>
 
                 <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
                     <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-acid/20 rounded-full flex items-center justify-center">
-                            <i data-lucide="user" class="w-4 h-4 text-acid"></i>
+                        <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4 text-accent"></i>
                         </div>
                         <span class="text-sm text-gray-400">@jamditis</span>
                     </div>
@@ -407,7 +407,7 @@ echo "Failed: $FAILED"</code></pre>
             <!-- Article Footer -->
             <footer class="mt-16 pt-8 border-t border-white/10">
                 <div class="flex items-center justify-between">
-                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-acid transition-colors">
+                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-accent transition-colors">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         <span>Back to Blog</span>
                     </a>
@@ -429,10 +429,10 @@ echo "Failed: $FAILED"</code></pre>
                 AUDIOBASH v2.0.2 // BLOG // MIT LICENSE
             </div>
             <div class="flex items-center gap-4 text-gray-500">
-                <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
                     <i data-lucide="github" class="w-4 h-4"></i>
                 </a>
-                <a href="https://github.com/jamditis" class="hover:text-acid transition-colors text-xs font-mono">
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
                     @jamditis
                 </a>
             </div>

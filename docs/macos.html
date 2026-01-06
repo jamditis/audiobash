@@ -39,8 +39,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -365,11 +365,11 @@
 
                     <!-- Step 5 -->
                     <div class="flex gap-4">
-                        <div class="w-10 h-10 bg-acid text-black font-display font-bold flex items-center justify-center shrink-0">5</div>
+                        <div class="w-10 h-10 bg-accent text-black font-display font-bold flex items-center justify-center shrink-0">5</div>
                         <div>
                             <h4 class="font-display text-chrome text-lg mb-2">Add your API key</h4>
                             <p class="text-gray-400 text-sm mb-3">Click the gear icon and enter your transcription API key. We recommend Gemini (free tier available):</p>
-                            <a href="https://aistudio.google.com/app/apikey" class="inline-flex items-center gap-2 text-acid hover:underline text-sm">
+                            <a href="https://aistudio.google.com/app/apikey" class="inline-flex items-center gap-2 text-accent hover:underline text-sm">
                                 <i data-lucide="external-link" class="w-4 h-4"></i>
                                 Get a free Gemini API key
                             </a>
@@ -388,7 +388,7 @@
 
             <div class="grid md:grid-cols-3 gap-6">
                 <div class="text-center">
-                    <div class="w-16 h-16 bg-acid text-black font-display font-bold text-2xl flex items-center justify-center mx-auto mb-4 clip-notch">01</div>
+                    <div class="w-16 h-16 bg-accent text-black font-display font-bold text-2xl flex items-center justify-center mx-auto mb-4 clip-notch">01</div>
                     <h4 class="font-display text-lg text-chrome mb-2">Press Option+S</h4>
                     <p class="text-gray-400 text-sm">Start recording. The voice panel appears with a pulsing indicator.</p>
                 </div>
@@ -406,7 +406,7 @@
 
             <!-- Voice Recording Screenshot -->
             <div class="mt-10 mb-10">
-                <img src="screenshots/voice-recording-web.png" alt="AudioBash voice recording active" class="w-full max-w-3xl mx-auto rounded-lg border border-acid/30 shadow-xl">
+                <img src="screenshots/voice-recording-web.png" alt="AudioBash voice recording active" class="w-full max-w-3xl mx-auto rounded-lg border border-accent/30 shadow-xl">
                 <p class="text-center text-gray-500 text-sm mt-3">Voice input panel with waveform visualization and RAW/AGENT mode toggle</p>
             </div>
 
@@ -480,7 +480,7 @@
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="bg-panel border border-white/10 p-6">
                     <h4 class="font-display text-chrome mb-4 flex items-center gap-2">
-                        <i data-lucide="mic" class="w-5 h-5 text-acid"></i>
+                        <i data-lucide="mic" class="w-5 h-5 text-accent"></i>
                         Voice input
                     </h4>
                     <ul class="text-gray-400 text-sm space-y-2">
@@ -579,7 +579,7 @@
             </div>
 
             <p class="text-center text-gray-500 text-sm mt-6">
-                Found a bug? <a href="https://github.com/jamditis/audiobash/issues" class="text-acid hover:underline">Report it on GitHub</a>
+                Found a bug? <a href="https://github.com/jamditis/audiobash/issues" class="text-accent hover:underline">Report it on GitHub</a>
             </p>
         </section>
 
