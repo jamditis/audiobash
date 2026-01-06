@@ -19,6 +19,13 @@ export class VoiceRecorder {
   }
 
   /**
+   * Detect iOS devices
+   */
+  static isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  /**
    * Check if recording is supported
    */
   static isSupported() {
@@ -26,7 +33,8 @@ export class VoiceRecorder {
     const isSecureContext = window.isSecureContext ||
       window.location.protocol === 'https:' ||
       window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1';
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === '[::1]';
 
     if (!isSecureContext) {
       console.warn('[Voice] Not in secure context - microphone access requires HTTPS');
@@ -102,7 +110,7 @@ export class VoiceRecorder {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 48000,
+          sampleRate: { ideal: 48000 },
         },
       });
 
@@ -128,10 +136,20 @@ export class VoiceRecorder {
         throw new Error('No supported audio codec found. Try a different browser.');
       }
 
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType,
-        audioBitsPerSecond: 128000,
-      });
+      // Try to create MediaRecorder with mimeType, fall back to default if it fails
+      try {
+        this.mediaRecorder = new MediaRecorder(this.stream, {
+          mimeType,
+          audioBitsPerSecond: 128000,
+        });
+      } catch (err) {
+        console.warn('[Voice] Failed to create MediaRecorder with mimeType, trying without:', err);
+        // iOS Safari < 15 fallback - create without mimeType
+        this.mediaRecorder = new MediaRecorder(this.stream, {
+          audioBitsPerSecond: 128000,
+        });
+        console.log('[Voice] Using default codec (iOS fallback)');
+      }
 
       // Stream chunks as they're recorded
       this.mediaRecorder.ondataavailable = (e) => {
@@ -229,15 +247,24 @@ export class VoiceRecorder {
    * Get supported MIME type
    */
   getSupportedMimeType() {
-    const types = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-    ];
+    // Prioritize codecs based on platform
+    const types = VoiceRecorder.isIOS()
+      ? [
+          'audio/mp4',
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/ogg;codecs=opus',
+        ]
+      : [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/ogg;codecs=opus',
+          'audio/mp4',
+        ];
 
     for (const type of types) {
       if (MediaRecorder.isTypeSupported(type)) {
+        console.log(`[Voice] Using codec: ${type}`);
         return type;
       }
     }
