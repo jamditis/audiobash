@@ -62,6 +62,17 @@ class RemoteControlServer {
     this.heartbeatInterval = null;
     this.inactivityTimeout = null;
     this.INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    this.audioSessionTimeout = null; // Timeout for audio sessions
+
+    // Security: Authentication rate limiting
+    this.failedAttempts = new Map(); // Map<IP, { count, firstAttempt, lockedUntil }>
+    this.MAX_AUTH_ATTEMPTS = 5;
+    this.LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+    this.ATTEMPT_WINDOW = 5 * 60 * 1000; // 5 minutes
+
+    // Security: Audio buffer limits (prevent DoS)
+    this.MAX_CHUNK_SIZE = 1024 * 1024; // 1MB per chunk
+    this.MAX_TOTAL_BUFFER = 50 * 1024 * 1024; // 50MB total
   }
 
   /**
@@ -405,8 +416,32 @@ class RemoteControlServer {
   /**
    * Handle authentication request
    */
-  handleAuth(ws, message) {
+  async handleAuth(ws, message) {
     const { pairingCode, deviceName } = message;
+
+    // Security: Get client IP for rate limiting
+    const clientIP = ws._socket.remoteAddress;
+    const now = Date.now();
+
+    // Security: Check if IP is locked out
+    const attemptData = this.failedAttempts.get(clientIP);
+    if (attemptData) {
+      // Reset counter if attempt window has passed
+      if (now - attemptData.firstAttempt > this.ATTEMPT_WINDOW) {
+        this.failedAttempts.delete(clientIP);
+      } else if (attemptData.lockedUntil && now < attemptData.lockedUntil) {
+        const remainingSeconds = Math.ceil((attemptData.lockedUntil - now) / 1000);
+        console.warn(`[RemoteControl] IP ${clientIP} locked out (${remainingSeconds}s remaining)`);
+        this.send(ws, {
+          type: 'auth_response',
+          success: false,
+          error: 'rate_limit_exceeded',
+          message: `Too many failed attempts. Try again in ${remainingSeconds} seconds.`,
+        });
+        ws.close();
+        return;
+      }
+    }
 
     // Check if already connected
     if (this.connectedClient && this.connectedClient !== ws) {
@@ -425,6 +460,24 @@ class RemoteControlServer {
     const matchesPairingCode = codeUpper === this.pairingCode;
 
     if (!matchesStaticPassword && !matchesPairingCode) {
+      // Security: Track failed attempt
+      const currentAttempts = attemptData || { count: 0, firstAttempt: now, lockedUntil: null };
+      currentAttempts.count++;
+
+      // Security: Exponential backoff delay (100ms * attempt count, max 2000ms)
+      const delayMs = Math.min(100 * currentAttempts.count, 2000);
+
+      // Security: Lock out after MAX_AUTH_ATTEMPTS
+      if (currentAttempts.count >= this.MAX_AUTH_ATTEMPTS) {
+        currentAttempts.lockedUntil = now + this.LOCKOUT_DURATION;
+        console.warn(`[RemoteControl] IP ${clientIP} locked out for ${this.LOCKOUT_DURATION / 60000} minutes`);
+      }
+
+      this.failedAttempts.set(clientIP, currentAttempts);
+
+      // Apply exponential backoff delay
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+
       this.send(ws, {
         type: 'auth_response',
         success: false,
@@ -432,6 +485,9 @@ class RemoteControlServer {
       });
       return;
     }
+
+    // Security: Clear failed attempts on successful authentication
+    this.failedAttempts.delete(clientIP);
 
     // Success - establish connection
     this.connectedClient = ws;
@@ -491,6 +547,11 @@ class RemoteControlServer {
         clearTimeout(this.inactivityTimeout);
         this.inactivityTimeout = null;
       }
+      // Security: Clear audio session timeout
+      if (this.audioSessionTimeout) {
+        clearTimeout(this.audioSessionTimeout);
+        this.audioSessionTimeout = null;
+      }
       this.notifyStatusChange();
     }
   }
@@ -500,9 +561,31 @@ class RemoteControlServer {
    */
   handleTerminalWrite(message) {
     const { tabId, data } = message;
-    if (!tabId || !data) return;
 
-    const ptyProcess = this.ptyProcesses?.get(tabId);
+    // Validate inputs
+    if (!tabId || typeof tabId !== 'string') {
+      console.warn('[RemoteControl] Invalid tabId in terminal_write:', tabId);
+      return;
+    }
+    if (!data) {
+      console.warn('[RemoteControl] No data in terminal_write for tab:', tabId);
+      return;
+    }
+
+    // Check if tab exists
+    if (!this.ptyProcesses?.has(tabId)) {
+      console.warn(`[RemoteControl] Tab not found for write: ${tabId}`);
+      if (this.connectedClient) {
+        this.send(this.connectedClient, {
+          type: 'error',
+          message: `Terminal tab ${tabId} not found`,
+          context: 'terminal_write',
+        });
+      }
+      return;
+    }
+
+    const ptyProcess = this.ptyProcesses.get(tabId);
     if (ptyProcess) {
       ptyProcess.write(data);
     }
@@ -513,9 +596,31 @@ class RemoteControlServer {
    */
   handleTerminalResize(message) {
     const { tabId, cols, rows } = message;
-    if (!tabId || !cols || !rows) return;
 
-    const ptyProcess = this.ptyProcesses?.get(tabId);
+    // Validate inputs
+    if (!tabId || typeof tabId !== 'string') {
+      console.warn('[RemoteControl] Invalid tabId in terminal_resize:', tabId);
+      return;
+    }
+    if (!cols || !rows) {
+      console.warn('[RemoteControl] Invalid dimensions in terminal_resize:', { cols, rows });
+      return;
+    }
+
+    // Check if tab exists
+    if (!this.ptyProcesses?.has(tabId)) {
+      console.warn(`[RemoteControl] Tab not found for resize: ${tabId}`);
+      if (this.connectedClient) {
+        this.send(this.connectedClient, {
+          type: 'error',
+          message: `Terminal tab ${tabId} not found`,
+          context: 'terminal_resize',
+        });
+      }
+      return;
+    }
+
+    const ptyProcess = this.ptyProcesses.get(tabId);
     if (ptyProcess) {
       ptyProcess.resize(cols, rows);
     }
@@ -526,8 +631,33 @@ class RemoteControlServer {
    */
   handleAudioStart(message) {
     const { tabId, mode, format } = message;
-    this.currentAudioSession = { tabId, mode: mode || 'agent', format: format || 'webm' };
+    this.currentAudioSession = {
+      tabId,
+      mode: mode || 'agent',
+      format: format || 'webm',
+      bytesReceived: 0, // Security: Track total bytes for DoS prevention
+    };
     this.audioChunks = [];
+
+    // Security: Set 30-second timeout for audio session
+    if (this.audioSessionTimeout) {
+      clearTimeout(this.audioSessionTimeout);
+    }
+    this.audioSessionTimeout = setTimeout(() => {
+      console.warn('[RemoteControl] Audio session timeout - clearing orphaned session');
+      if (this.currentAudioSession) {
+        this.send(this.connectedClient, {
+          type: 'transcription',
+          tabId: this.currentAudioSession.tabId,
+          text: '',
+          success: false,
+          error: 'Audio session timeout (30s limit)',
+        });
+        this.currentAudioSession = null;
+        this.audioChunks = [];
+      }
+    }, 30000); // 30 seconds
+
     console.log(`[RemoteControl] Audio session started for ${tabId}, mode: ${mode}`);
   }
 
@@ -535,15 +665,63 @@ class RemoteControlServer {
    * Handle incoming audio data chunk
    */
   handleAudioData(data) {
-    if (this.currentAudioSession) {
-      this.audioChunks.push(data);
+    if (!this.currentAudioSession) {
+      console.warn('[RemoteControl] Received audio data without active session');
+      return;
     }
+
+    // Security: Validate chunk size
+    if (data.length > this.MAX_CHUNK_SIZE) {
+      console.error(`[RemoteControl] Audio chunk too large: ${data.length} bytes (max: ${this.MAX_CHUNK_SIZE})`);
+      this.send(this.connectedClient, {
+        type: 'transcription',
+        tabId: this.currentAudioSession.tabId,
+        text: '',
+        success: false,
+        error: `Audio chunk exceeds size limit (${this.MAX_CHUNK_SIZE / 1024 / 1024}MB)`,
+      });
+      this.currentAudioSession = null;
+      this.audioChunks = [];
+      if (this.audioSessionTimeout) {
+        clearTimeout(this.audioSessionTimeout);
+        this.audioSessionTimeout = null;
+      }
+      return;
+    }
+
+    // Security: Validate total buffer size
+    this.currentAudioSession.bytesReceived += data.length;
+    if (this.currentAudioSession.bytesReceived > this.MAX_TOTAL_BUFFER) {
+      console.error(`[RemoteControl] Total audio buffer exceeded: ${this.currentAudioSession.bytesReceived} bytes (max: ${this.MAX_TOTAL_BUFFER})`);
+      this.send(this.connectedClient, {
+        type: 'transcription',
+        tabId: this.currentAudioSession.tabId,
+        text: '',
+        success: false,
+        error: `Audio buffer exceeds size limit (${this.MAX_TOTAL_BUFFER / 1024 / 1024}MB)`,
+      });
+      this.currentAudioSession = null;
+      this.audioChunks = [];
+      if (this.audioSessionTimeout) {
+        clearTimeout(this.audioSessionTimeout);
+        this.audioSessionTimeout = null;
+      }
+      return;
+    }
+
+    this.audioChunks.push(data);
   }
 
   /**
    * Handle audio recording end - trigger transcription
    */
   async handleAudioEnd(message) {
+    // Security: Clear audio session timeout
+    if (this.audioSessionTimeout) {
+      clearTimeout(this.audioSessionTimeout);
+      this.audioSessionTimeout = null;
+    }
+
     if (!this.currentAudioSession || this.audioChunks.length === 0) {
       this.send(this.connectedClient, {
         type: 'transcription',
