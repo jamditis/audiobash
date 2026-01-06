@@ -54,6 +54,33 @@ const elements = {
  * Initialize the application
  */
 function init() {
+  // Validate that critical elements exist
+  const requiredElements = [
+    'connectScreen',
+    'terminalScreen',
+    'voiceBtn',
+    'ipInput',
+    'codeInput',
+    'connectBtn',
+    'terminalContainer',
+    'tabSelector',
+    'disconnectBtn',
+  ];
+
+  for (const name of requiredElements) {
+    if (!elements[name]) {
+      console.error(`[App] Required element missing: ${name}`);
+      document.body.innerHTML = `
+        <div style="padding: 20px; font-family: monospace; color: #ff3333;">
+          <h1>Initialization Error</h1>
+          <p>Required UI element missing: <strong>${name}</strong></p>
+          <p>Please ensure the HTML file is not corrupted.</p>
+        </div>
+      `;
+      return;
+    }
+  }
+
   // Load saved connection info
   loadSavedConnection();
 
