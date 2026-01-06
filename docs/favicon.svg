@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" fill="#050505"/>
   <!-- Terminal prompt bracket -->
-  <path d="M6 8 L12 16 L6 24" stroke="#ccff00" stroke-width="3" stroke-linecap="square" fill="none"/>
+  <path d="M6 8 L12 16 L6 24" stroke="#ff3333" stroke-width="3" stroke-linecap="square" fill="none"/>
   <!-- Audio waves -->
-  <rect x="16" y="13" width="2" height="6" fill="#ccff00"/>
-  <rect x="20" y="10" width="2" height="12" fill="#ccff00"/>
-  <rect x="24" y="7" width="2" height="18" fill="#ccff00"/>
+  <rect x="16" y="13" width="2" height="6" fill="#ff3333"/>
+  <rect x="20" y="10" width="2" height="12" fill="#ff3333"/>
+  <rect x="24" y="7" width="2" height="18" fill="#ff3333"/>
 </svg>
