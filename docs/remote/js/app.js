@@ -78,6 +78,13 @@ function init() {
     }
   }
 
+  // Register service worker for PWA offline support
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/remote/service-worker.js')
+      .then(reg => console.log('[App] Service worker registered'))
+      .catch(err => console.warn('[App] Service worker registration failed:', err));
+  }
+
   console.log('[App] Initialized');
 }
 
@@ -358,10 +365,14 @@ async function handleVoiceToggle() {
   if (!state.voiceRecorder) return;
 
   if (state.voiceRecorder.isRecording) {
+    // Haptic feedback on stop - double pulse
+    navigator.vibrate?.([50, 30, 50]);
     state.voiceRecorder.stopRecording();
   } else {
     try {
       await state.voiceRecorder.startRecording(state.activeTabId);
+      // Haptic feedback on start - short vibration
+      navigator.vibrate?.(50);
     } catch (err) {
       console.error('[App] Voice recording failed:', err);
       setVoiceState('idle');
