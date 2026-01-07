@@ -158,6 +158,22 @@ function setupEventListeners() {
     if (e.key === 'Enter') handleConnect();
   });
 
+  // Handle QR code paste (format: ws://IP:PORT|CODE)
+  elements.ipInput.addEventListener('paste', (e) => {
+    // Small delay to let paste complete
+    setTimeout(() => {
+      const pastedText = elements.ipInput.value.trim();
+      const qrMatch = pastedText.match(/^wss?:\/\/([^:]+):(\d+)\|(.+)$/);
+      if (qrMatch) {
+        const [, ip, port, code] = qrMatch;
+        elements.ipInput.value = ip;
+        elements.codeInput.value = code;
+        elements.codeInput.focus();
+        console.log('[App] Parsed QR code connection string');
+      }
+    }, 10);
+  });
+
   // Disconnect button
   elements.disconnectBtn.addEventListener('click', handleDisconnect);
 

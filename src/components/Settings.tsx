@@ -3,6 +3,7 @@ import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEn
 import { useTheme } from '../themes';
 import { Shortcuts } from '../types';
 import TunnelStatus from './TunnelStatus';
+import QRCode from 'qrcode';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -110,6 +111,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [remotePasswordInput, setRemotePasswordInput] = useState('');
   const [keepAwakeEnabled, setKeepAwakeEnabled] = useState(false);
 
+  // QR code state
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+
   useEffect(() => {
     // Load all API keys
     window.electron?.getApiKey('gemini').then((key: string) => {
@@ -200,6 +204,42 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
     return () => cleanup?.();
   }, [isOpen]);
+
+  // Generate QR code when remote status changes
+  useEffect(() => {
+    async function generateQRCode() {
+      if (!remoteStatus.running || !remoteStatus.pairingCode) {
+        setQrCodeDataUrl(null);
+        return;
+      }
+
+      // Use the first available address, or 'localhost' if none
+      const address = remoteStatus.addresses[0] || 'localhost';
+      const port = remoteStatus.port;
+      const code = remoteStatus.staticPassword || remoteStatus.pairingCode;
+
+      // Create connection string in format: ws://IP:PORT|CODE
+      const connectionString = `ws://${address}:${port}|${code}`;
+
+      try {
+        // Generate QR code as data URL
+        const dataUrl = await QRCode.toDataURL(connectionString, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#050505',  // void color
+            light: '#ccff00', // acid color
+          },
+        });
+        setQrCodeDataUrl(dataUrl);
+      } catch (err) {
+        console.error('[Settings] Failed to generate QR code:', err);
+        setQrCodeDataUrl(null);
+      }
+    }
+
+    generateQRCode();
+  }, [remoteStatus.running, remoteStatus.pairingCode, remoteStatus.staticPassword, remoteStatus.addresses, remoteStatus.port]);
 
   // Handle keyboard shortcut recording
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -694,6 +734,23 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                       Regenerate
                     </button>
                   </div>
+
+                  {/* QR Code */}
+                  {qrCodeDataUrl && (
+                    <div className="flex flex-col items-center pt-2 pb-1">
+                      <div className="text-[10px] text-crt-white/50 mb-2">Or scan QR code:</div>
+                      <div className="bg-accent p-2 rounded">
+                        <img
+                          src={qrCodeDataUrl}
+                          alt="Connection QR Code"
+                          className="w-40 h-40"
+                        />
+                      </div>
+                      <div className="text-[9px] text-crt-white/30 mt-1 text-center">
+                        Scan with phone camera to connect
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
