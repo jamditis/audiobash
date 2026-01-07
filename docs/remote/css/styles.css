@@ -357,6 +357,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   transition: all 0.2s;
   box-shadow: 0 4px 20px rgba(255, 51, 51, 0.3);
 }
@@ -383,6 +384,21 @@ html, body {
 .voice-button svg {
   width: 32px;
   height: 32px;
+}
+
+/* Silence countdown indicator */
+.silence-indicator {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.silence-indicator circle {
+  filter: drop-shadow(0 0 4px rgba(204, 255, 0, 0.6));
 }
 
 #voice-status {

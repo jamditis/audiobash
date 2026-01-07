@@ -45,6 +45,8 @@ const elements = {
   stopIcon: document.getElementById('stop-icon'),
   voiceStatus: document.getElementById('voice-status'),
   transcriptionPreview: document.getElementById('transcription-preview'),
+  silenceRing: document.getElementById('silence-ring'),
+  silenceProgress: document.getElementById('silence-progress'),
 
   // Reconnect overlay
   cancelReconnect: document.getElementById('cancel-reconnect'),
@@ -383,6 +385,11 @@ function initializeVoiceRecorder() {
       }
     }, 5000);
   };
+
+  // Handle silence progress for countdown UI
+  state.voiceRecorder.onSilenceProgress = (progress, durationMs) => {
+    updateSilenceIndicator(progress, durationMs);
+  };
 }
 
 /**
@@ -452,18 +459,44 @@ function setVoiceState(voiceState) {
       elements.voiceBtn.classList.add('recording');
       elements.micIcon.hidden = true;
       elements.stopIcon.hidden = false;
+      elements.silenceRing.hidden = false;
       elements.voiceStatus.textContent = 'Recording... Tap to stop';
       break;
     case 'processing':
       elements.voiceBtn.classList.add('processing');
       elements.micIcon.hidden = false;
       elements.stopIcon.hidden = true;
+      elements.silenceRing.hidden = true;
       elements.voiceStatus.textContent = 'Processing...';
       break;
     default:
       elements.micIcon.hidden = false;
       elements.stopIcon.hidden = true;
+      elements.silenceRing.hidden = true;
       elements.voiceStatus.textContent = 'Tap to speak';
+  }
+}
+
+/**
+ * Update silence indicator ring
+ * @param {number} progress - Progress from 0 to 1
+ * @param {number} durationMs - Silence duration in milliseconds
+ */
+function updateSilenceIndicator(progress, durationMs) {
+  if (!elements.silenceProgress) return;
+
+  // Calculate stroke-dashoffset (283 is full circle circumference)
+  const circumference = 283;
+  const offset = circumference - (progress * circumference);
+  elements.silenceProgress.style.strokeDashoffset = offset;
+
+  // Update status text when silence is detected
+  if (progress > 0) {
+    const remainingMs = state.voiceRecorder?.silenceThreshold - durationMs;
+    const remainingSec = (remainingMs / 1000).toFixed(1);
+    elements.voiceStatus.textContent = `Auto-stop in ${remainingSec}s...`;
+  } else if (state.voiceRecorder?.isRecording) {
+    elements.voiceStatus.textContent = 'Recording... Tap to stop';
   }
 }
 

@@ -14,8 +14,19 @@ export class VoiceRecorder {
     this.activeTabId = null;
     this.onStateChange = null; // Callback for UI updates
     this.onError = null; // Callback for error handling
+    this.onSilenceProgress = null; // Callback for silence countdown
     this.recordingStartTime = null;
     this.minRecordingDuration = 500; // Minimum 500ms to avoid empty recordings
+
+    // VAD (Voice Activity Detection) settings
+    this.vadEnabled = true; // Can be disabled via settings
+    this.silenceThreshold = 1500; // 1.5 seconds of silence before auto-stop
+    this.volumeThreshold = -50; // dB threshold for silence detection
+    this.audioContext = null;
+    this.analyser = null;
+    this.vadCheckInterval = null;
+    this.lastSoundTime = null;
+    this.silenceStartTime = null;
   }
 
   /**
@@ -91,6 +102,22 @@ export class VoiceRecorder {
    */
   setMode(mode) {
     this.mode = mode;
+  }
+
+  /**
+   * Enable or disable VAD auto-stop
+   * @param {boolean} enabled
+   */
+  setVADEnabled(enabled) {
+    this.vadEnabled = enabled;
+  }
+
+  /**
+   * Set silence threshold in milliseconds
+   * @param {number} ms
+   */
+  setSilenceThreshold(ms) {
+    this.silenceThreshold = ms;
   }
 
   /**
@@ -190,6 +217,11 @@ export class VoiceRecorder {
       this.mediaRecorder.start(250);
       this.isRecording = true;
 
+      // Initialize VAD if enabled
+      if (this.vadEnabled) {
+        this.startVAD(this.stream);
+      }
+
       this.notifyStateChange('recording');
       console.log('[Voice] Recording started');
 
@@ -273,9 +305,121 @@ export class VoiceRecorder {
   }
 
   /**
+   * Start Voice Activity Detection
+   * @param {MediaStream} stream
+   */
+  startVAD(stream) {
+    try {
+      // Create AudioContext for analysis
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = this.audioContext.createMediaStreamSource(stream);
+
+      // Create analyser node
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 2048;
+      this.analyser.smoothingTimeConstant = 0.8;
+      source.connect(this.analyser);
+
+      // Initialize timing
+      this.lastSoundTime = Date.now();
+      this.silenceStartTime = null;
+
+      // Check audio level periodically
+      this.vadCheckInterval = setInterval(() => {
+        this.checkAudioLevel();
+      }, 100); // Check every 100ms
+
+      console.log('[Voice] VAD started');
+    } catch (err) {
+      console.warn('[Voice] VAD initialization failed, continuing without auto-stop:', err);
+      // Continue recording without VAD if it fails
+    }
+  }
+
+  /**
+   * Check current audio level and detect silence
+   */
+  checkAudioLevel() {
+    if (!this.analyser || !this.isRecording) return;
+
+    // Get frequency data
+    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(dataArray);
+
+    // Calculate average volume
+    const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+
+    // Convert to dB (approximate)
+    const dB = 20 * Math.log10(average / 255);
+
+    const now = Date.now();
+    const isSilent = dB < this.volumeThreshold;
+
+    if (isSilent) {
+      // Silence detected
+      if (this.silenceStartTime === null) {
+        this.silenceStartTime = now;
+        console.log('[Voice] Silence detected');
+      }
+
+      const silenceDuration = now - this.silenceStartTime;
+
+      // Notify progress (for countdown UI)
+      if (this.onSilenceProgress) {
+        const progress = Math.min(silenceDuration / this.silenceThreshold, 1);
+        this.onSilenceProgress(progress, silenceDuration);
+      }
+
+      // Auto-stop if silence threshold exceeded
+      if (silenceDuration >= this.silenceThreshold) {
+        console.log('[Voice] Auto-stopping due to silence');
+        this.stopRecording();
+      }
+    } else {
+      // Sound detected - reset silence timer
+      if (this.silenceStartTime !== null) {
+        console.log('[Voice] Sound resumed');
+      }
+      this.lastSoundTime = now;
+      this.silenceStartTime = null;
+
+      // Notify that silence was broken
+      if (this.onSilenceProgress) {
+        this.onSilenceProgress(0, 0);
+      }
+    }
+  }
+
+  /**
+   * Stop VAD monitoring
+   */
+  stopVAD() {
+    if (this.vadCheckInterval) {
+      clearInterval(this.vadCheckInterval);
+      this.vadCheckInterval = null;
+    }
+
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
+    this.analyser = null;
+    this.lastSoundTime = null;
+    this.silenceStartTime = null;
+
+    // Clear silence progress
+    if (this.onSilenceProgress) {
+      this.onSilenceProgress(0, 0);
+    }
+  }
+
+  /**
    * Clean up resources
    */
   cleanup() {
+    this.stopVAD();
+
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
