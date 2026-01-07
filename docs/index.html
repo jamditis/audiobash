@@ -11,6 +11,9 @@
     <meta property="og:description" content="Speak commands, execute instantly. Multi-tab terminal with AI-powered voice transcription. Available for Windows and macOS.">
     <meta property="og:type" content="website">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,8 +36,8 @@
                         panel: '#0a0a0a',
                         surface: '#111111',
                         chrome: '#e5e5e5',
-                        acid: '#ccff00',
-                        acidDim: 'rgba(204, 255, 0, 0.1)',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
                         signal: '#ff2a2a',
                         signalDim: 'rgba(255, 42, 42, 0.1)',
                         ice: '#00f0ff',
@@ -56,8 +59,8 @@
                             '50%': { transform: 'translateY(-10px)' },
                         },
                         glow: {
-                            '0%': { boxShadow: '0 0 20px rgba(204, 255, 0, 0.3)' },
-                            '100%': { boxShadow: '0 0 40px rgba(204, 255, 0, 0.6)' },
+                            '0%': { boxShadow: '0 0 20px rgba(255, 51, 51, 0.3)' },
+                            '100%': { boxShadow: '0 0 40px rgba(255, 51, 51, 0.6)' },
                         }
                     }
                 }
@@ -72,14 +75,14 @@
         }
 
         ::selection {
-            background-color: #ccff00;
+            background-color: #ff3333;
             color: #000;
         }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #050505; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
 
         .clip-notch {
             clip-path: polygon(
@@ -128,13 +131,13 @@
         }
         .glitch-text::before {
             left: 2px;
-            text-shadow: -1px 0 #ccff00;
+            text-shadow: -1px 0 #ff3333;
             clip: rect(44px, 450px, 56px, 0);
             animation: glitch-anim 5s infinite linear alternate-reverse;
         }
         .glitch-text::after {
             left: -2px;
-            text-shadow: -1px 0 #ff2a2a;
+            text-shadow: -1px 0 #00f0ff;
             clip: rect(44px, 450px, 56px, 0);
             animation: glitch-anim2 5s infinite linear alternate-reverse;
         }
@@ -164,7 +167,7 @@
         }
         .waveform span {
             width: 4px;
-            background: linear-gradient(to top, #ccff00, #00f0ff);
+            background: linear-gradient(to top, #ff3333, #ff6666);
             border-radius: 2px;
             animation: wave 1s ease-in-out infinite;
         }
@@ -193,7 +196,7 @@
     <nav class="fixed top-0 left-0 right-0 z-50 bg-void/80 backdrop-blur-sm border-b border-white/10">
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-acid text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                 <div>
                     <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
                     <p class="text-[9px] text-gray-500 tracking-[0.2em]">v2.0.2 // VOICE_TERMINAL</p>
@@ -206,7 +209,7 @@
                 <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
                     <i data-lucide="github" class="w-5 h-5"></i>
                 </a>
-                <a href="#download" class="px-4 py-2 bg-acid text-black font-display font-bold text-sm tracking-wider hover:bg-acid/80 transition-colors clip-notch">
+                <a href="#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
                     DOWNLOAD
                 </a>
             </div>
@@ -225,21 +228,21 @@
                 </div>
 
                 <!-- NEW: v2.0 Badge -->
-                <a href="macos.html" class="inline-flex items-center gap-2 px-4 py-2 bg-acid/10 border border-acid/30 text-acid text-sm font-mono mb-6 hover:bg-acid/20 transition-colors">
-                    <span class="w-2 h-2 bg-acid rounded-full animate-pulse"></span>
+                <a href="macos.html" class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6 hover:bg-accent/20 transition-colors">
+                    <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
                     v2.0.2 — NOW ON macOS
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
 
                 <h2 class="font-display text-5xl md:text-7xl text-chrome mb-6 glitch-text" data-text="SPEAK_EXECUTE">SPEAK_EXECUTE</h2>
 
-                <p class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto mb-8 border-l-2 border-acid pl-4 text-left">
+                <p class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto mb-8 border-l-2 border-accent pl-4 text-left">
                     Voice-controlled terminal for developers. Speak your commands naturally, watch them execute instantly. Multi-tab terminals, multiple AI providers, fully customizable.
                 </p>
 
                 <!-- Platform Download Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.2/AudioBash.Setup.2.0.2.exe" class="px-8 py-4 bg-acid text-black font-display font-bold text-lg tracking-wider hover:bg-acid/80 transition-all clip-notch animate-glow">
+                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.0.2/AudioBash.Setup.2.0.2.exe" class="px-8 py-4 bg-accent text-black font-display font-bold text-lg tracking-wider hover:bg-accent/80 transition-all clip-notch animate-glow">
                         <span class="flex items-center gap-2">
                             <i data-lucide="monitor" class="w-5 h-5"></i>
                             WINDOWS
@@ -259,7 +262,7 @@
                             macOS (Intel)
                         </span>
                     </a>
-                    <a href="https://github.com/jamditis/audiobash" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-acid hover:text-acid transition-all">
+                    <a href="https://github.com/jamditis/audiobash" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-accent hover:text-accent transition-all">
                         <span class="flex items-center gap-2">
                             <i data-lucide="github" class="w-4 h-4"></i>
                             VIEW SOURCE
@@ -273,10 +276,10 @@
                         <div class="flex gap-2">
                             <div class="w-3 h-3 rounded-full bg-signal/50"></div>
                             <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-                            <div class="w-3 h-3 rounded-full bg-acid/50"></div>
+                            <div class="w-3 h-3 rounded-full bg-accent/50"></div>
                         </div>
                         <div class="flex gap-1">
-                            <span class="px-3 py-1 bg-void text-acid text-xs border-t border-l border-r border-white/20">zsh</span>
+                            <span class="px-3 py-1 bg-void text-accent text-xs border-t border-l border-r border-white/20">zsh</span>
                             <span class="px-3 py-1 text-gray-500 text-xs">Terminal 2</span>
                             <span class="px-3 py-1 text-gray-500 text-xs">+</span>
                         </div>
@@ -288,7 +291,7 @@
                             <span class="text-ice">[VOICE]</span>
                             <span class="text-chrome">"list all files in this directory"</span>
                         </div>
-                        <div class="text-acid mb-2">→ ls -la</div>
+                        <div class="text-accent mb-2">→ ls -la</div>
                         <div class="text-gray-400 text-xs">
                             <div>drwxr-xr-x   8 user  staff   256 Jan  2 10:00 src</div>
                             <div>drwxr-xr-x  42 user  staff  1344 Jan  2 09:45 node_modules</div>
@@ -298,7 +301,7 @@
                     </div>
                     <div class="bg-surface border-t border-white/10 px-4 py-2 flex items-center justify-between text-[10px] text-gray-500">
                         <div class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-acid rounded-full animate-pulse"></span>
+                            <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
                             <span>READY</span>
                         </div>
                         <div>Gemini 2.0 Flash</div>
@@ -309,10 +312,10 @@
         </section>
 
         <!-- WHAT'S NEW IN v2.0 -->
-        <section class="py-16 px-6 bg-acid/5 border-y border-acid/20">
+        <section class="py-16 px-6 bg-accent/5 border-y border-accent/20">
             <div class="max-w-4xl mx-auto">
                 <div class="text-center mb-8">
-                    <h3 class="font-display text-2xl text-acid mb-2">NEW IN v2.0.0</h3>
+                    <h3 class="font-display text-2xl text-accent mb-2">NEW IN v2.0.0</h3>
                     <p class="text-gray-500 font-mono">The macOS Edition</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
@@ -347,9 +350,9 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                     <!-- Feature 1 -->
-                    <div class="bg-panel border border-white/10 p-6 hover:border-acid/50 transition-colors group">
-                        <div class="w-12 h-12 bg-acidDim border border-acid/30 flex items-center justify-center mb-4 clip-notch-tl">
-                            <i data-lucide="mic" class="w-6 h-6 text-acid"></i>
+                    <div class="bg-panel border border-white/10 p-6 hover:border-accent/50 transition-colors group">
+                        <div class="w-12 h-12 bg-accentDim border border-accent/30 flex items-center justify-center mb-4 clip-notch-tl">
+                            <i data-lucide="mic" class="w-6 h-6 text-accent"></i>
                         </div>
                         <h4 class="font-display text-lg text-chrome mb-2">VOICE_RECOGNITION</h4>
                         <p class="text-gray-500 text-sm">Multiple AI providers: Gemini, OpenAI Whisper, Claude, ElevenLabs. Choose your engine.</p>
@@ -374,9 +377,9 @@
                     </div>
 
                     <!-- Feature 4 -->
-                    <div class="bg-panel border border-white/10 p-6 hover:border-acid/50 transition-colors group">
-                        <div class="w-12 h-12 bg-acidDim border border-acid/30 flex items-center justify-center mb-4 clip-notch-tl">
-                            <i data-lucide="brain" class="w-6 h-6 text-acid"></i>
+                    <div class="bg-panel border border-white/10 p-6 hover:border-accent/50 transition-colors group">
+                        <div class="w-12 h-12 bg-accentDim border border-accent/30 flex items-center justify-center mb-4 clip-notch-tl">
+                            <i data-lucide="brain" class="w-6 h-6 text-accent"></i>
                         </div>
                         <h4 class="font-display text-lg text-chrome mb-2">CONTEXT_AWARE</h4>
                         <p class="text-gray-500 text-sm">Agent mode understands your environment: current directory, recent output, errors. Smarter commands.</p>
@@ -416,7 +419,7 @@
                 <div class="space-y-8">
 
                     <div class="flex items-start gap-6">
-                        <div class="w-16 h-16 bg-acid text-black font-display font-bold text-2xl flex items-center justify-center shrink-0 clip-notch">01</div>
+                        <div class="w-16 h-16 bg-accent text-black font-display font-bold text-2xl flex items-center justify-center shrink-0 clip-notch">01</div>
                         <div>
                             <h4 class="font-display text-xl text-chrome mb-2">ACTIVATE</h4>
                             <p class="text-gray-400 font-mono">Press your configured hotkey (Alt+S on Windows, Option+S on Mac) to start voice capture. The floating overlay appears.</p>
@@ -447,8 +450,8 @@
         <section id="download" class="py-32 px-6">
             <div class="max-w-4xl mx-auto text-center">
 
-                <div class="bg-panel border border-acid/30 p-12 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-acid/5 blur-3xl"></div>
+                <div class="bg-panel border border-accent/30 p-12 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-3xl"></div>
 
                     <h3 class="font-display text-4xl text-chrome mb-4 relative">INITIALIZE_NOW</h3>
                     <p class="text-gray-400 font-mono mb-8 relative">Free and open source. Windows + macOS ready.</p>
@@ -489,13 +492,13 @@
                     </div>
 
                     <div class="flex items-center justify-center gap-4 relative">
-                        <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-acid hover:text-acid transition-all">
+                        <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-accent hover:text-accent transition-all">
                             <span class="flex items-center gap-2">
                                 <i data-lucide="star" class="w-5 h-5"></i>
                                 STAR ON GITHUB
                             </span>
                         </a>
-                        <a href="https://github.com/jamditis/audiobash/blob/master/docs/USER_MANUAL.md" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-acid hover:text-acid transition-all">
+                        <a href="https://github.com/jamditis/audiobash/blob/master/docs/USER_MANUAL.md" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-accent hover:text-accent transition-all">
                             <span class="flex items-center gap-2">
                                 <i data-lucide="book-open" class="w-5 h-5"></i>
                                 USER MANUAL
@@ -546,10 +549,10 @@
                     AUDIOBASH v2.0.2 // BUILD 2026.01.02 // MIT LICENSE
                 </div>
                 <div class="flex items-center gap-4 text-gray-500">
-                    <a href="https://github.com/jamditis/audiobash" class="hover:text-acid transition-colors">
+                    <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
                         <i data-lucide="github" class="w-4 h-4"></i>
                     </a>
-                    <a href="https://github.com/jamditis" class="hover:text-acid transition-colors text-xs font-mono">
+                    <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
                         @jamditis
                     </a>
                 </div>
