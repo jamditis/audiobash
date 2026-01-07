@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#050505">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AudioBash Remote">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
@@ -55,6 +57,10 @@
           <span class="btn-spinner" hidden></span>
         </button>
 
+        <div class="qr-hint">
+          <span>Or scan QR code from AudioBash Settings</span>
+        </div>
+
         <div id="connect-error" class="error"></div>
       </div>
 
@@ -99,6 +105,13 @@
           </svg>
           <svg id="stop-icon" viewBox="0 0 24 24" fill="currentColor" hidden>
             <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+          <!-- Silence countdown ring -->
+          <svg id="silence-ring" class="silence-indicator" viewBox="0 0 100 100" hidden>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(204, 255, 0, 0.2)" stroke-width="8"/>
+            <circle id="silence-progress" cx="50" cy="50" r="45" fill="none" stroke="#ccff00" stroke-width="8"
+                    stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round"
+                    transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 0.1s linear"/>
           </svg>
         </button>
 

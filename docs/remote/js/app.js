@@ -45,6 +45,8 @@ const elements = {
   stopIcon: document.getElementById('stop-icon'),
   voiceStatus: document.getElementById('voice-status'),
   transcriptionPreview: document.getElementById('transcription-preview'),
+  silenceRing: document.getElementById('silence-ring'),
+  silenceProgress: document.getElementById('silence-progress'),
 
   // Reconnect overlay
   cancelReconnect: document.getElementById('cancel-reconnect'),
@@ -54,6 +56,33 @@ const elements = {
  * Initialize the application
  */
 function init() {
+  // Validate that critical elements exist
+  const requiredElements = [
+    'connectScreen',
+    'terminalScreen',
+    'voiceBtn',
+    'ipInput',
+    'codeInput',
+    'connectBtn',
+    'terminalContainer',
+    'tabSelector',
+    'disconnectBtn',
+  ];
+
+  for (const name of requiredElements) {
+    if (!elements[name]) {
+      console.error(`[App] Required element missing: ${name}`);
+      document.body.innerHTML = `
+        <div style="padding: 20px; font-family: monospace; color: #ff3333;">
+          <h1>Initialization Error</h1>
+          <p>Required UI element missing: <strong>${name}</strong></p>
+          <p>Please ensure the HTML file is not corrupted.</p>
+        </div>
+      `;
+      return;
+    }
+  }
+
   // Load saved connection info
   loadSavedConnection();
 
@@ -76,6 +105,13 @@ function init() {
     } else {
       elements.transcriptionPreview.textContent = 'MediaRecorder API not available. Update your browser.';
     }
+  }
+
+  // Register service worker for PWA offline support
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/remote/service-worker.js')
+      .then(reg => console.log('[App] Service worker registered'))
+      .catch(err => console.warn('[App] Service worker registration failed:', err));
   }
 
   console.log('[App] Initialized');
@@ -120,6 +156,22 @@ function setupEventListeners() {
   });
   elements.codeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleConnect();
+  });
+
+  // Handle QR code paste (format: ws://IP:PORT|CODE)
+  elements.ipInput.addEventListener('paste', (e) => {
+    // Small delay to let paste complete
+    setTimeout(() => {
+      const pastedText = elements.ipInput.value.trim();
+      const qrMatch = pastedText.match(/^wss?:\/\/([^:]+):(\d+)\|(.+)$/);
+      if (qrMatch) {
+        const [, ip, port, code] = qrMatch;
+        elements.ipInput.value = ip;
+        elements.codeInput.value = code;
+        elements.codeInput.focus();
+        console.log('[App] Parsed QR code connection string');
+      }
+    }, 10);
   });
 
   // Disconnect button
@@ -349,6 +401,11 @@ function initializeVoiceRecorder() {
       }
     }, 5000);
   };
+
+  // Handle silence progress for countdown UI
+  state.voiceRecorder.onSilenceProgress = (progress, durationMs) => {
+    updateSilenceIndicator(progress, durationMs);
+  };
 }
 
 /**
@@ -358,10 +415,14 @@ async function handleVoiceToggle() {
   if (!state.voiceRecorder) return;
 
   if (state.voiceRecorder.isRecording) {
+    // Haptic feedback on stop - double pulse
+    navigator.vibrate?.([50, 30, 50]);
     state.voiceRecorder.stopRecording();
   } else {
     try {
       await state.voiceRecorder.startRecording(state.activeTabId);
+      // Haptic feedback on start - short vibration
+      navigator.vibrate?.(50);
     } catch (err) {
       console.error('[App] Voice recording failed:', err);
       setVoiceState('idle');
@@ -414,18 +475,44 @@ function setVoiceState(voiceState) {
       elements.voiceBtn.classList.add('recording');
       elements.micIcon.hidden = true;
       elements.stopIcon.hidden = false;
+      elements.silenceRing.hidden = false;
       elements.voiceStatus.textContent = 'Recording... Tap to stop';
       break;
     case 'processing':
       elements.voiceBtn.classList.add('processing');
       elements.micIcon.hidden = false;
       elements.stopIcon.hidden = true;
+      elements.silenceRing.hidden = true;
       elements.voiceStatus.textContent = 'Processing...';
       break;
     default:
       elements.micIcon.hidden = false;
       elements.stopIcon.hidden = true;
+      elements.silenceRing.hidden = true;
       elements.voiceStatus.textContent = 'Tap to speak';
+  }
+}
+
+/**
+ * Update silence indicator ring
+ * @param {number} progress - Progress from 0 to 1
+ * @param {number} durationMs - Silence duration in milliseconds
+ */
+function updateSilenceIndicator(progress, durationMs) {
+  if (!elements.silenceProgress) return;
+
+  // Calculate stroke-dashoffset (283 is full circle circumference)
+  const circumference = 283;
+  const offset = circumference - (progress * circumference);
+  elements.silenceProgress.style.strokeDashoffset = offset;
+
+  // Update status text when silence is detected
+  if (progress > 0) {
+    const remainingMs = state.voiceRecorder?.silenceThreshold - durationMs;
+    const remainingSec = (remainingMs / 1000).toFixed(1);
+    elements.voiceStatus.textContent = `Auto-stop in ${remainingSec}s...`;
+  } else if (state.voiceRecorder?.isRecording) {
+    elements.voiceStatus.textContent = 'Recording... Tap to stop';
   }
 }
 
