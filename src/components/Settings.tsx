@@ -31,6 +31,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [shell, setShell] = useState<'powershell' | 'cmd' | 'bash'>('powershell');
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [autoSend, setAutoSend] = useState(true);
+  const [previewBeforeExecute, setPreviewBeforeExecute] = useState(false);
   const [scanlines, setScanlines] = useState(false);
   const [saved, setSaved] = useState(false);
   const { theme, setTheme, themes } = useTheme();
@@ -149,11 +150,13 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     const savedShell = localStorage.getItem('audiobash-shell');
     const savedModel = localStorage.getItem('audiobash-model');
     const savedAutoSend = localStorage.getItem('audiobash-autosend');
+    const savedPreviewBeforeExecute = localStorage.getItem('audiobash-preview-before-execute');
     const savedScanlines = localStorage.getItem('audiobash-scanlines');
 
     if (savedShell) setShell(savedShell as any);
     if (savedModel) setModel(savedModel as ModelId);
     if (savedAutoSend !== null) setAutoSend(savedAutoSend === 'true');
+    if (savedPreviewBeforeExecute !== null) setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
     if (savedScanlines !== null) setScanlines(savedScanlines === 'true');
 
     // Load custom instructions
@@ -325,6 +328,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     localStorage.setItem('audiobash-shell', shell);
     localStorage.setItem('audiobash-model', model);
     localStorage.setItem('audiobash-autosend', String(autoSend));
+    localStorage.setItem('audiobash-preview-before-execute', String(previewBeforeExecute));
     localStorage.setItem('audiobash-scanlines', String(scanlines));
 
     // Save custom instructions
@@ -659,6 +663,30 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 <div
                   className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
                     autoSend ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* Preview before execute toggle */}
+          <div>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <div className="text-xs font-mono">Preview commands before executing</div>
+                <div className="text-[10px] text-crt-white/30">
+                  Show transcribed commands in terminal without executing. Press Enter to confirm.
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewBeforeExecute(!previewBeforeExecute)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${
+                  previewBeforeExecute ? 'bg-accent' : 'bg-void-300'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    previewBeforeExecute ? 'left-7' : 'left-1'
                   }`}
                 />
               </button>

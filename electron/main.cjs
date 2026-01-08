@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -19,6 +19,16 @@ let tunnelService = null;
 
 // Whisper service for local transcription
 const whisperService = require('./whisperService.cjs');
+
+// AI SDK imports for transcription (moved from renderer to eliminate dangerouslyAllowBrowser)
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const OpenAI = require('openai').default;
+const Anthropic = require('@anthropic-ai/sdk').default;
+
+// AI client instances (initialized lazily when keys are set)
+let geminiClient = null;
+let openaiClient = null;
+let anthropicClient = null;
 
 // Simple persistent storage (replacement for electron-store)
 const storeFilePath = path.join(app.getPath('userData'), 'app-store.json');
@@ -775,18 +785,38 @@ function setupIPC() {
     }
   });
 
-  // API key storage (supports multiple providers)
+  // API key storage (supports multiple providers) with encryption
   ipcMain.handle('get-api-key', async (_, provider = 'gemini') => {
     try {
-      const keyPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
-      if (fs.existsSync(keyPath)) {
-        return fs.readFileSync(keyPath, 'utf8').trim();
+      const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
+      const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
+
+      // Try encrypted file first
+      if (fs.existsSync(encryptedPath)) {
+        try {
+          const encrypted = fs.readFileSync(encryptedPath);
+          const decrypted = safeStorage.decryptString(encrypted);
+          return decrypted.trim();
+        } catch (decryptErr) {
+          console.error(`[AudioBash] Failed to decrypt ${provider} API key:`, decryptErr);
+          // Fall through to try plain text
+        }
       }
-      // Fallback: check old api-key.txt for gemini (migration)
+
+      // Fall back to plain text files (for migration)
+      if (fs.existsSync(plainPath)) {
+        const plainKey = fs.readFileSync(plainPath, 'utf8').trim();
+        console.log(`[AudioBash] Found plain text ${provider} API key, will migrate to encrypted on next save`);
+        return plainKey;
+      }
+
+      // Fallback: check old api-key.txt for gemini (migration from very old versions)
       if (provider === 'gemini') {
         const oldPath = path.join(app.getPath('userData'), 'api-key.txt');
         if (fs.existsSync(oldPath)) {
-          return fs.readFileSync(oldPath, 'utf8').trim();
+          const oldKey = fs.readFileSync(oldPath, 'utf8').trim();
+          console.log(`[AudioBash] Found legacy api-key.txt, will migrate to encrypted on next save`);
+          return oldKey;
         }
       }
     } catch (err) {
@@ -797,12 +827,287 @@ function setupIPC() {
 
   ipcMain.handle('set-api-key', async (_, key, provider = 'gemini') => {
     try {
-      const keyPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
-      fs.writeFileSync(keyPath, key, 'utf8');
+      const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
+      const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
+
+      // Check if encryption is available
+      if (safeStorage.isEncryptionAvailable()) {
+        // Encrypt and save
+        const encrypted = safeStorage.encryptString(key);
+        fs.writeFileSync(encryptedPath, encrypted);
+        console.log(`[AudioBash] ${provider} API key saved with encryption`);
+
+        // Clean up old plain text files after successful encryption
+        try {
+          if (fs.existsSync(plainPath)) {
+            fs.unlinkSync(plainPath);
+            console.log(`[AudioBash] Removed plain text ${provider} API key file after encryption`);
+          }
+          // Also clean up very old gemini key file
+          if (provider === 'gemini') {
+            const oldPath = path.join(app.getPath('userData'), 'api-key.txt');
+            if (fs.existsSync(oldPath)) {
+              fs.unlinkSync(oldPath);
+              console.log(`[AudioBash] Removed legacy api-key.txt after encryption`);
+            }
+          }
+        } catch (cleanupErr) {
+          console.warn(`[AudioBash] Failed to clean up old API key files:`, cleanupErr);
+          // Non-fatal, continue
+        }
+      } else {
+        // Fall back to plain text if encryption is not available
+        console.warn(`[AudioBash] Encryption not available, saving ${provider} API key as plain text`);
+        fs.writeFileSync(plainPath, key, 'utf8');
+      }
+
+      // Reinitialize the corresponding AI client when key changes
+      if (provider === 'gemini' && key) {
+        geminiClient = new GoogleGenerativeAI(key);
+      } else if (provider === 'openai' && key) {
+        openaiClient = new OpenAI({ apiKey: key });
+      } else if (provider === 'anthropic' && key) {
+        anthropicClient = new Anthropic({ apiKey: key });
+      }
+
       return true;
     } catch (err) {
       console.error(`[AudioBash] Failed to save ${provider} API key:`, err);
       return false;
+    }
+  });
+
+  // Helper function to get API key internally (supports encrypted keys)
+  async function getApiKeyInternal(provider = 'gemini') {
+    try {
+      const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
+      const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
+
+      // Try encrypted file first
+      if (fs.existsSync(encryptedPath)) {
+        try {
+          const encrypted = fs.readFileSync(encryptedPath);
+          const decrypted = safeStorage.decryptString(encrypted);
+          return decrypted.trim();
+        } catch (decryptErr) {
+          console.error(`[AudioBash] Failed to decrypt ${provider} API key:`, decryptErr);
+          // Fall through to try plain text
+        }
+      }
+
+      // Fall back to plain text files (for migration)
+      if (fs.existsSync(plainPath)) {
+        return fs.readFileSync(plainPath, 'utf8').trim();
+      }
+
+      // Fallback: check old api-key.txt for gemini (migration from very old versions)
+      if (provider === 'gemini') {
+        const oldPath = path.join(app.getPath('userData'), 'api-key.txt');
+        if (fs.existsSync(oldPath)) {
+          return fs.readFileSync(oldPath, 'utf8').trim();
+        }
+      }
+    } catch (err) {
+      console.error(`[AudioBash] Failed to read ${provider} API key:`, err);
+    }
+    return '';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI TRANSCRIPTION HANDLERS (moved from renderer to eliminate dangerouslyAllowBrowser)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Gemini transcription
+  ipcMain.handle('transcribe-with-gemini', async (_, { audioBase64, prompt, modelId }) => {
+    try {
+      const apiKey = await getApiKeyInternal('gemini');
+      if (!apiKey) {
+        return { success: false, error: 'No Gemini API key configured' };
+      }
+
+      // Initialize client if not already initialized
+      if (!geminiClient) {
+        geminiClient = new GoogleGenerativeAI(apiKey);
+      }
+
+      // Map model ID to actual Gemini model name
+      const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
+      const model = geminiClient.getGenerativeModel({ model: geminiModel });
+
+      console.log(`[AudioBash] Transcribing with Gemini (${geminiModel})`);
+
+      const result = await model.generateContent([
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType: 'audio/webm',
+            data: audioBase64
+          }
+        }
+      ]);
+
+      const response = await result.response;
+      const text = response.text()?.trim() || '';
+
+      console.log(`[AudioBash] Gemini transcription complete: ${text.length} chars`);
+      return { success: true, text };
+    } catch (err) {
+      console.error('[AudioBash] Gemini transcription error:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
+  // OpenAI Whisper transcription
+  ipcMain.handle('transcribe-with-openai', async (_, { audioBase64, prompt, modelId }) => {
+    try {
+      const apiKey = await getApiKeyInternal('openai');
+      if (!apiKey) {
+        return { success: false, error: 'No OpenAI API key configured' };
+      }
+
+      // Initialize client if not already initialized
+      if (!openaiClient) {
+        openaiClient = new OpenAI({ apiKey });
+      }
+
+      console.log('[AudioBash] Transcribing with OpenAI Whisper');
+
+      // Convert base64 to buffer and create a File-like object
+      const buffer = Buffer.from(audioBase64, 'base64');
+      const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
+
+      // Use Whisper for transcription
+      const transcription = await openaiClient.audio.transcriptions.create({
+        file: file,
+        model: 'whisper-1',
+      });
+
+      let text = transcription.text?.trim() || '';
+
+      // If agent mode (has prompt with context), use GPT-4 to process the transcription
+      if (prompt && modelId === 'openai-gpt4' && text) {
+        console.log('[AudioBash] Processing transcription with GPT-4');
+        const completion = await openaiClient.chat.completions.create({
+          model: 'gpt-4-turbo-preview',
+          messages: [
+            { role: 'system', content: prompt },
+            { role: 'user', content: text }
+          ],
+          max_tokens: 200,
+        });
+        text = completion.choices[0]?.message?.content?.trim() || text;
+      }
+
+      console.log(`[AudioBash] OpenAI transcription complete: ${text.length} chars`);
+      return { success: true, text };
+    } catch (err) {
+      console.error('[AudioBash] OpenAI transcription error:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
+  // Claude/Anthropic transcription (requires OpenAI for Whisper first)
+  ipcMain.handle('transcribe-with-anthropic', async (_, { audioBase64, prompt, modelId }) => {
+    try {
+      const openaiKey = await getApiKeyInternal('openai');
+      const anthropicKey = await getApiKeyInternal('anthropic');
+
+      if (!openaiKey) {
+        return { success: false, error: 'OpenAI API key required for audio transcription with Claude' };
+      }
+      if (!anthropicKey) {
+        return { success: false, error: 'No Anthropic API key configured' };
+      }
+
+      // Initialize clients if not already initialized
+      if (!openaiClient) {
+        openaiClient = new OpenAI({ apiKey: openaiKey });
+      }
+      if (!anthropicClient) {
+        anthropicClient = new Anthropic({ apiKey: anthropicKey });
+      }
+
+      console.log('[AudioBash] Transcribing with Whisper + Claude');
+
+      // First, use Whisper for transcription
+      const buffer = Buffer.from(audioBase64, 'base64');
+      const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
+
+      const transcription = await openaiClient.audio.transcriptions.create({
+        file: file,
+        model: 'whisper-1',
+      });
+
+      let text = transcription.text?.trim() || '';
+
+      // If agent mode (has prompt with context), use Claude to process the transcription
+      if (prompt && text) {
+        console.log('[AudioBash] Processing transcription with Claude');
+        const claudeModel = modelId === 'claude-haiku'
+          ? 'claude-3-haiku-20240307'
+          : 'claude-sonnet-4-20250514';
+
+        const message = await anthropicClient.messages.create({
+          model: claudeModel,
+          max_tokens: 200,
+          messages: [
+            { role: 'user', content: `${prompt}\n\n${text}` }
+          ],
+        });
+
+        const content = message.content[0];
+        if (content.type === 'text') {
+          text = content.text.trim();
+        }
+      }
+
+      console.log(`[AudioBash] Claude transcription complete: ${text.length} chars`);
+      return { success: true, text };
+    } catch (err) {
+      console.error('[AudioBash] Claude transcription error:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
+  // ElevenLabs transcription
+  ipcMain.handle('transcribe-with-elevenlabs', async (_, { audioBase64 }) => {
+    try {
+      const apiKey = await getApiKeyInternal('elevenlabs');
+      if (!apiKey) {
+        return { success: false, error: 'No ElevenLabs API key configured' };
+      }
+
+      console.log('[AudioBash] Transcribing with ElevenLabs Scribe');
+
+      // Convert base64 to buffer and create FormData
+      const buffer = Buffer.from(audioBase64, 'base64');
+      const FormData = require('form-data');
+      const formData = new FormData();
+      formData.append('audio', buffer, { filename: 'audio.webm', contentType: 'audio/webm' });
+      formData.append('model_id', 'scribe_v1');
+
+      const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          ...formData.getHeaders(),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const text = data.text?.trim() || '';
+
+      console.log(`[AudioBash] ElevenLabs transcription complete: ${text.length} chars`);
+      return { success: true, text };
+    } catch (err) {
+      console.error('[AudioBash] ElevenLabs transcription error:', err);
+      return { success: false, error: err.message || String(err) };
     }
   });
 
@@ -891,8 +1196,24 @@ function setupIPC() {
   ipcMain.handle('set-remote-password', async (_, password) => {
     if (remoteServer) {
       remoteServer.setStaticPassword(password);
-      // Save to electron-store
-      store.set('remotePassword', password || '');
+
+      // Encrypt and save password
+      if (password && safeStorage.isEncryptionAvailable()) {
+        try {
+          const encrypted = safeStorage.encryptString(password);
+          store.set('remotePasswordEncrypted', encrypted.toString('base64'));
+          store.set('remotePassword', ''); // Clear old plain text
+          console.log('[AudioBash] Remote password encrypted and saved');
+        } catch (err) {
+          console.error('[AudioBash] Failed to encrypt password:', err);
+          // Fallback to plain text if encryption fails
+          store.set('remotePassword', password);
+        }
+      } else {
+        // No password or encryption not available - fallback to plain text
+        store.set('remotePassword', password || '');
+        store.set('remotePasswordEncrypted', '');
+      }
       return true;
     }
     return false;
@@ -900,7 +1221,51 @@ function setupIPC() {
 
   // Get remote password
   ipcMain.handle('get-remote-password', async () => {
-    return store.get('remotePassword', '');
+    // Try to decrypt encrypted password first
+    const encryptedB64 = store.get('remotePasswordEncrypted', '');
+    if (encryptedB64 && safeStorage.isEncryptionAvailable()) {
+      try {
+        const encrypted = Buffer.from(encryptedB64, 'base64');
+        const decrypted = safeStorage.decryptString(encrypted);
+        console.log('[AudioBash] Remote password decrypted successfully');
+        return decrypted;
+      } catch (err) {
+        console.warn('[AudioBash] Failed to decrypt password, falling back to plain text:', err);
+      }
+    }
+
+    // Fallback to plain text (for migration or if encryption unavailable)
+    const plainPassword = store.get('remotePassword', '');
+
+    // Migrate plain text to encrypted if available
+    if (plainPassword && safeStorage.isEncryptionAvailable()) {
+      try {
+        const encrypted = safeStorage.encryptString(plainPassword);
+        store.set('remotePasswordEncrypted', encrypted.toString('base64'));
+        store.set('remotePassword', ''); // Clear plain text after migration
+        console.log('[AudioBash] Migrated plain text password to encrypted storage');
+      } catch (err) {
+        console.warn('[AudioBash] Failed to migrate password to encrypted storage:', err);
+      }
+    }
+
+    return plainPassword;
+  });
+
+  // Set local-only mode (requires server restart)
+  ipcMain.handle('set-local-only', async (_, enabled) => {
+    if (remoteServer) {
+      const changed = remoteServer.setLocalOnly(enabled);
+      // Save to store
+      store.set('localOnly', enabled);
+      return { success: true, changed, requiresRestart: changed };
+    }
+    return { success: false, error: 'Remote server not available' };
+  });
+
+  // Get local-only mode
+  ipcMain.handle('get-local-only', async () => {
+    return store.get('localOnly', false);
   });
 
   // Keep-awake mode for remote access
@@ -1155,8 +1520,10 @@ app.whenReady().then(() => {
   spawnShell('tab-1');
 
   // Start remote control server (auto-start)
+  const localOnlyEnabled = store.get('localOnly', false);
   remoteServer = new RemoteControlServer({
     port: 8765,
+    localOnly: localOnlyEnabled,
     ptyProcesses,
     terminalOutputBuffers,
     terminalCwds,
@@ -1167,9 +1534,44 @@ app.whenReady().then(() => {
     },
   });
   remoteServer.start();
+  console.log(`[RemoteControl] Server started with localOnly=${localOnlyEnabled}`);
 
   // Load saved static password for remote access
-  const savedRemotePassword = store.get('remotePassword', '');
+  let savedRemotePassword = '';
+
+  // Try to decrypt encrypted password first
+  const encryptedB64 = store.get('remotePasswordEncrypted', '');
+  if (encryptedB64 && safeStorage.isEncryptionAvailable()) {
+    try {
+      const encrypted = Buffer.from(encryptedB64, 'base64');
+      savedRemotePassword = safeStorage.decryptString(encrypted);
+      console.log('[AudioBash] Remote password loaded (encrypted)');
+    } catch (err) {
+      console.warn('[AudioBash] Failed to decrypt password on startup, trying plain text:', err);
+    }
+  }
+
+  // Fallback to plain text (for migration or if encryption unavailable)
+  if (!savedRemotePassword) {
+    const plainPassword = store.get('remotePassword', '');
+    if (plainPassword) {
+      savedRemotePassword = plainPassword;
+      console.log('[AudioBash] Remote password loaded (plain text)');
+
+      // Migrate to encrypted storage if available
+      if (safeStorage.isEncryptionAvailable()) {
+        try {
+          const encrypted = safeStorage.encryptString(plainPassword);
+          store.set('remotePasswordEncrypted', encrypted.toString('base64'));
+          store.set('remotePassword', ''); // Clear plain text after migration
+          console.log('[AudioBash] Migrated plain text password to encrypted storage on startup');
+        } catch (err) {
+          console.warn('[AudioBash] Failed to migrate password on startup:', err);
+        }
+      }
+    }
+  }
+
   if (savedRemotePassword) {
     remoteServer.setStaticPassword(savedRemotePassword);
   }

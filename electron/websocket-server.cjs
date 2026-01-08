@@ -40,6 +40,7 @@ class RemoteControlServer {
   constructor(options = {}) {
     this.port = options.port || 8765;
     this.securePort = options.securePort || 8766; // WSS port
+    this.localOnly = options.localOnly !== undefined ? options.localOnly : false; // Bind to localhost only
     this.ptyProcesses = options.ptyProcesses;
     this.terminalOutputBuffers = options.terminalOutputBuffers;
     this.terminalCwds = options.terminalCwds;
@@ -236,7 +237,10 @@ class RemoteControlServer {
 
     try {
       // Start regular WebSocket server (ws://)
-      this.wss = new WebSocketServer({ port: this.port });
+      this.wss = new WebSocketServer({
+        port: this.port,
+        host: this.localOnly ? '127.0.0.1' : '0.0.0.0'
+      });
       this.generatePairingCode();
 
       this.wss.on('connection', (ws, req) => {
@@ -256,7 +260,7 @@ class RemoteControlServer {
             this.setupConnectionHandlers(ws, req);
           });
 
-          this.httpsServer.listen(this.securePort, () => {
+          this.httpsServer.listen(this.securePort, this.localOnly ? '127.0.0.1' : '0.0.0.0', () => {
             console.log(`[RemoteControl] WSS server started on port ${this.securePort}`);
           });
         } catch (wssErr) {
@@ -334,6 +338,7 @@ class RemoteControlServer {
       port: this.port,
       securePort: this.wssSecure ? this.securePort : null, // Include secure port if available
       hasSecure: !!this.wssSecure,
+      localOnly: this.localOnly, // Include localhost-only binding status
       pairingCode: this.pairingCode,
       staticPassword: this.staticPassword, // Include static password in status
       hasStaticPassword: !!this.staticPassword,
@@ -359,6 +364,21 @@ class RemoteControlServer {
     this.generatePairingCode();
     this.notifyStatusChange();
     return this.pairingCode;
+  }
+
+  /**
+   * Set localhost-only binding mode
+   * Requires server restart to take effect
+   * @param {boolean} enabled - Whether to bind to localhost only
+   * @returns {boolean} True if setting changed (restart required), false if already set
+   */
+  setLocalOnly(enabled) {
+    if (this.localOnly === enabled) {
+      return false; // No change
+    }
+    this.localOnly = enabled;
+    console.log(`[RemoteControl] Local-only mode ${enabled ? 'enabled' : 'disabled'} (restart required)`);
+    return true; // Changed, restart required
   }
 
   /**
@@ -455,9 +475,12 @@ class RemoteControlServer {
     }
 
     // Validate: check static password first, then pairing code
+    // Pairing codes remain case-insensitive (they're short, uppercase-only codes)
     const codeUpper = pairingCode?.toUpperCase();
-    const matchesStaticPassword = this.staticPassword && codeUpper === this.staticPassword.toUpperCase();
     const matchesPairingCode = codeUpper === this.pairingCode;
+
+    // Static passwords should be case-sensitive for better security
+    const matchesStaticPassword = this.staticPassword && pairingCode === this.staticPassword;
 
     if (!matchesStaticPassword && !matchesPairingCode) {
       // Security: Track failed attempt
