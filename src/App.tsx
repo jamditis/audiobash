@@ -22,6 +22,9 @@ const App: React.FC = () => {
   const [transcript, setTranscript] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [autoSend, setAutoSend] = useState(true);
+  const [previewBeforeExecute, setPreviewBeforeExecute] = useState(() => {
+    return localStorage.getItem('audiobash-preview-before-execute') === 'true';
+  });
 
   // Tab management state - default title adapts to platform
   const getDefaultShellName = () => {
@@ -87,6 +90,11 @@ const App: React.FC = () => {
       setAutoSend(savedAutoSend === 'true');
     }
 
+    const savedPreviewBeforeExecute = localStorage.getItem('audiobash-preview-before-execute');
+    if (savedPreviewBeforeExecute !== null) {
+      setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
+    }
+
     const savedModel = localStorage.getItem('audiobash-model');
     if (savedModel) setModel(savedModel as ModelId);
 
@@ -134,6 +142,10 @@ const App: React.FC = () => {
       const savedAutoSend = localStorage.getItem('audiobash-autosend');
       if (savedAutoSend !== null) {
         setAutoSend(savedAutoSend === 'true');
+      }
+      const savedPreviewBeforeExecute = localStorage.getItem('audiobash-preview-before-execute');
+      if (savedPreviewBeforeExecute !== null) {
+        setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
       }
       const savedModel = localStorage.getItem('audiobash-model');
       if (savedModel) setModel(savedModel as ModelId);
@@ -242,13 +254,19 @@ const App: React.FC = () => {
 
         // Execute the command if autoSend is enabled
         if (result.text && autoSend) {
-          window.electron?.sendToTerminal(request.tabId, result.text);
+          if (previewBeforeExecute) {
+            // Insert without executing - user must press Enter
+            window.electron?.insertToTerminal(request.tabId, result.text);
+          } else {
+            // Execute immediately
+            window.electron?.sendToTerminal(request.tabId, result.text);
+          }
           // Update the result to show it was executed
           window.electron?.sendRemoteTranscriptionResult({
             requestId: request.requestId,
             success: true,
             text: result.text,
-            executed: true,
+            executed: !previewBeforeExecute,
           });
         }
       } catch (err) {
@@ -267,7 +285,7 @@ const App: React.FC = () => {
 
     const cleanup = window.electron?.onRemoteTranscriptionRequest(handleRemoteTranscription);
     return () => cleanup?.();
-  }, [model, autoSend]);
+  }, [model, autoSend, previewBeforeExecute]);
 
   // Handle remote tab switch requests
   useEffect(() => {
@@ -312,9 +330,16 @@ const App: React.FC = () => {
       const targetTerminalId = layoutState.mode !== 'single'
         ? layoutState.focusedTerminalId
         : activeTabId;
-      window.electron?.sendToTerminal(targetTerminalId, text);
+
+      if (previewBeforeExecute) {
+        // Insert without executing - user must press Enter
+        window.electron?.insertToTerminal(targetTerminalId, text);
+      } else {
+        // Execute immediately
+        window.electron?.sendToTerminal(targetTerminalId, text);
+      }
     }
-  }, [autoSend, activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+  }, [autoSend, previewBeforeExecute, activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
 
   const handleCloseOverlay = useCallback(() => {
     if (!isPinned) {

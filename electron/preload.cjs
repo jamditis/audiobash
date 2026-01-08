@@ -552,6 +552,85 @@ contextBridge.exposeInMainWorld('electron', {
   setApiKey: (key, provider = 'gemini') => ipcRenderer.invoke('set-api-key', key, provider),
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // AI TRANSCRIPTION (moved from renderer to main process)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Transcribes audio using Google Gemini API in the main process.
+   * This eliminates the need for dangerouslyAllowBrowser flag.
+   *
+   * @function transcribeWithGemini
+   * @memberof window.electron
+   * @param {Object} data - Transcription data
+   * @param {string} data.audioBase64 - Base64-encoded audio data
+   * @param {string} data.prompt - The prompt for transcription/agent mode
+   * @param {string} data.modelId - Model ID (e.g., 'gemini-2.0-flash')
+   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @example
+   * const result = await window.electron.transcribeWithGemini({
+   *   audioBase64: base64Audio,
+   *   prompt: 'Transcribe this audio...',
+   *   modelId: 'gemini-2.0-flash'
+   * });
+   */
+  transcribeWithGemini: (data) => ipcRenderer.invoke('transcribe-with-gemini', data),
+
+  /**
+   * Transcribes audio using OpenAI Whisper API in the main process.
+   * Optionally uses GPT-4 for agent mode command generation.
+   *
+   * @function transcribeWithOpenAI
+   * @memberof window.electron
+   * @param {Object} data - Transcription data
+   * @param {string} data.audioBase64 - Base64-encoded audio data
+   * @param {string} data.prompt - The prompt for agent mode (if using GPT-4)
+   * @param {string} data.modelId - Model ID (e.g., 'openai-whisper', 'openai-gpt4')
+   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @example
+   * const result = await window.electron.transcribeWithOpenAI({
+   *   audioBase64: base64Audio,
+   *   prompt: 'Convert to CLI command...',
+   *   modelId: 'openai-gpt4'
+   * });
+   */
+  transcribeWithOpenAI: (data) => ipcRenderer.invoke('transcribe-with-openai', data),
+
+  /**
+   * Transcribes audio using Whisper + Claude in the main process.
+   * First transcribes with Whisper, then processes with Claude for agent mode.
+   *
+   * @function transcribeWithAnthropic
+   * @memberof window.electron
+   * @param {Object} data - Transcription data
+   * @param {string} data.audioBase64 - Base64-encoded audio data
+   * @param {string} data.prompt - The prompt for agent mode
+   * @param {string} data.modelId - Model ID (e.g., 'claude-sonnet', 'claude-haiku')
+   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @example
+   * const result = await window.electron.transcribeWithAnthropic({
+   *   audioBase64: base64Audio,
+   *   prompt: 'Convert to CLI command...',
+   *   modelId: 'claude-sonnet'
+   * });
+   */
+  transcribeWithAnthropic: (data) => ipcRenderer.invoke('transcribe-with-anthropic', data),
+
+  /**
+   * Transcribes audio using ElevenLabs Scribe API in the main process.
+   *
+   * @function transcribeWithElevenLabs
+   * @memberof window.electron
+   * @param {Object} data - Transcription data
+   * @param {string} data.audioBase64 - Base64-encoded audio data
+   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @example
+   * const result = await window.electron.transcribeWithElevenLabs({
+   *   audioBase64: base64Audio
+   * });
+   */
+  transcribeWithElevenLabs: (data) => ipcRenderer.invoke('transcribe-with-elevenlabs', data),
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // DIRECTORY MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
 
