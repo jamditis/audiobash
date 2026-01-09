@@ -45,7 +45,30 @@
       "Bash(do osascript -e \"tell application \"\"System Events\"\" to tell process \"\"AudioBash\"\" to set size of window 1 to {$size}\" done pgrep AudioBash)",
       "Bash(chmod:*)",
       "Bash(gh release:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm :*)",
+      "Bash(vitest :*)",
+      "Bash(electron-builder :*)",
+      "Bash(uname:*)",
+      "Bash(node:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(awk:*)",
+      "Bash(cd:*)"
     ]
-  }
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== AudioBash Development Context ===' && echo '' && echo 'Platform:' && uname -srm && echo '' && echo 'Node.js:' && node --version && echo '' && echo 'Last Build:' && (ls -lt /home/user/audiobash/dist 2>/dev/null | head -n 2 | tail -n 1 | awk '{print $6, $7, $8, $9}' || echo 'No builds found in dist/') && echo '' && echo 'Quick Test Status:' && (cd /home/user/audiobash && npm test --silent 2>&1 | grep -E '(Test Files|Tests|passed|failed)' | head -n 3 || echo 'Run npm test to check') && echo '' && echo '================================='",
+            "statusMessage": "Loading AudioBash context..."
+          }
+        ]
+      }
+    ]
+  },
+  "includeCoAuthoredBy": true
 }

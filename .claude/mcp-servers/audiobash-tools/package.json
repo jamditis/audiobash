@@ -1,0 +1,24 @@
+{
+  "name": "@audiobash/claude-tools",
+  "version": "1.0.0",
+  "description": "MCP server providing development tools for AudioBash project",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "mcp",
+    "audiobash",
+    "development-tools",
+    "electron"
+  ],
+  "author": "AudioBash Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
