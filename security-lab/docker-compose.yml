@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for fingerprint storage
+  postgres:
+    image: postgres:16-alpine
+    container_name: fingerprint-db
+    environment:
+      POSTGRES_DB: fingerprints
+      POSTGRES_USER: labuser
+      POSTGRES_PASSWORD: labpass123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U labuser -d fingerprints"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Detection API service
+  detection-api:
+    build:
+      context: ./detection
+      dockerfile: Dockerfile
+    container_name: detection-api
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://labuser:labpass123@postgres:5432/fingerprints
+      FLASK_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./detection:/app
+      - ./pcaps:/pcaps
+
+  # Zeek traffic analyzer
+  zeek:
+    image: zeek/zeek:latest
+    container_name: zeek-analyzer
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    volumes:
+      - ./zeek:/opt/zeek/share/zeek/site
+      - ./pcaps:/pcaps
+      - zeek_logs:/var/log/zeek
+    command: ["zeek", "-i", "eth0", "local"]
+
+  # Target server for testing (simple HTTPS echo)
+  target-server:
+    image: nginx:alpine
+    container_name: target-server
+    ports:
+      - "8443:443"
+    volumes:
+      - ./target/nginx.conf:/etc/nginx/nginx.conf
+      - ./target/certs:/etc/nginx/certs
+
+  # Adminer for database inspection
+  adminer:
+    image: adminer:latest
+    container_name: db-admin
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  zeek_logs:
+
+networks:
+  default:
+    name: security-lab-network

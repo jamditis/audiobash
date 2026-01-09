@@ -1,0 +1,19 @@
+# TLS Fingerprint Detection Lab Dependencies
+
+# Core detection
+flask>=3.0.0
+flask-cors>=4.0.0
+psycopg2-binary>=2.9.9
+
+# Packet analysis
+scapy>=2.5.0
+
+# Red team tools (for instructor)
+curl_cffi>=0.6.0
+tls-client>=1.0.0
+
+# Testing
+pytest>=8.0.0
+
+# Optional: Browser automation (Level 4)
+# playwright>=1.40.0
