@@ -792,6 +792,10 @@
                             <h4 class="text-chrome mb-2">How do I report bugs or request features?</h4>
                             <p class="text-gray-400 text-sm">Visit <a href="https://github.com/jamditis/audiobash/issues" class="text-accent hover:underline">github.com/jamditis/audiobash/issues</a></p>
                         </div>
+                        <div class="bg-panel border border-white/10 p-4">
+                            <h4 class="text-chrome mb-2">How is it connected to the terminal? Is it linked to external terminal windows 1, 2, 3, etc.?</h4>
+                            <p class="text-gray-400 text-sm">No, AudioBash doesn't link to external terminal windows. It has its own <strong>embedded terminal</strong> built in. The app uses <a href="https://xtermjs.org/" class="text-accent hover:underline">xterm.js</a> for the terminal display and <a href="https://github.com/microsoft/node-pty" class="text-accent hover:underline">node-pty</a> to spawn real shell processes (PowerShell on Windows, zsh/bash on macOS). When you speak, the transcribed text is sent directly to the active terminal tab within the app. Each tab runs its own independent shell session - there's no connection to Terminal.app, Windows Terminal, or any other external terminal program.</p>
+                        </div>
                     </div>
                 </section>
 
