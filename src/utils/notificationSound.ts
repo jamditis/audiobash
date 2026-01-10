@@ -17,9 +17,14 @@ function getAudioContext(): AudioContext {
 export function playNotificationSound(): void {
   const now = Date.now();
   if (now - lastPlayTime < MIN_INTERVAL) {
+    if (DEBUG_NOTIFICATIONS) {
+      console.log('[Notification] Skipped - rate limited');
+    }
     return; // Rate limit to avoid spam
   }
   lastPlayTime = now;
+
+  console.log('[AudioBash] Playing notification sound');
 
   try {
     const ctx = getAudioContext();
@@ -73,40 +78,56 @@ export function playNotificationSound(): void {
 
 // Patterns that indicate CLI tools are waiting for input/approval
 // These patterns are designed to match ACTUAL prompts, not just mentions in text
-// Key insight: Real prompts appear at the END of output and have specific formats
+// Key insight: Real prompts appear near the END of output (last ~200 chars)
+// We use looser anchoring because terminal output arrives in chunks and may have
+// trailing whitespace, ANSI codes, or partial data after the prompt
 const CLI_INPUT_PATTERNS = [
-  // Claude Code specific prompts - these have very specific formats
-  // The [Y/n] or (y/n) at the END is the key indicator of an actual prompt
-  /\[Y\/n\]\s*$/i,  // Prompt ending with [Y/n]
-  /\[y\/N\]\s*$/i,  // Prompt ending with [y/N]
-  /\(y\/n\)\s*$/i,  // Prompt ending with (y/n)
-  /\(yes\/no\)\s*$/i,  // Prompt ending with (yes/no)
+  // Claude Code specific prompts - the [Y/n] format is key
+  // Allow anything (whitespace, ANSI remnants) after the bracket, near end of output
+  /\[Y\/n\]\s*$/im,  // Prompt ending with [Y/n] (multiline mode)
+  /\[y\/N\]\s*$/im,  // Prompt ending with [y/N]
+  /\(y\/n\)\s*$/im,  // Prompt ending with (y/n)
+  /\(yes\/no\)\s*$/im,  // Prompt ending with (yes/no)
 
-  // Claude Code tool permission prompts - very specific format
+  // Claude Code permission prompts - look for these anywhere in the tail
+  // because they may be followed by cursor positioning codes
   /Allow .+\? \[Y\/n\]/i,
   /Do you want to proceed\? \[Y\/n\]/i,
+  /Proceed\? \(Y\/n\)/i,  // Another Claude Code format
 
-  // Generic prompts that END with clear input indicators
-  /Press Enter to continue\.?\s*$/i,
-  /Press any key to continue\.?\s*$/i,
-  /Press any key\.?\s*$/i,
+  // Tool approval patterns - Claude Code uses these for Bash, Edit, etc.
+  /\? \[Y\/n\]/,  // Any question ending in [Y/n] (case sensitive - the actual format)
+  /\? \(y\/n\)/i,  // Any question ending in (y/n)
 
-  // npm/yarn prompts - specific format
-  /Ok to proceed\? \(y\/n\)\s*$/i,
-  /Is this OK\? \(yes\/no\)\s*$/i,
-  /Is this OK\?\s*$/i,
+  // Generic prompts near end
+  /Press Enter to continue/i,
+  /Press any key to continue/i,
+  /Press any key/i,
 
-  // Git prompts with actual y/n indicator
-  /\(y\/n\)\?\s*$/i,
+  // npm/yarn prompts
+  /Ok to proceed\? \(y\/n\)/i,
+  /Is this OK\? \(yes\/no\)/i,
+  /Is this OK\?/i,
+
+  // Git prompts
+  /\(y\/n\)\?/i,
+
+  // Additional Claude Code patterns seen in practice
+  /Continue\? \[Y\/n\]/i,
+  /Proceed anyway\? \[Y\/n\]/i,
 ];
 
 // Buffer to accumulate terminal output for pattern matching
 let outputBuffer = '';
 const BUFFER_MAX_LENGTH = 2000;
 const BUFFER_CLEAR_DELAY = 5000;
-// Only check the tail of output where prompts actually appear
-const PROMPT_CHECK_LENGTH = 500;
+// Check a reasonable tail window - prompts appear at the end
+// but we need enough context to catch multi-line prompts
+const PROMPT_CHECK_LENGTH = 300;
 let bufferClearTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Debug flag - set to true to see what's being checked
+const DEBUG_NOTIFICATIONS = false;
 
 // Strip ANSI escape codes for cleaner pattern matching
 function stripAnsi(str: string): string {
@@ -137,6 +158,12 @@ export function checkForCliInputPrompt(data: string): boolean {
 
   // Check for patterns
   const hasPrompt = CLI_INPUT_PATTERNS.some(pattern => pattern.test(cleanTail));
+
+  if (DEBUG_NOTIFICATIONS) {
+    // Show what we're checking (last 100 chars for readability)
+    const preview = cleanTail.slice(-100).replace(/\n/g, '\\n');
+    console.log(`[Notification] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`);
+  }
 
   // If we found a prompt, clear the buffer to prevent re-triggering
   // on the same prompt when more output arrives
