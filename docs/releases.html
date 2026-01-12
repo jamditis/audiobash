@@ -157,11 +157,64 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v2.0.2 -->
+            <!-- v2.1.0 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.0.2</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.1.0</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                    <span class="text-gray-500 text-sm">January 12, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">ElevenLabs Scribe v2 Real-time</h2>
+
+                <p class="text-gray-400 mb-6">Real-time speech-to-text with ElevenLabs Scribe v2 WebSocket streaming. Ultra-low latency (~150ms) with automatic voice activity detection.</p>
+
+                <!-- Downloads -->
+                <div class="bg-void border border-white/10 p-4 mb-6">
+                    <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.0/AudioBash.Setup.2.1.0.exe" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                            Windows
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.0/AudioBash-2.1.0-arm64.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            macOS (Apple Silicon)
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.0/AudioBash-2.1.0.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Added</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>ElevenLabs Scribe v2 Real-time</strong> - WebSocket streaming transcription</li>
+                            <li>• ~150ms latency (vs seconds for batch)</li>
+                            <li>• Built-in VAD auto-commit when you stop speaking</li>
+                            <li>• Keyterms support - custom vocabulary for better accuracy</li>
+                            <li>• New model: "ElevenLabs Scribe v2" in model selector</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-amber-400 text-sm mb-2">Technical</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• PCM 16-bit @ 16kHz audio streaming</li>
+                            <li>• AudioContext + ScriptProcessor capture</li>
+                            <li>• WebSocket reconnection with exponential backoff</li>
+                            <li>• Existing ElevenLabs batch API preserved as fallback</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.0.2 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-surface text-chrome font-display font-bold text-sm border border-white/20">v2.0.2</span>
                     <span class="text-gray-500 text-sm">January 2, 2026</span>
                 </div>
 

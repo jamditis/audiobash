@@ -91,6 +91,7 @@ export type ModelId =
   | 'claude-sonnet'
   | 'claude-haiku'
   | 'elevenlabs-scribe'
+  | 'elevenlabs-scribe-realtime'
   | 'parakeet-local'
   | 'whisper-local-tiny'
   | 'whisper-local-base'
@@ -102,6 +103,7 @@ export interface ModelInfo {
   provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs' | 'local';
   description: string;
   supportsAgent: boolean;
+  isRealtime?: boolean;  // True for streaming models like ElevenLabs real-time
 }
 
 export const MODELS: ModelInfo[] = [
@@ -111,7 +113,8 @@ export const MODELS: ModelInfo[] = [
   { id: 'openai-gpt4', name: 'Whisper + GPT-4', provider: 'openai', description: 'Whisper → GPT-4 for agent mode', supportsAgent: true },
   { id: 'claude-sonnet', name: 'Whisper + Claude Sonnet', provider: 'anthropic', description: 'Whisper → Claude for agent mode', supportsAgent: true },
   { id: 'claude-haiku', name: 'Whisper + Claude Haiku', provider: 'anthropic', description: 'Whisper → Claude Haiku (faster)', supportsAgent: true },
-  { id: 'elevenlabs-scribe', name: 'ElevenLabs Scribe', provider: 'elevenlabs', description: 'High-quality speech-to-text', supportsAgent: false },
+  { id: 'elevenlabs-scribe', name: 'ElevenLabs Scribe', provider: 'elevenlabs', description: 'High-quality speech-to-text (batch)', supportsAgent: false },
+  { id: 'elevenlabs-scribe-realtime', name: 'ElevenLabs Scribe v2', provider: 'elevenlabs', description: 'Real-time streaming (~150ms)', supportsAgent: false, isRealtime: true },
   { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
   { id: 'whisper-local-tiny', name: 'Whisper Local (Tiny)', provider: 'local', description: '75 MB, fastest, offline', supportsAgent: false },
   { id: 'whisper-local-base', name: 'Whisper Local (Base)', provider: 'local', description: '142 MB, balanced, offline', supportsAgent: false },
@@ -293,6 +296,27 @@ export class TranscriptionService {
 
   public getTerminalContext(): TerminalContext | null {
     return this.terminalContext;
+  }
+
+  /**
+   * Build keyterms array from vocabulary for ElevenLabs real-time
+   * Returns up to 100 terms (ElevenLabs limit)
+   */
+  public buildKeyterms(): string[] {
+    if (!this.customInstructions.vocabulary.length) return [];
+
+    // Extract the written form of each vocabulary entry
+    // These are the terms we want ElevenLabs to recognize
+    return this.customInstructions.vocabulary
+      .slice(0, 100)  // ElevenLabs limit
+      .map(v => v.written);
+  }
+
+  /**
+   * Get ElevenLabs API key
+   */
+  public getElevenLabsApiKey(): string {
+    return this.apiKeys.elevenlabs || '';
   }
 
   // Apply vocabulary corrections to transcribed text
