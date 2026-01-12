@@ -11,6 +11,9 @@ export class RemoteTerminal {
     this.fitAddon = null;
     this.activeTabId = null;
     this.resizeObserver = null;
+    this.resizeDebounceTimer = null;
+    this.lastCols = 0;
+    this.lastRows = 0;
   }
 
   /**
@@ -106,20 +109,43 @@ export class RemoteTerminal {
   }
 
   /**
-   * Fit terminal to container and notify server
+   * Fit terminal to container and notify server (debounced)
    */
   fit() {
     if (!this.fitAddon || !this.term) return;
 
+    // Debounce resize events - wait 150ms after last resize
+    if (this.resizeDebounceTimer) {
+      clearTimeout(this.resizeDebounceTimer);
+    }
+
+    this.resizeDebounceTimer = setTimeout(() => {
+      this._doFit();
+    }, 150);
+  }
+
+  /**
+   * Actually perform the fit operation
+   */
+  _doFit() {
+    if (!this.fitAddon || !this.term) return;
+
     try {
       this.fitAddon.fit();
-      // Notify server of new dimensions
-      this.wsManager.send({
-        type: 'terminal_resize',
-        tabId: this.activeTabId,
-        cols: this.term.cols,
-        rows: this.term.rows,
-      });
+
+      // Only send resize if dimensions actually changed
+      if (this.term.cols !== this.lastCols || this.term.rows !== this.lastRows) {
+        this.lastCols = this.term.cols;
+        this.lastRows = this.term.rows;
+
+        // Notify server of new dimensions
+        this.wsManager.send({
+          type: 'terminal_resize',
+          tabId: this.activeTabId,
+          cols: this.term.cols,
+          rows: this.term.rows,
+        });
+      }
     } catch (err) {
       // Ignore fit errors during transitions
     }
@@ -158,6 +184,9 @@ export class RemoteTerminal {
    * Dispose of the terminal
    */
   dispose() {
+    if (this.resizeDebounceTimer) {
+      clearTimeout(this.resizeDebounceTimer);
+    }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }

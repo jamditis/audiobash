@@ -315,6 +315,65 @@ html, body {
 }
 
 /* ===================== */
+/* Command Input         */
+/* ===================== */
+
+#command-input-container {
+  padding: 0.5rem 0.75rem;
+  background: var(--void-100);
+  border-top: 1px solid var(--void-300);
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+#command-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  border-radius: 6px;
+  color: var(--crt-white);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#command-input:focus {
+  border-color: var(--accent);
+}
+
+#command-input::placeholder {
+  color: var(--crt-white);
+  opacity: 0.3;
+}
+
+#send-btn {
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  color: var(--void);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+#send-btn:active {
+  opacity: 0.8;
+}
+
+#send-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===================== */
 /* Voice Controls        */
 /* ===================== */
 

@@ -92,6 +92,24 @@
 
       <div id="terminal-container"></div>
 
+      <!-- Command Input -->
+      <div id="command-input-container">
+        <input
+          type="text"
+          id="command-input"
+          placeholder="Type command or use voice keyboard..."
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+        <button id="send-btn" title="Send command">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+
       <div id="voice-controls">
         <div id="mode-toggle">
           <button id="mode-agent" class="mode-btn active">Agent</button>

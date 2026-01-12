@@ -37,6 +37,10 @@ const elements = {
   disconnectBtn: document.getElementById('disconnect-btn'),
   terminalContainer: document.getElementById('terminal-container'),
 
+  // Command input
+  commandInput: document.getElementById('command-input'),
+  sendBtn: document.getElementById('send-btn'),
+
   // Voice controls
   modeAgent: document.getElementById('mode-agent'),
   modeRaw: document.getElementById('mode-raw'),
@@ -185,6 +189,15 @@ function setupEventListeners() {
       state.activeTabId = tabId;
     }
   });
+
+  // Command input - send on Enter or button click
+  elements.commandInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendCommand();
+    }
+  });
+  elements.sendBtn?.addEventListener('click', handleSendCommand);
 
   // Voice mode toggle
   elements.modeAgent.addEventListener('click', () => setMode('agent'));
@@ -335,6 +348,27 @@ async function handleConnect() {
   } finally {
     setConnecting(false);
   }
+}
+
+/**
+ * Handle sending command from text input
+ */
+function handleSendCommand() {
+  const command = elements.commandInput?.value?.trim();
+  if (!command) return;
+
+  // Send command to terminal
+  state.wsManager.send({
+    type: 'terminal_write',
+    tabId: state.activeTabId,
+    data: command + '\r', // Add carriage return to execute
+  });
+
+  // Clear input
+  elements.commandInput.value = '';
+
+  // Haptic feedback
+  navigator.vibrate?.(30);
 }
 
 /**
