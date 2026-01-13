@@ -431,9 +431,12 @@ echo "Failed: $FAILED"</code></pre>
     <footer class="border-t border-white/10 py-8 px-6">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-[10px] text-gray-600 font-mono">
-                AUDIOBASH v2.1.2 // BLOG // MIT LICENSE
+                <span data-version="AUDIOBASH v{version} // BLOG // MIT LICENSE">AUDIOBASH v2.2.0 // BLOG // MIT LICENSE</span>
             </div>
             <div class="flex items-center gap-4 text-gray-500">
+                <a href="../about.html" class="hover:text-accent transition-colors text-xs font-mono">
+                    About
+                </a>
                 <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
                     <i data-lucide="github" class="w-4 h-4"></i>
                 </a>
@@ -444,6 +447,7 @@ echo "Failed: $FAILED"</code></pre>
         </div>
     </footer>
 
+    <script src="../js/version.js"></script>
     <script>
         lucide.createIcons();
     </script>

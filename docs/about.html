@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About // AUDIOBASH</title>
+    <meta name="description" content="Meet the developer behind AudioBash. Joe Amditis builds tools for journalists and developers.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="About AudioBash">
+    <meta property="og:description" content="Meet the developer behind AudioBash - Voice-controlled terminal for developers.">
+    <meta property="og:type" content="website">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                        volt: '#ccff00',
+                        voltDim: 'rgba(204, 255, 0, 0.1)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ff3333;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.08;
+        }
+
+        .project-card {
+            transition: all 0.2s ease;
+        }
+        .project-card:hover {
+            border-color: rgba(255, 51, 51, 0.5);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]" data-version="v{version} // VOICE_TERMINAL">v2.2.0 // VOICE_TERMINAL</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="latest.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">LATEST</a>
+                <a href="releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="blog.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors hidden sm:block">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-4xl mx-auto px-6 pt-28 pb-16">
+
+        <!-- HEADER -->
+        <div class="text-center mb-16">
+            <h1 class="font-display text-5xl md:text-6xl text-chrome mb-4">ABOUT</h1>
+            <p class="text-gray-400 text-lg">
+                The human behind the terminal.
+            </p>
+        </div>
+
+        <!-- BIO SECTION -->
+        <section class="mb-16">
+            <div class="bg-panel border border-white/10 p-8 md:p-12">
+                <div class="flex flex-col md:flex-row gap-8 items-start">
+                    <!-- Headshot -->
+                    <img
+                        src="https://centerforcooperativemedia.org/wp-content/uploads/2025/04/joe-headshot-june-2023-e1749055752853.png"
+                        alt="Joe Amditis headshot"
+                        class="w-32 h-32 object-cover border-2 border-accent/30 shrink-0 mx-auto md:mx-0"
+                    >
+
+                    <div class="flex-1">
+                        <h2 class="font-display text-3xl text-chrome mb-2">Joe Amditis</h2>
+                        <p class="text-accent font-display mb-4">Associate Director of Operations</p>
+                        <p class="text-gray-500 text-sm mb-6">Center for Cooperative Media · Montclair State University</p>
+
+                        <p class="text-gray-400 leading-relaxed mb-6">
+                            I build tools for journalists and developers. By day, I coordinate collaborative reporting projects
+                            and create AI resources for newsrooms at the <a href="https://centerforcooperativemedia.org" class="text-ice hover:text-chrome transition-colors">Center for Cooperative Media</a>.
+                            By night, I write code that makes voice interaction with terminals actually useful.
+                        </p>
+
+                        <p class="text-gray-400 leading-relaxed mb-6">
+                            I'm a veteran of the NJ Army National Guard (deployed to Iraq in 2008), a former podcast host
+                            (<a href="https://wtfjht.com" class="text-ice hover:text-chrome transition-colors">WTF Just Happened Today</a>),
+                            and co-founder of <a href="https://muckgers.com" class="text-ice hover:text-chrome transition-colors">Muckgers</a>,
+                            an investigative news outlet. I teach multimedia production at Montclair State.
+                        </p>
+
+                        <!-- Social Links -->
+                        <div class="flex flex-wrap gap-3">
+                            <a href="https://github.com/jamditis" class="flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 hover:border-accent hover:text-accent transition-colors text-sm">
+                                <i data-lucide="github" class="w-4 h-4"></i>
+                                GitHub
+                            </a>
+                            <a href="https://twitter.com/jsamditis" class="flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 hover:border-ice hover:text-ice transition-colors text-sm">
+                                <i data-lucide="twitter" class="w-4 h-4"></i>
+                                @jsamditis
+                            </a>
+                            <a href="https://jamditis.medium.com" class="flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 hover:border-volt hover:text-volt transition-colors text-sm">
+                                <i data-lucide="pen-line" class="w-4 h-4"></i>
+                                Medium
+                            </a>
+                            <a href="mailto:amditisj@montclair.edu" class="flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 hover:border-chrome hover:text-chrome transition-colors text-sm">
+                                <i data-lucide="mail" class="w-4 h-4"></i>
+                                Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CREDENTIALS -->
+        <section class="mb-16">
+            <h3 class="font-display text-xl text-chrome mb-6 flex items-center gap-3">
+                <i data-lucide="graduation-cap" class="w-5 h-5 text-accent"></i>
+                CREDENTIALS
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-panel border border-white/10 p-6">
+                    <div class="text-accent font-display text-sm mb-1">M.A. Engaged Journalism</div>
+                    <div class="text-gray-400 text-sm">CUNY Newmark Graduate School, 2016</div>
+                </div>
+                <div class="bg-panel border border-white/10 p-6">
+                    <div class="text-accent font-display text-sm mb-1">B.A. Political Science & Criminal Justice</div>
+                    <div class="text-gray-400 text-sm">Rutgers University, 2013</div>
+                </div>
+                <div class="bg-panel border border-white/10 p-6">
+                    <div class="text-ice font-display text-sm mb-1">Adjunct Professor</div>
+                    <div class="text-gray-400 text-sm">Montclair State University, College of Communication</div>
+                </div>
+                <div class="bg-panel border border-white/10 p-6">
+                    <div class="text-volt font-display text-sm mb-1">NJ Army National Guard Veteran</div>
+                    <div class="text-gray-400 text-sm">Iraq deployment 2008, Hurricane Irene relief 2011</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- OTHER PROJECTS -->
+        <section class="mb-16">
+            <h3 class="font-display text-xl text-chrome mb-6 flex items-center gap-3">
+                <i data-lucide="folder-code" class="w-5 h-5 text-accent"></i>
+                OTHER PROJECTS
+            </h3>
+            <div class="space-y-4">
+                <a href="https://github.com/jamditis/yap" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">Yap</h4>
+                            <p class="text-gray-500 text-sm">Voice-coding tool for Windows. The spiritual predecessor to AudioBash.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-ice/10 border border-ice/30 text-ice text-xs shrink-0">TypeScript</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/jamditis/claude-skills-journalism" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">Claude Skills for Journalism</h4>
+                            <p class="text-gray-500 text-sm">Claude Code skills for verification, FOIA requests, and media workflows.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-volt/10 border border-volt/30 text-volt text-xs shrink-0">Claude Code</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/jamditis/tools" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">AI Tools for Newsrooms</h4>
+                            <p class="text-gray-500 text-sm">Guides and resources for integrating AI into local journalism.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-accent/10 border border-accent/30 text-accent text-xs shrink-0">Guides</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/jamditis/prompt-engineering-journalists" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">Prompt Engineering for Journalists</h4>
+                            <p class="text-gray-500 text-sm">Five-week course from chat interfaces to CLI tools.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-accent/10 border border-accent/30 text-accent text-xs shrink-0">Course</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/jamditis/cjs-beat-street" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">CJS Beat Street</h4>
+                            <p class="text-gray-500 text-sm">Interactive conference companion for the Collaborative Journalism Summit.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-ice/10 border border-ice/30 text-ice text-xs shrink-0">TypeScript</span>
+                    </div>
+                </a>
+
+                <a href="https://github.com/jamditis/pocketlink" class="project-card block bg-panel border border-white/10 p-5 group">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h4 class="font-display text-chrome group-hover:text-accent transition-colors">PocketLink</h4>
+                            <p class="text-gray-500 text-sm">Browser extension for quick shortlink creation.</p>
+                        </div>
+                        <span class="px-2 py-1 bg-volt/10 border border-volt/30 text-volt text-xs shrink-0">Extension</span>
+                    </div>
+                </a>
+            </div>
+
+            <div class="text-center mt-8">
+                <a href="https://github.com/jamditis?tab=repositories" class="inline-flex items-center gap-2 text-gray-500 hover:text-accent transition-colors text-sm">
+                    View all repositories
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- WHY AUDIOBASH -->
+        <section class="mb-16">
+            <h3 class="font-display text-xl text-chrome mb-6 flex items-center gap-3">
+                <i data-lucide="message-circle-question" class="w-5 h-5 text-accent"></i>
+                WHY AUDIOBASH?
+            </h3>
+            <div class="bg-panel border border-white/10 p-8">
+                <p class="text-gray-400 leading-relaxed mb-4">
+                    I built AudioBash because I got tired of switching between windows to talk to Claude Code.
+                    The existing voice coding tools were either too slow, too clunky, or required too much setup.
+                </p>
+                <p class="text-gray-400 leading-relaxed mb-4">
+                    The goal was simple: speak naturally, see your words appear in the terminal instantly,
+                    and control everything from your couch if you want. No manual copy-pasting, no waiting
+                    for uploads, no friction.
+                </p>
+                <p class="text-gray-400 leading-relaxed">
+                    It started as a personal tool, but it turns out other developers wanted the same thing.
+                    So here we are.
+                </p>
+            </div>
+        </section>
+
+        <!-- CONTACT CTA -->
+        <section class="text-center">
+            <div class="bg-accent/10 border border-accent/30 p-8">
+                <h3 class="font-display text-2xl text-chrome mb-4">GET IN TOUCH</h3>
+                <p class="text-gray-400 mb-6">Questions, feedback, or just want to say hi?</p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="https://github.com/jamditis/audiobash/issues" class="px-6 py-3 bg-accent text-black font-display font-bold tracking-wider hover:bg-accent/80 transition-all clip-notch">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="message-square" class="w-4 h-4"></i>
+                            OPEN AN ISSUE
+                        </span>
+                    </a>
+                    <a href="mailto:amditisj@montclair.edu" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold tracking-wider hover:border-accent hover:text-accent transition-all">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                            EMAIL ME
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                <span data-version="AUDIOBASH v{version} // ABOUT // MIT LICENSE">AUDIOBASH v2.2.0 // ABOUT // MIT LICENSE</span>
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/version.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

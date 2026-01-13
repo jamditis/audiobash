@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "2.1.3",
+  "version": "2.2.0",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
