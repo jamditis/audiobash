@@ -34,6 +34,8 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
   const [recentDirs, setRecentDirs] = useState<string[]>([]);
   const [favoriteDirs, setFavoriteDirs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [size, setSize] = useState({ width: 400, height: 500 });
+  const [isResizing, setIsResizing] = useState(false);
 
   const loadDirectories = useCallback(async () => {
     const dirs = await window.electron?.getDirectories();
@@ -72,6 +74,31 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
     }
   };
 
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = size.width;
+    const startHeight = size.height;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(320, Math.min(800, startWidth + (e.clientX - startX)));
+      const newHeight = Math.max(300, Math.min(700, startHeight + (e.clientY - startY)));
+      setSize({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [size]);
+
   const getDirName = (fullPath: string) => {
     const parts = fullPath.split(/[/\\]/);
     return parts[parts.length - 1] || fullPath;
@@ -81,7 +108,10 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
 
   return (
     <div className="directory-picker-container">
-      <div className="directory-picker bg-void-100 border border-void-300 rounded-lg shadow-2xl w-80 max-h-96 overflow-hidden">
+      <div
+        className="directory-picker bg-void-100 border border-void-300 rounded-lg shadow-2xl overflow-hidden relative flex flex-col"
+        style={{ width: size.width, height: size.height }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-void-300 bg-void-200/50">
           <span className="text-[10px] font-mono uppercase tracking-widest text-crt-white/50">
@@ -100,7 +130,7 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
           <button
             onClick={handleBrowse}
             disabled={loading}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono border border-dashed border-void-300 rounded hover:border-accent/50 hover:text-accent transition-colors text-crt-white/70"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono border border-accent bg-accent/20 rounded hover:bg-accent/30 hover:border-accent transition-colors text-accent"
           >
             <BrowseIcon />
             Browse for folder...
@@ -148,11 +178,11 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
         )}
 
         {/* Recent */}
-        <div>
+        <div className="flex-1 flex flex-col min-h-0">
           <div className="px-3 py-1.5 text-[9px] font-mono uppercase tracking-wider text-crt-white/40 bg-void-200/30">
             Recent
           </div>
-          <div className="max-h-48 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             {recentDirs.length === 0 ? (
               <div className="px-3 py-4 text-xs text-crt-white/30 text-center">
                 No recent directories
@@ -196,6 +226,17 @@ const DirectoryPicker: React.FC<DirectoryPickerProps> = ({ isOpen, onClose, acti
               })
             )}
           </div>
+        </div>
+
+        {/* Resize handle */}
+        <div
+          onMouseDown={handleResizeStart}
+          className={`absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-center justify-center ${isResizing ? 'bg-accent/30' : 'hover:bg-void-200/50'}`}
+          title="Drag to resize"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-crt-white/30">
+            <path d="M9 1L1 9M9 5L5 9M9 9L9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </div>
       </div>
     </div>

@@ -237,6 +237,53 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     loadApiKeys();
   }, []);
 
+  // Listen for model changes from Settings (via localStorage)
+  // Only fetches the specific API key needed for the new model's provider,
+  // following principle of least privilege.
+  useEffect(() => {
+    const handleStorageChange = async () => {
+      const savedModel = localStorage.getItem('audiobash-model') as ModelId;
+      if (savedModel && savedModel !== model) {
+        log.info('Model changed via settings', { from: model, to: savedModel });
+        setModel(savedModel);
+
+        // Check if new model has required key - only fetch what we need
+        const modelInfo = MODELS.find(m => m.id === savedModel);
+        if (modelInfo) {
+          let hasKey = false;
+          switch (modelInfo.provider) {
+            case 'local':
+              hasKey = true;
+              break;
+            case 'gemini':
+              hasKey = !!(await window.electron?.getApiKey('gemini'));
+              break;
+            case 'openai':
+              hasKey = !!(await window.electron?.getApiKey('openai'));
+              break;
+            case 'anthropic':
+              // Claude models need both OpenAI (for Whisper) and Anthropic keys
+              const [openaiKey, anthropicKey] = await Promise.all([
+                window.electron?.getApiKey('openai'),
+                window.electron?.getApiKey('anthropic'),
+              ]);
+              hasKey = !!openaiKey && !!anthropicKey;
+              break;
+            case 'elevenlabs':
+              const elevenlabsKey = await window.electron?.getApiKey('elevenlabs');
+              hasKey = !!elevenlabsKey;
+              if (elevenlabsKey) setElevenLabsApiKey(elevenlabsKey);
+              break;
+          }
+          setHasApiKey(hasKey);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [model]);
+
   // Auto-hide after recording stops (if not pinned)
   useEffect(() => {
     if (!isRecording && status === 'idle' && isOpen && !isPinned) {
@@ -585,6 +632,46 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
               <CloseIcon />
             </button>
           </div>
+        </div>
+
+        {/* Model Selector - clickable to cycle through available models */}
+        <div className="px-3 py-2 border-b border-void-300">
+          <button
+            onClick={() => {
+              // Get available models (ones with API keys or local models)
+              const availableModels = MODELS.filter(m => {
+                if (m.provider === 'local') return true;
+                if (m.provider === 'gemini') return transcriptionService.hasApiKey('gemini');
+                if (m.provider === 'openai') return transcriptionService.hasApiKey('openai');
+                if (m.provider === 'anthropic') return transcriptionService.hasApiKey('openai') && transcriptionService.hasApiKey('anthropic');
+                if (m.provider === 'elevenlabs') return transcriptionService.hasApiKey('elevenlabs');
+                return false;
+              });
+
+              if (availableModels.length === 0) return;
+
+              // Find current index and cycle to next
+              const currentIndex = availableModels.findIndex(m => m.id === model);
+              const nextIndex = (currentIndex + 1) % availableModels.length;
+              const nextModel = availableModels[nextIndex];
+
+              setModel(nextModel.id);
+              localStorage.setItem('audiobash-model', nextModel.id);
+              setHasApiKey(true); // We know it has a key since it's in availableModels
+            }}
+            className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded border border-void-300 hover:border-void-200 transition-colors group"
+            title="Click to cycle through available models"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[9px] text-crt-white/40 uppercase">Model</span>
+              <span className="text-[10px] font-mono text-crt-amber truncate">
+                {MODELS.find(m => m.id === model)?.name || model}
+              </span>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 text-crt-white/30 group-hover:text-crt-white/50 transition-colors">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+            </svg>
+          </button>
         </div>
 
         {/* Visualizer */}

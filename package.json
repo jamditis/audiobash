@@ -22,6 +22,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.21.0",
+    "@huggingface/transformers": "^3.8.1",
+    "@remotion/install-whisper-cpp": "^4.0.405",
     "@ricky0123/vad-web": "^0.0.30",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

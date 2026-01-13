@@ -135,6 +135,12 @@ export interface ElectronAPI {
   whisperTranscribe: (audioPath: string) => Promise<WhisperTranscribeResult>;
   whisperSetModel: (modelName: string) => Promise<WhisperSetModelResult>;
   whisperGetModels: () => Promise<WhisperGetModelsResult>;
+  whisperDownloadModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
+  whisperIsModelDownloaded: (modelName: string) => Promise<{ success: boolean; downloaded: boolean }>;
+  whisperInstall: () => Promise<{ success: boolean; error?: string }>;
+  whisperGetStatus: () => Promise<{ success: boolean; whisperInstalled: boolean; modelsDir: string }>;
+  whisperFullSetup: (modelName: string) => Promise<{ success: boolean; error?: string }>;
+  whisperDeleteModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
 
   // Remote control (mobile companion)
@@ -253,6 +259,7 @@ export interface WhisperModelInfo {
   speed: string;
   accuracy: string;
   description: string;
+  downloaded: boolean;
 }
 
 export interface WhisperGetModelsResult {

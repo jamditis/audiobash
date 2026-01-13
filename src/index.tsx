@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ThemeProvider } from './themes';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ConsoleErrorProvider } from './contexts/ConsoleErrorContext';
 import { appLog } from './utils/logger';
 import './index.css';
 
@@ -29,9 +30,11 @@ window.addEventListener('unhandledrejection', (event) => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
+      <ConsoleErrorProvider>
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
+      </ConsoleErrorProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

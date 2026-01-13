@@ -865,6 +865,69 @@ contextBridge.exposeInMainWorld('electron', {
   whisperGetModels: () => ipcRenderer.invoke('whisper-get-models'),
 
   /**
+   * Downloads a local Whisper model for offline transcription.
+   * Models are cached locally and only need to be downloaded once.
+   *
+   * @function whisperDownloadModel
+   * @memberof window.electron
+   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @returns {Promise<{success: boolean, error?: string}>} Download result
+   * @example
+   * const result = await window.electron.whisperDownloadModel('base.en');
+   * if (result.success) console.log('Model downloaded!');
+   */
+  whisperDownloadModel: (modelName) => ipcRenderer.invoke('whisper-download-model', modelName),
+
+  /**
+   * Checks if a local Whisper model is already downloaded.
+   *
+   * @function whisperIsModelDownloaded
+   * @memberof window.electron
+   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @returns {Promise<{success: boolean, downloaded: boolean}>}
+   */
+  whisperIsModelDownloaded: (modelName) => ipcRenderer.invoke('whisper-is-model-downloaded', modelName),
+
+  /**
+   * Deletes a downloaded local Whisper model.
+   *
+   * @function whisperDeleteModel
+   * @memberof window.electron
+   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  whisperDeleteModel: (modelName) => ipcRenderer.invoke('whisper-delete-model', modelName),
+
+  /**
+   * Installs whisper.cpp binary for local transcription.
+   *
+   * @function whisperInstall
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  whisperInstall: () => ipcRenderer.invoke('whisper-install'),
+
+  /**
+   * Gets whisper.cpp installation status.
+   *
+   * @function whisperGetStatus
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, whisperInstalled: boolean, modelsDir: string}>}
+   */
+  whisperGetStatus: () => ipcRenderer.invoke('whisper-get-status'),
+
+  /**
+   * Full setup - installs whisper.cpp and downloads a model.
+   * Use this for one-click local transcription setup.
+   *
+   * @function whisperFullSetup
+   * @memberof window.electron
+   * @param {string} modelName - Model to download (e.g., 'base.en')
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  whisperFullSetup: (modelName) => ipcRenderer.invoke('whisper-full-setup', modelName),
+
+  /**
    * Saves base64-encoded audio data to a temporary file.
    * Used to prepare audio for Whisper transcription.
    *

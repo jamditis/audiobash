@@ -76,7 +76,7 @@ export class ElevenLabsRealtimeService {
       try {
         // Build WebSocket URL with query parameters
         const url = new URL('wss://api.elevenlabs.io/v1/speech-to-text/realtime');
-        url.searchParams.set('model_id', 'scribe_v1');
+        url.searchParams.set('model_id', 'scribe_v2_realtime');
         url.searchParams.set('audio_format', 'pcm_16000');
         url.searchParams.set('commit_strategy', 'vad');
         url.searchParams.set('include_timestamps', 'false');

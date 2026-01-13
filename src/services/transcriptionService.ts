@@ -272,6 +272,10 @@ export class TranscriptionService {
     return MODELS.find(m => m.id === modelId);
   }
 
+  public hasApiKey(provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs'): boolean {
+    return !!this.apiKeys[provider];
+  }
+
   // Store the current terminal context for use in prompts
   private terminalContext: TerminalContext | null = null;
 

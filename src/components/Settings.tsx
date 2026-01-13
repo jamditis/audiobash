@@ -86,6 +86,20 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   // CLI notification settings
   const [cliNotificationsEnabled, setCliNotificationsEnabled] = useState(true);
 
+  // Local Whisper models state
+  const [localModels, setLocalModels] = useState<{
+    id: string;
+    size: string;
+    speed: string;
+    accuracy: string;
+    description: string;
+    downloaded: boolean;
+  }[]>([]);
+  const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
+  const [whisperInstalled, setWhisperInstalled] = useState(false);
+  const [isSettingUp, setIsSettingUp] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
   // Remote control status
   const [remoteStatus, setRemoteStatus] = useState<{
     running: boolean;
@@ -175,6 +189,18 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
       }
     }
     if (savedCliNotifications !== null) setCliNotificationsEnabled(savedCliNotifications === 'true');
+
+    // Load local Whisper status and models
+    window.electron?.whisperGetStatus().then((result) => {
+      if (result.success) {
+        setWhisperInstalled(result.whisperInstalled);
+      }
+    });
+    window.electron?.whisperGetModels().then((result) => {
+      if (result.success && result.models) {
+        setLocalModels(result.models);
+      }
+    });
 
     // Load keyboard shortcuts
     window.electron?.getShortcuts().then((savedShortcuts) => {
@@ -301,6 +327,59 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     }
   }, [recordingShortcut, handleKeyDown]);
 
+  // One-click setup for local transcription (installs whisper.cpp + downloads model)
+  const setupLocalTranscription = async (modelId: string = 'base.en') => {
+    setIsSettingUp(true);
+    setSetupError(null);
+    setDownloadingModel(modelId);
+    try {
+      const result = await window.electron?.whisperFullSetup(modelId);
+      if (result?.success) {
+        setWhisperInstalled(true);
+        // Refresh the models list to update download status
+        const modelsResult = await window.electron?.whisperGetModels();
+        if (modelsResult?.success && modelsResult.models) {
+          setLocalModels(modelsResult.models);
+        }
+      } else {
+        setSetupError(result?.error || 'Setup failed');
+        console.error('Failed to setup local transcription:', result?.error);
+      }
+    } catch (err) {
+      setSetupError((err as Error).message);
+      console.error('Setup error:', err);
+    } finally {
+      setIsSettingUp(false);
+      setDownloadingModel(null);
+    }
+  };
+
+  // Download a local Whisper model (assumes whisper.cpp is installed)
+  const downloadLocalModel = async (modelId: string) => {
+    // If whisper.cpp isn't installed, do full setup instead
+    if (!whisperInstalled) {
+      return setupLocalTranscription(modelId);
+    }
+
+    setDownloadingModel(modelId);
+    try {
+      const result = await window.electron?.whisperDownloadModel(modelId);
+      if (result?.success) {
+        // Refresh the models list to update download status
+        const modelsResult = await window.electron?.whisperGetModels();
+        if (modelsResult?.success && modelsResult.models) {
+          setLocalModels(modelsResult.models);
+        }
+      } else {
+        console.error('Failed to download model:', result?.error);
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+    } finally {
+      setDownloadingModel(null);
+    }
+  };
+
   const saveSettings = async () => {
     // Save API keys
     if (geminiKeyInput !== geminiKey) {
@@ -386,7 +465,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-void-100 border border-void-300 rounded-lg w-[520px] max-h-[85vh] overflow-hidden">
+      <div className="bg-void-100 border border-void-300 rounded-lg w-[680px] max-h-[85vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-void-300">
           <h2 className="font-display font-bold text-sm uppercase tracking-widest">Settings</h2>
@@ -564,13 +643,13 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             </label>
           </div>
 
-          {/* Model Selection */}
+          {/* Model Selection - Cloud/API models only */}
           <div>
             <label className="block text-[10px] text-crt-white/50 font-mono uppercase mb-2">
               Transcription model
             </label>
             <div className="space-y-1.5">
-              {MODELS.map((m) => {
+              {MODELS.filter(m => !m.id.startsWith('whisper-local-')).map((m) => {
                 const needsKey = m.provider === 'gemini' ? !geminiKeyInput :
                   m.provider === 'openai' ? !openaiKeyInput :
                   m.provider === 'anthropic' ? (!openaiKeyInput || !anthropicKeyInput) :
@@ -608,11 +687,175 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                             Agent
                           </span>
                         )}
+                        {m.provider === 'local' && (
+                          <span className="text-[8px] px-1 py-0.5 bg-sky-400/20 text-sky-400 rounded uppercase">
+                            Local
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-crt-white/30">{m.description}</div>
                     </div>
                     {needsKey && (
                       <span className="text-[9px] text-accent/70 uppercase">No key</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Local Models Setup */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] text-crt-white/50 font-mono uppercase tracking-wider border-b border-void-300 pb-1">
+              Local models (offline)
+            </h3>
+            <p className="text-[10px] text-crt-white/40">
+              Free, unlimited offline transcription. No API keys required.
+            </p>
+
+            {/* Status indicator */}
+            <div className="flex items-center gap-2 p-2 rounded border border-void-300 bg-void-100">
+              <div className={`w-2 h-2 rounded-full ${whisperInstalled ? 'bg-green-400' : 'bg-yellow-500'}`} />
+              <span className="text-[10px] text-crt-white/60">
+                {whisperInstalled ? 'Whisper.cpp installed' : 'Whisper.cpp not installed'}
+              </span>
+              {!whisperInstalled && !isSettingUp && (
+                <button
+                  onClick={() => setupLocalTranscription('base.en')}
+                  className="ml-auto text-[9px] px-2 py-1 bg-green-500/20 text-green-400 rounded uppercase hover:bg-green-500/30 transition-colors"
+                >
+                  One-click setup
+                </button>
+              )}
+              {isSettingUp && (
+                <span className="ml-auto text-[9px] text-accent uppercase flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Setting up...
+                </span>
+              )}
+            </div>
+
+            {/* Error message */}
+            {setupError && (
+              <div className="text-[10px] text-red-400 p-2 rounded border border-red-400/30 bg-red-400/10">
+                {setupError}
+              </div>
+            )}
+
+            {/* Model list - click to select, shows download/delete options */}
+            <div className="space-y-2">
+              {localModels.map((m) => {
+                // Map local model id (e.g., 'base.en') to the ModelId format (e.g., 'whisper-local-base')
+                const modelIdMap: Record<string, ModelId> = {
+                  'tiny.en': 'whisper-local-tiny',
+                  'base.en': 'whisper-local-base',
+                  'small.en': 'whisper-local-small',
+                };
+                const mappedModelId = modelIdMap[m.id];
+                const isSelected = model === mappedModelId;
+                const canSelect = m.downloaded && whisperInstalled;
+
+                return (
+                  <label
+                    key={m.id}
+                    className={`flex items-center gap-3 p-2 rounded border cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'border-sky-400/50 bg-sky-400/5'
+                        : canSelect
+                          ? 'border-void-300 hover:border-void-200'
+                          : 'border-void-300 opacity-70'
+                    }`}
+                  >
+                    {/* Radio button for selection (only if downloaded) */}
+                    <input
+                      type="radio"
+                      name="model"
+                      value={mappedModelId}
+                      checked={isSelected}
+                      onChange={() => canSelect && setModel(mappedModelId)}
+                      disabled={!canSelect}
+                      className="sr-only"
+                    />
+                    <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
+                      isSelected ? 'border-sky-400 bg-sky-400' : canSelect ? 'border-void-300' : 'border-void-400'
+                    }`} />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono">Whisper {m.id}</span>
+                        <span className="text-[8px] px-1 py-0.5 bg-void-200 text-crt-white/50 rounded uppercase">
+                          {m.size}
+                        </span>
+                        <span className="text-[8px] px-1 py-0.5 bg-void-200 text-crt-white/50 rounded uppercase">
+                          {m.speed}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[8px] px-1 py-0.5 bg-sky-400/20 text-sky-400 rounded uppercase">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-crt-white/30">{m.description}</div>
+                    </div>
+
+                    {/* Action buttons */}
+                    {m.downloaded ? (
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const confirmed = window.confirm(`Delete ${m.id} model? This will free up ${m.size} of disk space.`);
+                          if (confirmed) {
+                            try {
+                              const result = await window.electron?.whisperDeleteModel(m.id);
+                              if (result?.success) {
+                                // If this was the active model, switch to a cloud model
+                                if (isSelected) {
+                                  setModel('gemini-2.0-flash');
+                                }
+                                // Refresh model list
+                                const modelsResult = await window.electron?.whisperGetModels();
+                                if (modelsResult?.success && modelsResult.models) {
+                                  setLocalModels(modelsResult.models);
+                                }
+                              } else {
+                                setSetupError(result?.error || 'Failed to delete model');
+                              }
+                            } catch (err) {
+                              setSetupError(err instanceof Error ? err.message : 'Unknown error');
+                            }
+                          }
+                        }}
+                        className="p-1.5 text-red-400/60 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                        title={`Delete ${m.id} model`}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        </svg>
+                      </button>
+                    ) : downloadingModel === m.id ? (
+                      <span className="text-[9px] text-accent uppercase flex items-center gap-1">
+                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {isSettingUp ? 'Setting up...' : 'Downloading...'}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          downloadLocalModel(m.id);
+                        }}
+                        disabled={downloadingModel !== null || isSettingUp}
+                        className="text-[9px] px-2 py-1 bg-green-500/20 text-green-400 rounded uppercase hover:bg-green-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {whisperInstalled ? 'Download' : 'Setup & Download'}
+                      </button>
                     )}
                   </label>
                 );

@@ -4,6 +4,7 @@ import TabBar from './components/TabBar';
 import VoiceOverlay from './components/VoiceOverlay';
 import StatusIndicator from './components/StatusIndicator';
 import DirectoryPicker from './components/DirectoryPicker';
+import ConsoleErrorViewer from './components/ConsoleErrorViewer';
 import TitleBar from './components/TitleBar';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
@@ -56,6 +57,9 @@ const App: React.FC = () => {
 
   // Directory picker state
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false);
+
+  // Console error viewer state
+  const [consoleErrorViewerOpen, setConsoleErrorViewerOpen] = useState(false);
 
   // Split view layout state
   const [layoutState, setLayoutState] = useState<SplitLayoutState>({
@@ -752,6 +756,7 @@ const App: React.FC = () => {
           apiConnected={!!apiKey || model === 'parakeet-local'}
           onOpenVoicePanel={handleOpenVoicePanel}
           onOpenDirectoryPicker={handleOpenDirectoryPicker}
+          onOpenConsoleErrors={() => setConsoleErrorViewerOpen(true)}
         />
 
         {/* Directory picker overlay */}
@@ -759,6 +764,12 @@ const App: React.FC = () => {
           isOpen={directoryPickerOpen}
           onClose={() => setDirectoryPickerOpen(false)}
           activeTabId={activeTabId}
+        />
+
+        {/* Console error viewer */}
+        <ConsoleErrorViewer
+          isOpen={consoleErrorViewerOpen}
+          onClose={() => setConsoleErrorViewerOpen(false)}
         />
 
         {/* Floating voice overlay */}

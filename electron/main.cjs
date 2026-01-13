@@ -1332,6 +1332,74 @@ function setupIPC() {
     }
   });
 
+  // Download a local Whisper model (one-click setup)
+  ipcMain.handle('whisper-download-model', async (event, modelName) => {
+    try {
+      console.log(`[AudioBash] Starting model download: ${modelName}`);
+      const result = await whisperService.downloadModel(modelName);
+      return result;
+    } catch (err) {
+      console.error('[AudioBash] Whisper download error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Check if a model is downloaded
+  ipcMain.handle('whisper-is-model-downloaded', async (_, modelName) => {
+    try {
+      const downloaded = whisperService.isModelDownloaded(modelName);
+      return { success: true, downloaded };
+    } catch (err) {
+      console.error('[AudioBash] Whisper check model error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('whisper-delete-model', async (_, modelName) => {
+    try {
+      console.log('[AudioBash] Deleting whisper model:', modelName);
+      const result = whisperService.deleteModel(modelName);
+      return result;
+    } catch (err) {
+      console.error('[AudioBash] Whisper delete model error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Install whisper.cpp binary
+  ipcMain.handle('whisper-install', async () => {
+    try {
+      console.log('[AudioBash] Installing whisper.cpp...');
+      const result = await whisperService.installWhisperCpp();
+      return result;
+    } catch (err) {
+      console.error('[AudioBash] Whisper install error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Get whisper installation status
+  ipcMain.handle('whisper-get-status', async () => {
+    try {
+      return { success: true, ...whisperService.getStatus() };
+    } catch (err) {
+      console.error('[AudioBash] Whisper status error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  // Full setup (install + download model)
+  ipcMain.handle('whisper-full-setup', async (_, modelName) => {
+    try {
+      console.log(`[AudioBash] Starting full whisper setup with model: ${modelName}`);
+      const result = await whisperService.fullSetup(modelName);
+      return result;
+    } catch (err) {
+      console.error('[AudioBash] Whisper full setup error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle('save-temp-audio', async (_, base64Audio) => {
     try {
       const tempDir = path.join(app.getPath('temp'), 'audiobash');
@@ -1500,7 +1568,7 @@ function setupIPC() {
 }
 
 // App lifecycle
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Initialize logger first
   logger.init();
   appLog.info('AudioBash starting', {
@@ -1509,6 +1577,9 @@ app.whenReady().then(() => {
     arch: process.arch,
     isDev,
   });
+
+  // Initialize whisper service
+  await whisperService.initialize();
 
   loadShortcuts();
   loadDirectories();
