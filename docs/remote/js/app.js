@@ -5,14 +5,11 @@
 
 import { WebSocketManager } from './websocket.js';
 import { RemoteTerminal } from './terminal.js';
-import { VoiceRecorder } from './voice.js';
 
 // Application state
 const state = {
   wsManager: new WebSocketManager(),
   terminal: null,
-  voiceRecorder: null,
-  mode: 'agent',
   activeTabId: 'tab-1',
   tabs: [],
 };
@@ -41,17 +38,6 @@ const elements = {
   commandInput: document.getElementById('command-input'),
   sendBtn: document.getElementById('send-btn'),
 
-  // Voice controls
-  modeAgent: document.getElementById('mode-agent'),
-  modeRaw: document.getElementById('mode-raw'),
-  voiceBtn: document.getElementById('voice-btn'),
-  micIcon: document.getElementById('mic-icon'),
-  stopIcon: document.getElementById('stop-icon'),
-  voiceStatus: document.getElementById('voice-status'),
-  transcriptionPreview: document.getElementById('transcription-preview'),
-  silenceRing: document.getElementById('silence-ring'),
-  silenceProgress: document.getElementById('silence-progress'),
-
   // Reconnect overlay
   cancelReconnect: document.getElementById('cancel-reconnect'),
 };
@@ -64,7 +50,6 @@ function init() {
   const requiredElements = [
     'connectScreen',
     'terminalScreen',
-    'voiceBtn',
     'ipInput',
     'codeInput',
     'connectBtn',
@@ -95,21 +80,6 @@ function init() {
 
   // Set up WebSocket event handlers
   setupWebSocketHandlers();
-
-  // Check voice recording support
-  if (!VoiceRecorder.isSupported()) {
-    elements.voiceBtn.disabled = true;
-    elements.voiceStatus.textContent = 'Voice not supported in this browser';
-    // Show detailed error in transcription preview
-    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    if (!isSecure) {
-      elements.transcriptionPreview.textContent = 'Voice requires HTTPS. Use a secure connection or localhost.';
-    } else if (!navigator.mediaDevices) {
-      elements.transcriptionPreview.textContent = 'Browser does not support media devices. Try Chrome, Firefox, or Safari.';
-    } else {
-      elements.transcriptionPreview.textContent = 'MediaRecorder API not available. Update your browser.';
-    }
-  }
 
   // Register service worker for PWA offline support
   if ('serviceWorker' in navigator) {
@@ -199,13 +169,6 @@ function setupEventListeners() {
   });
   elements.sendBtn?.addEventListener('click', handleSendCommand);
 
-  // Voice mode toggle
-  elements.modeAgent.addEventListener('click', () => setMode('agent'));
-  elements.modeRaw.addEventListener('click', () => setMode('raw'));
-
-  // Voice button - tap to toggle recording
-  elements.voiceBtn.addEventListener('click', handleVoiceToggle);
-
   // Cancel reconnect
   elements.cancelReconnect.addEventListener('click', () => {
     state.wsManager.cancelReconnect();
@@ -223,18 +186,6 @@ function setupWebSocketHandlers() {
   // Terminal data
   ws.on('terminal_data', (message) => {
     // Terminal handles this internally
-  });
-
-  // Transcription result
-  ws.on('transcription', (message) => {
-    handleTranscriptionResult(message);
-  });
-
-  // Transcription status
-  ws.on('transcription_status', (message) => {
-    if (message.status === 'processing') {
-      setVoiceState('processing');
-    }
   });
 
   // Connection events
@@ -330,9 +281,6 @@ async function handleConnect() {
     // Initialize terminal
     initializeTerminal(desktopInfo);
 
-    // Initialize voice recorder
-    initializeVoiceRecorder();
-
     // Update UI
     updateTabs(desktopInfo.tabs);
     state.activeTabId = desktopInfo.activeTabId;
@@ -383,12 +331,6 @@ function handleDisconnect() {
     state.terminal = null;
   }
 
-  // Clean up voice recorder
-  if (state.voiceRecorder) {
-    state.voiceRecorder.cancelRecording();
-    state.voiceRecorder = null;
-  }
-
   // Show connect screen
   showScreen('connect');
 }
@@ -411,150 +353,6 @@ function initializeTerminal(desktopInfo) {
 
   // Handle tabs update
   state.terminal.onTabsUpdate = updateTabs;
-}
-
-/**
- * Initialize voice recorder
- */
-function initializeVoiceRecorder() {
-  state.voiceRecorder = new VoiceRecorder(state.wsManager);
-  state.voiceRecorder.setMode(state.mode);
-
-  // Handle state changes
-  state.voiceRecorder.onStateChange = (voiceState) => {
-    setVoiceState(voiceState);
-  };
-
-  // Handle errors from voice recorder
-  state.voiceRecorder.onError = (errorMessage) => {
-    showTranscriptionPreview(errorMessage);
-    // Auto-clear error after 5 seconds
-    setTimeout(() => {
-      if (elements.transcriptionPreview.textContent === errorMessage) {
-        elements.transcriptionPreview.textContent = '';
-      }
-    }, 5000);
-  };
-
-  // Handle silence progress for countdown UI
-  state.voiceRecorder.onSilenceProgress = (progress, durationMs) => {
-    updateSilenceIndicator(progress, durationMs);
-  };
-}
-
-/**
- * Handle voice button toggle
- */
-async function handleVoiceToggle() {
-  if (!state.voiceRecorder) return;
-
-  if (state.voiceRecorder.isRecording) {
-    // Haptic feedback on stop - double pulse
-    navigator.vibrate?.([50, 30, 50]);
-    state.voiceRecorder.stopRecording();
-  } else {
-    try {
-      await state.voiceRecorder.startRecording(state.activeTabId);
-      // Haptic feedback on start - short vibration
-      navigator.vibrate?.(50);
-    } catch (err) {
-      console.error('[App] Voice recording failed:', err);
-      setVoiceState('idle');
-      showTranscriptionPreview('Microphone access denied');
-    }
-  }
-}
-
-/**
- * Handle transcription result
- */
-function handleTranscriptionResult(message) {
-  setVoiceState('idle');
-
-  if (message.success && message.text) {
-    showTranscriptionPreview(message.text);
-    if (message.executed) {
-      setTimeout(() => {
-        elements.transcriptionPreview.textContent = '';
-      }, 3000);
-    }
-  } else if (message.error) {
-    showTranscriptionPreview(`Error: ${message.error}`);
-  }
-}
-
-/**
- * Set voice mode
- */
-function setMode(mode) {
-  state.mode = mode;
-
-  if (state.voiceRecorder) {
-    state.voiceRecorder.setMode(mode);
-  }
-
-  // Update UI
-  elements.modeAgent.classList.toggle('active', mode === 'agent');
-  elements.modeRaw.classList.toggle('active', mode === 'raw');
-}
-
-/**
- * Set voice recording state
- */
-function setVoiceState(voiceState) {
-  elements.voiceBtn.classList.remove('recording', 'processing');
-
-  switch (voiceState) {
-    case 'recording':
-      elements.voiceBtn.classList.add('recording');
-      elements.micIcon.hidden = true;
-      elements.stopIcon.hidden = false;
-      elements.silenceRing.hidden = false;
-      elements.voiceStatus.textContent = 'Recording... Tap to stop';
-      break;
-    case 'processing':
-      elements.voiceBtn.classList.add('processing');
-      elements.micIcon.hidden = false;
-      elements.stopIcon.hidden = true;
-      elements.silenceRing.hidden = true;
-      elements.voiceStatus.textContent = 'Processing...';
-      break;
-    default:
-      elements.micIcon.hidden = false;
-      elements.stopIcon.hidden = true;
-      elements.silenceRing.hidden = true;
-      elements.voiceStatus.textContent = 'Tap to speak';
-  }
-}
-
-/**
- * Update silence indicator ring
- * @param {number} progress - Progress from 0 to 1
- * @param {number} durationMs - Silence duration in milliseconds
- */
-function updateSilenceIndicator(progress, durationMs) {
-  if (!elements.silenceProgress) return;
-
-  // Calculate stroke-dashoffset (283 is full circle circumference)
-  const circumference = 283;
-  const offset = circumference - (progress * circumference);
-  elements.silenceProgress.style.strokeDashoffset = offset;
-
-  // Update status text when silence is detected
-  if (progress > 0) {
-    const remainingMs = state.voiceRecorder?.silenceThreshold - durationMs;
-    const remainingSec = (remainingMs / 1000).toFixed(1);
-    elements.voiceStatus.textContent = `Auto-stop in ${remainingSec}s...`;
-  } else if (state.voiceRecorder?.isRecording) {
-    elements.voiceStatus.textContent = 'Recording... Tap to stop';
-  }
-}
-
-/**
- * Show transcription preview
- */
-function showTranscriptionPreview(text) {
-  elements.transcriptionPreview.textContent = text;
 }
 
 /**
