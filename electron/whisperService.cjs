@@ -128,6 +128,12 @@ class WhisperService {
     }
 
     this.installPromise = (async () => {
+      // Save original cwd - the @remotion/install-whisper-cpp package downloads
+      // the zip file to process.cwd(), which fails in production when running
+      // from C:\Program Files (requires admin privileges). We temporarily change
+      // to the userData directory which is always writable.
+      const originalCwd = process.cwd();
+
       try {
         console.log('[WhisperService] Installing whisper.cpp...');
 
@@ -137,6 +143,12 @@ class WhisperService {
           console.log('[WhisperService] Cleaning up incomplete installation...');
           fs.rmSync(this.whisperDir, { recursive: true, force: true });
         }
+
+        // Change to userData directory before installing
+        // This is where the zip file will be downloaded temporarily
+        const userDataPath = app.getPath('userData');
+        console.log('[WhisperService] Changing cwd to:', userDataPath);
+        process.chdir(userDataPath);
 
         // Dynamic import for ESM module
         const { installWhisperCpp } = await import('@remotion/install-whisper-cpp');
@@ -153,6 +165,13 @@ class WhisperService {
         console.error('[WhisperService] Install error:', error);
         return { success: false, error: error.message };
       } finally {
+        // Always restore original cwd
+        try {
+          process.chdir(originalCwd);
+          console.log('[WhisperService] Restored cwd to:', originalCwd);
+        } catch (e) {
+          console.warn('[WhisperService] Failed to restore cwd:', e.message);
+        }
         this.installPromise = null;
       }
     })();
