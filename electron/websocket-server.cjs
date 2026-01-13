@@ -65,11 +65,21 @@ class RemoteControlServer {
     this.INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
     this.audioSessionTimeout = null; // Timeout for audio sessions
 
-    // Security: Authentication rate limiting
+    // Security: Authentication rate limiting (per-IP)
     this.failedAttempts = new Map(); // Map<IP, { count, firstAttempt, lockedUntil }>
     this.MAX_AUTH_ATTEMPTS = 5;
     this.LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
     this.ATTEMPT_WINDOW = 5 * 60 * 1000; // 5 minutes
+
+    // Security: Global rate limiting (defense against distributed attacks)
+    this.globalFailedAttempts = { count: 0, firstAttempt: null };
+    this.GLOBAL_MAX_ATTEMPTS = 20; // Max 20 failed attempts globally per window
+    this.GLOBAL_LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minute global lockout
+    this.globalLockedUntil = null;
+
+    // Security: Password strength requirements
+    this.MIN_PASSWORD_LENGTH = 8;
+    this.RECOMMENDED_PASSWORD_LENGTH = 12;
 
     // Security: Audio buffer limits (prevent DoS)
     this.MAX_CHUNK_SIZE = 1024 * 1024; // 1MB per chunk
@@ -89,10 +99,68 @@ class RemoteControlServer {
   }
 
   /**
+   * Validate password strength for remote access security
+   * @param {string} password - Password to validate
+   * @returns {{ valid: boolean, error?: string, warning?: string }}
+   */
+  validatePasswordStrength(password) {
+    if (!password) {
+      return { valid: true }; // Clearing password is always valid
+    }
+
+    // Minimum length requirement
+    if (password.length < this.MIN_PASSWORD_LENGTH) {
+      return {
+        valid: false,
+        error: `Password must be at least ${this.MIN_PASSWORD_LENGTH} characters (got ${password.length})`,
+      };
+    }
+
+    // Check for complexity (at least 2 of: uppercase, lowercase, numbers, special)
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    const complexityScore = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
+
+    if (complexityScore < 2) {
+      return {
+        valid: false,
+        error: 'Password must contain at least 2 of: uppercase, lowercase, numbers, special characters',
+      };
+    }
+
+    // Check for common weak passwords
+    const weakPasswords = ['password', 'audiobash', '12345678', 'qwerty', 'letmein', 'admin'];
+    if (weakPasswords.some(weak => password.toLowerCase().includes(weak))) {
+      return {
+        valid: false,
+        error: 'Password contains a common weak pattern',
+      };
+    }
+
+    // Warn if below recommended length
+    let warning = null;
+    if (password.length < this.RECOMMENDED_PASSWORD_LENGTH) {
+      warning = `Consider using ${this.RECOMMENDED_PASSWORD_LENGTH}+ characters for better security`;
+    }
+
+    return { valid: true, warning };
+  }
+
+  /**
    * Set a static password for remote access (doesn't expire)
    * @param {string|null} password - Password to set, or null to disable
+   * @returns {{ success: boolean, error?: string, warning?: string }}
    */
   setStaticPassword(password) {
+    // Validate password strength before setting
+    const validation = this.validatePasswordStrength(password);
+    if (!validation.valid) {
+      console.warn(`[RemoteControl] Password rejected: ${validation.error}`);
+      return { success: false, error: validation.error };
+    }
+
     this.staticPassword = password || null;
     if (password) {
       console.log('[RemoteControl] Static password set (remote access enabled)');
@@ -100,6 +168,7 @@ class RemoteControlServer {
       console.log('[RemoteControl] Static password cleared (pairing code only)');
     }
     this.notifyStatusChange();
+    return { success: true, warning: validation.warning };
   }
 
   /**
@@ -452,6 +521,15 @@ class RemoteControlServer {
   }
 
   /**
+   * Notify main window of security events (failed auth, lockouts, etc.)
+   */
+  notifySecurityEvent(event) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('remote-security-event', event);
+    }
+  }
+
+  /**
    * Handle authentication request
    */
   async handleAuth(ws, message) {
@@ -460,6 +538,32 @@ class RemoteControlServer {
     // Security: Get client IP for rate limiting
     const clientIP = ws._socket.remoteAddress;
     const now = Date.now();
+
+    // Security: Check for global lockout (defense against distributed attacks)
+    if (this.globalLockedUntil && now < this.globalLockedUntil) {
+      const remainingSeconds = Math.ceil((this.globalLockedUntil - now) / 1000);
+      console.warn(`[RemoteControl] GLOBAL lockout active (${remainingSeconds}s remaining)`);
+      this.notifySecurityEvent({
+        type: 'global_lockout',
+        remainingSeconds,
+        message: 'Too many failed attempts from multiple IPs. System locked.',
+      });
+      this.send(ws, {
+        type: 'auth_response',
+        success: false,
+        error: 'rate_limit_exceeded',
+        message: `System temporarily locked. Try again in ${Math.ceil(remainingSeconds / 60)} minutes.`,
+      });
+      ws.close();
+      return;
+    }
+
+    // Reset global counter if window has passed
+    if (this.globalFailedAttempts.firstAttempt &&
+        now - this.globalFailedAttempts.firstAttempt > this.ATTEMPT_WINDOW) {
+      this.globalFailedAttempts = { count: 0, firstAttempt: null };
+      this.globalLockedUntil = null;
+    }
 
     // Security: Check if IP is locked out
     const attemptData = this.failedAttempts.get(clientIP);
@@ -501,17 +605,49 @@ class RemoteControlServer {
     const matchesStaticPassword = this.staticPassword && pairingCode === this.staticPassword;
 
     if (!matchesStaticPassword && !matchesPairingCode) {
-      // Security: Track failed attempt
+      // Security: Track per-IP failed attempt
       const currentAttempts = attemptData || { count: 0, firstAttempt: now, lockedUntil: null };
       currentAttempts.count++;
+
+      // Security: Track global failed attempts (defense against distributed attacks)
+      if (!this.globalFailedAttempts.firstAttempt) {
+        this.globalFailedAttempts.firstAttempt = now;
+      }
+      this.globalFailedAttempts.count++;
 
       // Security: Exponential backoff delay (100ms * attempt count, max 2000ms)
       const delayMs = Math.min(100 * currentAttempts.count, 2000);
 
-      // Security: Lock out after MAX_AUTH_ATTEMPTS
+      // Security: Notify UI of failed authentication attempt
+      this.notifySecurityEvent({
+        type: 'failed_auth',
+        ip: clientIP,
+        attemptCount: currentAttempts.count,
+        globalAttemptCount: this.globalFailedAttempts.count,
+        timestamp: now,
+      });
+
+      // Security: Lock out IP after MAX_AUTH_ATTEMPTS
       if (currentAttempts.count >= this.MAX_AUTH_ATTEMPTS) {
         currentAttempts.lockedUntil = now + this.LOCKOUT_DURATION;
         console.warn(`[RemoteControl] IP ${clientIP} locked out for ${this.LOCKOUT_DURATION / 60000} minutes`);
+        this.notifySecurityEvent({
+          type: 'ip_lockout',
+          ip: clientIP,
+          duration: this.LOCKOUT_DURATION,
+        });
+      }
+
+      // Security: Global lockout after GLOBAL_MAX_ATTEMPTS (distributed attack protection)
+      if (this.globalFailedAttempts.count >= this.GLOBAL_MAX_ATTEMPTS) {
+        this.globalLockedUntil = now + this.GLOBAL_LOCKOUT_DURATION;
+        console.warn(`[RemoteControl] GLOBAL lockout triggered for ${this.GLOBAL_LOCKOUT_DURATION / 60000} minutes`);
+        this.notifySecurityEvent({
+          type: 'global_lockout_triggered',
+          totalAttempts: this.globalFailedAttempts.count,
+          duration: this.GLOBAL_LOCKOUT_DURATION,
+          message: 'Possible brute-force attack detected. System locked for 30 minutes.',
+        });
       }
 
       this.failedAttempts.set(clientIP, currentAttempts);

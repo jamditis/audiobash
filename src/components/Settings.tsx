@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
 import { useTheme } from '../themes';
-import { Shortcuts } from '../types';
+import { Shortcuts, SecurityEvent } from '../types';
 import TunnelStatus from './TunnelStatus';
 import QRCode from 'qrcode';
 
@@ -125,6 +125,15 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [remotePassword, setRemotePassword] = useState('');
   const [remotePasswordInput, setRemotePasswordInput] = useState('');
   const [keepAwakeEnabled, setKeepAwakeEnabled] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  // Security alerts state
+  const [securityAlerts, setSecurityAlerts] = useState<Array<{
+    id: number;
+    type: string;
+    message: string;
+    timestamp: number;
+  }>>([]);
 
   // QR code state
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
@@ -227,11 +236,37 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     });
 
     // Listen for remote status changes
-    const cleanup = window.electron?.onRemoteStatusChanged((status) => {
+    const cleanupRemote = window.electron?.onRemoteStatusChanged((status) => {
       setRemoteStatus(status);
     });
 
-    return () => cleanup?.();
+    // Listen for security events (failed auth, lockouts)
+    const cleanupSecurity = window.electron?.onRemoteSecurityEvent?.((event: SecurityEvent) => {
+      let message = '';
+      switch (event.type) {
+        case 'failed_auth':
+          message = `Failed auth attempt from ${event.ip} (${event.globalAttemptCount} total attempts)`;
+          break;
+        case 'ip_lockout':
+          message = `IP ${event.ip} locked out for 15 minutes`;
+          break;
+        case 'global_lockout_triggered':
+          message = event.message || 'Possible brute-force attack detected. System locked.';
+          break;
+        default:
+          message = `Security event: ${event.type}`;
+      }
+
+      setSecurityAlerts(prev => [
+        { id: Date.now(), type: event.type, message, timestamp: Date.now() },
+        ...prev.slice(0, 9), // Keep last 10 alerts
+      ]);
+    });
+
+    return () => {
+      cleanupRemote?.();
+      cleanupSecurity?.();
+    };
   }, [isOpen]);
 
   // Generate QR code when remote status changes
@@ -1037,24 +1072,65 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 </div>
               )}
 
+              {/* Security Alerts */}
+              {securityAlerts.length > 0 && (
+                <div className="space-y-1 pt-2 border-t border-accent/50 bg-accent/5 -mx-3 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] text-accent font-mono uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+                      Security Alerts
+                    </div>
+                    <button
+                      onClick={() => setSecurityAlerts([])}
+                      className="text-[9px] text-crt-white/30 hover:text-crt-white/50"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="space-y-1 max-h-24 overflow-y-auto">
+                    {securityAlerts.map((alert) => (
+                      <div key={alert.id} className="text-[9px] text-accent/80 font-mono">
+                        {new Date(alert.timestamp).toLocaleTimeString()}: {alert.message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Static password for remote access */}
               <div className="space-y-2 pt-2 border-t border-void-300">
                 <div className="text-[10px] text-crt-white/50">
                   Static password (for remote access outside your network):
                 </div>
+                <div className="text-[9px] text-crt-amber/70 mb-1">
+                  ⚠️ If using port forwarding or tunnel, use a strong password (12+ chars, mixed case, numbers)
+                </div>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={remotePasswordInput}
-                    onChange={(e) => setRemotePasswordInput(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                      setRemotePasswordInput(e.target.value.toUpperCase());
+                      setPasswordError(null);
+                    }}
                     placeholder="Set a password..."
-                    className="flex-1 bg-void-100 border border-void-300 rounded px-2 py-1.5 text-xs font-mono text-crt-white focus:border-accent focus:outline-none uppercase tracking-wider"
-                    maxLength={20}
+                    className={`flex-1 bg-void-100 border rounded px-2 py-1.5 text-xs font-mono text-crt-white focus:outline-none uppercase tracking-wider ${
+                      passwordError ? 'border-accent' : 'border-void-300 focus:border-accent'
+                    }`}
+                    maxLength={32}
                   />
                   <button
                     onClick={async () => {
-                      await window.electron?.setRemotePassword(remotePasswordInput);
-                      setRemotePassword(remotePasswordInput);
+                      setPasswordError(null);
+                      const result = await window.electron?.setRemotePassword(remotePasswordInput);
+                      if (result?.success) {
+                        setRemotePassword(remotePasswordInput);
+                        if (result.warning) {
+                          setPasswordError(result.warning);
+                        }
+                      } else if (result?.error) {
+                        setPasswordError(result.error);
+                      }
                     }}
                     disabled={remotePasswordInput === remotePassword}
                     className="text-[10px] px-3 py-1.5 bg-accent text-void rounded font-mono disabled:opacity-30 disabled:cursor-not-allowed"
@@ -1074,7 +1150,12 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                     </button>
                   )}
                 </div>
-                {remotePassword && (
+                {passwordError && (
+                  <div className={`text-[9px] ${passwordError.includes('Consider') ? 'text-crt-amber/70' : 'text-accent/80'}`}>
+                    {passwordError}
+                  </div>
+                )}
+                {remotePassword && !passwordError?.includes('must') && (
                   <div className="text-[9px] text-crt-green/70">
                     Password set. Use this instead of pairing code for persistent access.
                   </div>

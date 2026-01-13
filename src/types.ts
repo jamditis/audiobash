@@ -146,11 +146,12 @@ export interface ElectronAPI {
   // Remote control (mobile companion)
   getRemoteStatus: () => Promise<RemoteStatus>;
   regeneratePairingCode: () => Promise<string | null>;
-  setRemotePassword: (password: string) => Promise<boolean>;
+  setRemotePassword: (password: string) => Promise<PasswordValidationResult>;
   getRemotePassword: () => Promise<string>;
   setKeepAwake: (enabled: boolean) => Promise<boolean>;
   getKeepAwake: () => Promise<boolean>;
   onRemoteStatusChanged: (callback: (status: RemoteStatus) => void) => (() => void);
+  onRemoteSecurityEvent: (callback: (event: SecurityEvent) => void) => (() => void);
   onRemoteTranscriptionRequest: (callback: (request: RemoteTranscriptionRequest) => void) => (() => void);
   sendRemoteTranscriptionResult: (result: RemoteTranscriptionResult) => void;
   onRemoteSwitchTab: (callback: (tabId: string) => void) => (() => void);
@@ -239,6 +240,24 @@ export interface RemoteTranscriptionResult {
   text?: string;
   executed?: boolean;
   error?: string;
+}
+
+export interface PasswordValidationResult {
+  success: boolean;
+  error?: string;
+  warning?: string;
+}
+
+export interface SecurityEvent {
+  type: 'failed_auth' | 'ip_lockout' | 'global_lockout' | 'global_lockout_triggered';
+  ip?: string;
+  attemptCount?: number;
+  globalAttemptCount?: number;
+  duration?: number;
+  message?: string;
+  remainingSeconds?: number;
+  totalAttempts?: number;
+  timestamp?: number;
 }
 
 // Whisper local transcription types

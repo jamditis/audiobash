@@ -1043,6 +1043,29 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   /**
+   * Subscribes to security events from the remote control server.
+   * Called when failed authentication attempts or lockouts occur.
+   *
+   * @function onRemoteSecurityEvent
+   * @memberof window.electron
+   * @param {Function} callback - Handler receiving security event object
+   * @returns {Function} Cleanup function to remove the listener
+   * @example
+   * const cleanup = window.electron.onRemoteSecurityEvent((event) => {
+   *   if (event.type === 'failed_auth') {
+   *     console.warn(`Failed auth from ${event.ip}`);
+   *   } else if (event.type === 'global_lockout_triggered') {
+   *     showSecurityAlert(event.message);
+   *   }
+   * });
+   */
+  onRemoteSecurityEvent: (callback) => {
+    const handler = (_, event) => callback(event);
+    ipcRenderer.on('remote-security-event', handler);
+    return () => ipcRenderer.removeListener('remote-security-event', handler);
+  },
+
+  /**
    * Subscribes to remote transcription requests.
    * Called when a mobile client sends audio for transcription.
    *
