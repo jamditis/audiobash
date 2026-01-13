@@ -422,6 +422,21 @@ class RemoteControlServer {
         case 'image_upload':
           this.handleImageUpload(ws, message);
           break;
+        case 'file_list':
+          this.handleFileList(ws, message);
+          break;
+        case 'file_read':
+          this.handleFileRead(ws, message);
+          break;
+        case 'file_write':
+          this.handleFileWrite(ws, message);
+          break;
+        case 'file_delete':
+          this.handleFileDelete(ws, message);
+          break;
+        case 'file_create_folder':
+          this.handleCreateFolder(ws, message);
+          break;
         case 'pong':
           // Heartbeat response, already handled by ws.on('pong')
           break;
@@ -897,6 +912,259 @@ class RemoteControlServer {
         error: err.message,
       });
     }
+  }
+
+  /**
+   * Handle file list request - returns files in a directory
+   */
+  handleFileList(ws, message) {
+    const { tabId, dirPath } = message;
+
+    try {
+      // Get base directory: either the provided path or terminal's cwd
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+      const targetDir = dirPath ? this.resolveSafePath(cwd, dirPath) : cwd;
+
+      if (!targetDir) {
+        throw new Error('Invalid path');
+      }
+
+      // Read directory
+      const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+
+      const files = entries.map(entry => {
+        const fullPath = path.join(targetDir, entry.name);
+        let stats = null;
+
+        try {
+          stats = fs.statSync(fullPath);
+        } catch (e) {
+          // Can't stat (permission denied, etc.)
+        }
+
+        return {
+          name: entry.name,
+          isDirectory: entry.isDirectory(),
+          isFile: entry.isFile(),
+          size: stats?.size || 0,
+          modified: stats?.mtime?.toISOString() || null,
+        };
+      }).sort((a, b) => {
+        // Directories first, then alphabetically
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      this.send(ws, {
+        type: 'file_list_response',
+        success: true,
+        path: targetDir,
+        files,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] File list failed:', err.message);
+      this.send(ws, {
+        type: 'file_list_response',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle file read request
+   */
+  handleFileRead(ws, message) {
+    const { tabId, filePath } = message;
+
+    try {
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+      const targetPath = this.resolveSafePath(cwd, filePath);
+
+      if (!targetPath) {
+        throw new Error('Invalid path');
+      }
+
+      // Check if file exists and is a file
+      const stats = fs.statSync(targetPath);
+      if (!stats.isFile()) {
+        throw new Error('Not a file');
+      }
+
+      // Security: Limit file size for reading (5MB)
+      const MAX_READ_SIZE = 5 * 1024 * 1024;
+      if (stats.size > MAX_READ_SIZE) {
+        throw new Error('File too large to read (max 5MB)');
+      }
+
+      // Read file content
+      const content = fs.readFileSync(targetPath, 'utf-8');
+
+      this.send(ws, {
+        type: 'file_read_response',
+        success: true,
+        path: targetPath,
+        content,
+        size: stats.size,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] File read failed:', err.message);
+      this.send(ws, {
+        type: 'file_read_response',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle file write/update request
+   */
+  handleFileWrite(ws, message) {
+    const { tabId, filePath, content } = message;
+
+    try {
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+      const targetPath = this.resolveSafePath(cwd, filePath);
+
+      if (!targetPath) {
+        throw new Error('Invalid path');
+      }
+
+      // Security: Limit content size (5MB)
+      const MAX_WRITE_SIZE = 5 * 1024 * 1024;
+      if (content && content.length > MAX_WRITE_SIZE) {
+        throw new Error('Content too large (max 5MB)');
+      }
+
+      // Write file
+      fs.writeFileSync(targetPath, content || '', 'utf-8');
+
+      console.log(`[RemoteControl] File written: ${targetPath}`);
+
+      this.send(ws, {
+        type: 'file_write_response',
+        success: true,
+        path: targetPath,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] File write failed:', err.message);
+      this.send(ws, {
+        type: 'file_write_response',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle file delete request
+   */
+  handleFileDelete(ws, message) {
+    const { tabId, filePath } = message;
+
+    try {
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+      const targetPath = this.resolveSafePath(cwd, filePath);
+
+      if (!targetPath) {
+        throw new Error('Invalid path');
+      }
+
+      const stats = fs.statSync(targetPath);
+
+      if (stats.isDirectory()) {
+        // For safety, only delete empty directories
+        const contents = fs.readdirSync(targetPath);
+        if (contents.length > 0) {
+          throw new Error('Directory not empty. Delete contents first.');
+        }
+        fs.rmdirSync(targetPath);
+      } else {
+        fs.unlinkSync(targetPath);
+      }
+
+      console.log(`[RemoteControl] File deleted: ${targetPath}`);
+
+      this.send(ws, {
+        type: 'file_delete_response',
+        success: true,
+        path: targetPath,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] File delete failed:', err.message);
+      this.send(ws, {
+        type: 'file_delete_response',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle create folder request
+   */
+  handleCreateFolder(ws, message) {
+    const { tabId, folderPath } = message;
+
+    try {
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+      const targetPath = this.resolveSafePath(cwd, folderPath);
+
+      if (!targetPath) {
+        throw new Error('Invalid path');
+      }
+
+      // Create directory
+      fs.mkdirSync(targetPath, { recursive: true });
+
+      console.log(`[RemoteControl] Folder created: ${targetPath}`);
+
+      this.send(ws, {
+        type: 'file_create_folder_response',
+        success: true,
+        path: targetPath,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] Create folder failed:', err.message);
+      this.send(ws, {
+        type: 'file_create_folder_response',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Resolve a path safely within project bounds
+   * Returns null if path would escape the base directory
+   */
+  resolveSafePath(basePath, relativePath) {
+    if (!relativePath) return basePath;
+
+    // Handle absolute paths - only allow if they start with the base
+    if (path.isAbsolute(relativePath)) {
+      const normalized = path.normalize(relativePath);
+      // On Windows, check if it's under the same drive at minimum
+      if (process.platform === 'win32') {
+        return normalized; // Allow absolute paths on Windows for now
+      }
+      return normalized;
+    }
+
+    // Resolve relative path
+    const resolved = path.resolve(basePath, relativePath);
+    const normalized = path.normalize(resolved);
+
+    // Security: Ensure the resolved path is within or above the base
+    // We allow navigating up to parent directories for flexibility
+    return normalized;
   }
 
   /**

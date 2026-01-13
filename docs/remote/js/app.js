@@ -5,11 +5,13 @@
 
 import { WebSocketManager } from './websocket.js';
 import { RemoteTerminal } from './terminal.js';
+import { FileBrowser } from './file-browser.js';
 
 // Application state
 const state = {
   wsManager: new WebSocketManager(),
   terminal: null,
+  fileBrowser: null,
   activeTabId: 'tab-1',
   tabs: [],
 };
@@ -38,6 +40,7 @@ const elements = {
   commandInput: document.getElementById('command-input'),
   imageInput: document.getElementById('image-input'),
   imageBtn: document.getElementById('image-btn'),
+  filesBtn: document.getElementById('files-btn'),
   sendBtn: document.getElementById('send-btn'),
 
   // Reconnect overlay
@@ -170,6 +173,10 @@ function setupEventListeners() {
     if (state.terminal) {
       state.terminal.switchTab(tabId);
       state.activeTabId = tabId;
+    }
+    // Update file browser's active tab too
+    if (state.fileBrowser) {
+      state.fileBrowser.setActiveTab(tabId);
     }
   });
 
@@ -432,6 +439,12 @@ function handleDisconnect() {
     state.terminal = null;
   }
 
+  // Clean up file browser
+  if (state.fileBrowser) {
+    state.fileBrowser.hide();
+    state.fileBrowser = null;
+  }
+
   // Show connect screen
   showScreen('connect');
 }
@@ -454,6 +467,9 @@ function initializeTerminal(desktopInfo) {
 
   // Handle tabs update
   state.terminal.onTabsUpdate = updateTabs;
+
+  // Initialize file browser
+  state.fileBrowser = new FileBrowser(state.wsManager, desktopInfo.activeTabId);
 }
 
 /**

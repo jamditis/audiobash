@@ -304,6 +304,10 @@ html, body {
   padding: 4px;
 }
 
+#terminal-container.hidden {
+  display: none;
+}
+
 /* xterm.js overrides for mobile */
 #terminal-container .xterm {
   height: 100%;
@@ -562,6 +566,379 @@ html, body {
 
 .btn-secondary:active {
   background: var(--void-300);
+}
+
+/* ===================== */
+/* Files Button          */
+/* ===================== */
+
+#files-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  color: var(--crt-white);
+  opacity: 0.7;
+}
+
+#files-btn:active {
+  opacity: 1;
+  background: var(--void-300);
+}
+
+#files-btn.active {
+  background: var(--crt-amber);
+  color: var(--void);
+  opacity: 1;
+  border-color: var(--crt-amber);
+}
+
+#files-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ===================== */
+/* File Browser          */
+/* ===================== */
+
+#file-browser {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#file-browser.hidden {
+  display: none;
+}
+
+#file-browser-header {
+  height: 44px;
+  padding: 0 0.5rem;
+  background: var(--void-200);
+  border-bottom: 1px solid var(--void-300);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+#current-path {
+  flex: 1;
+  font-size: 0.7rem;
+  color: var(--crt-white);
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.5rem;
+}
+
+#file-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--void-200);
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.file-item:active {
+  background: var(--void-200);
+}
+
+.file-item.selected {
+  background: var(--void-300);
+}
+
+.file-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--crt-white);
+  opacity: 0.5;
+}
+
+.file-icon.folder {
+  color: var(--crt-amber);
+  opacity: 1;
+}
+
+.file-icon.file {
+  color: var(--crt-white);
+  opacity: 0.6;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 0.875rem;
+  color: var(--crt-white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  font-size: 0.65rem;
+  color: var(--crt-white);
+  opacity: 0.4;
+  margin-top: 0.125rem;
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.file-item:active .file-actions,
+.file-item.selected .file-actions {
+  opacity: 1;
+}
+
+.file-action-btn {
+  width: 28px;
+  height: 28px;
+  background: var(--void-300);
+  border: none;
+  border-radius: 4px;
+  color: var(--crt-white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.file-action-btn:active {
+  opacity: 1;
+}
+
+.file-action-btn.delete {
+  color: var(--accent);
+}
+
+.file-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Empty state */
+.file-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--crt-white);
+  opacity: 0.3;
+  font-size: 0.875rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* ===================== */
+/* File Editor           */
+/* ===================== */
+
+#file-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#file-editor.hidden {
+  display: none;
+}
+
+#file-editor-header {
+  height: 44px;
+  padding: 0 0.5rem;
+  background: var(--void-200);
+  border-bottom: 1px solid var(--void-300);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+#editor-filename {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--crt-white);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 0.5rem;
+}
+
+#editor-save-btn.btn-save {
+  color: var(--crt-green);
+  opacity: 0.7;
+}
+
+#editor-save-btn.btn-save:active {
+  opacity: 1;
+}
+
+#editor-save-btn.btn-save.modified {
+  color: var(--crt-amber);
+  animation: pulse 1s infinite;
+}
+
+#file-content {
+  flex: 1;
+  width: 100%;
+  padding: 1rem;
+  background: var(--void);
+  border: none;
+  color: var(--crt-green);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#file-content::placeholder {
+  color: var(--crt-white);
+  opacity: 0.2;
+}
+
+/* ===================== */
+/* New File Dialog       */
+/* ===================== */
+
+#new-file-dialog {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+#new-file-dialog.hidden {
+  display: none;
+}
+
+.dialog-content {
+  width: 90%;
+  max-width: 320px;
+  background: var(--void-100);
+  border: 1px solid var(--void-300);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.dialog-title {
+  font-size: 0.875rem;
+  color: var(--crt-white);
+  margin-bottom: 1rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dialog-options {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.dialog-option {
+  flex: 1;
+  padding: 0.75rem;
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  border-radius: 6px;
+  color: var(--crt-white);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.dialog-option:active,
+.dialog-option.selected {
+  background: var(--accent);
+  color: var(--void);
+  border-color: var(--accent);
+}
+
+.dialog-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  border-radius: 6px;
+  color: var(--crt-white);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  outline: none;
+  margin-bottom: 1rem;
+}
+
+.dialog-input:focus {
+  border-color: var(--accent);
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: opacity 0.15s;
+}
+
+.dialog-btn.cancel {
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  color: var(--crt-white);
+}
+
+.dialog-btn.confirm {
+  background: var(--accent);
+  border: none;
+  color: var(--void);
+}
+
+.dialog-btn:active {
+  opacity: 0.8;
 }
 
 /* ===================== */

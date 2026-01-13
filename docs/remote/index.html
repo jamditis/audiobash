@@ -88,6 +88,44 @@
 
       <div id="terminal-container"></div>
 
+      <!-- File Browser -->
+      <div id="file-browser" class="hidden">
+        <div id="file-browser-header">
+          <button id="file-back-btn" class="btn-icon" title="Go back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div id="current-path">/</div>
+          <button id="file-new-btn" class="btn-icon" title="New file/folder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+        </div>
+        <div id="file-list"></div>
+      </div>
+
+      <!-- File Editor -->
+      <div id="file-editor" class="hidden">
+        <div id="file-editor-header">
+          <button id="editor-back-btn" class="btn-icon" title="Back to files">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <div id="editor-filename">file.txt</div>
+          <button id="editor-save-btn" class="btn-icon btn-save" title="Save file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+              <polyline points="17,21 17,13 7,13 7,21"/>
+              <polyline points="7,3 7,8 15,8"/>
+            </svg>
+          </button>
+        </div>
+        <textarea id="file-content" spellcheck="false"></textarea>
+      </div>
+
       <!-- Command Input -->
       <div id="command-input-container">
         <input
@@ -105,6 +143,11 @@
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </button>
+        <button id="files-btn" title="File browser">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
           </svg>
         </button>
         <button id="send-btn" title="Send command">
