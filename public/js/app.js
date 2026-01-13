@@ -277,7 +277,9 @@ async function handleConnect() {
     const deviceName = getDeviceName();
 
     // Detect if it's a tunnel URL (no port needed) or IP address (port 8766)
-    const isTunnelUrl = address.includes('tunnelto') ||
+    // Supports Cloudflare (trycloudflare.com) and ngrok (ngrok.io, ngrok-free.app)
+    const isTunnelUrl = address.includes('trycloudflare') ||
+                        address.includes('ngrok') ||
                         address.startsWith('wss://') ||
                         address.startsWith('https://') ||
                         (address.includes('.') && !/^[\d.]+$/.test(address));

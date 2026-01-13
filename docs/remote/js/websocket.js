@@ -70,7 +70,7 @@ export class WebSocketManager {
       else if (hostOrUrl.startsWith('http://')) {
         url = hostOrUrl.replace('http://', 'ws://');
       }
-      // Check if it's a hostname (tunnel URL like subdomain.tunnelto.dev)
+      // Check if it's a hostname (tunnel URL like xxx.trycloudflare.com or xxx.ngrok-free.app)
       else if (hostOrUrl.includes('.') && !/^[\d.]+$/.test(hostOrUrl)) {
         // It's a hostname - always use wss:// for tunnel URLs (no port needed)
         url = `wss://${hostOrUrl}`;
@@ -85,7 +85,7 @@ export class WebSocketManager {
         url = `${protocol}://${hostOrUrl}:${effectivePort}`;
       }
       else {
-        reject(new Error('Invalid address. Use IP (192.168.1.70) or tunnel URL (xxx.tunnelto.dev)'));
+        reject(new Error('Invalid address. Use IP (192.168.1.70) or tunnel URL (xxx.trycloudflare.com)'));
         return;
       }
 

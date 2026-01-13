@@ -1128,29 +1128,35 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TUNNEL SERVICE (TUNNELTO)
+  // TUNNEL SERVICE (MULTI-PROVIDER: NGROK, CLOUDFLARE)
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
    * Starts the tunnel service for remote access.
    * Creates a public URL that tunnels to the local WebSocket server.
-   * Uses tunnelto (https://tunnelto.dev) for the tunnel.
+   * Supports multiple providers: 'ngrok' and 'cloudflare'.
    *
    * @function tunnelStart
    * @memberof window.electron
    * @param {number} port - Local port to tunnel
+   * @param {string} [provider='cloudflare'] - Tunnel provider: 'ngrok' or 'cloudflare'
    * @returns {Promise<{success: boolean, url?: string, error?: string}>} Start result with public URL
    * @example
+   * // Start with Cloudflare (default)
    * const result = await window.electron.tunnelStart(8765);
+   *
+   * // Start with ngrok
+   * const result = await window.electron.tunnelStart(8765, 'ngrok');
+   *
    * if (result.success) {
    *   console.log('Tunnel URL:', result.url);
-   *   // Share this URL with mobile companion
    * }
    */
-  tunnelStart: (port) => ipcRenderer.invoke('tunnel-start', port),
+  tunnelStart: (port, provider = 'cloudflare') => ipcRenderer.invoke('tunnel-start', { port, provider }),
 
   /**
    * Stops the tunnel service.
+   * Stops the currently active tunnel regardless of provider.
    *
    * @function tunnelStop
    * @memberof window.electron
@@ -1162,28 +1168,33 @@ contextBridge.exposeInMainWorld('electron', {
 
   /**
    * Gets the current tunnel status.
+   * Returns the status for the currently active provider.
    *
    * @function tunnelGetStatus
    * @memberof window.electron
-   * @returns {Promise<{running: boolean, url?: string}>} Tunnel status
+   * @returns {Promise<{running: boolean, url?: string, provider?: string}>} Tunnel status
    * @example
    * const status = await window.electron.tunnelGetStatus();
    * if (status.running) {
-   *   console.log('Tunnel active at:', status.url);
+   *   console.log(`Tunnel active via ${status.provider}:`, status.url);
    * }
    */
   tunnelGetStatus: () => ipcRenderer.invoke('tunnel-status'),
 
   /**
-   * Checks if the tunnel binary (tunnelto) is installed.
+   * Checks if tunnel binaries are installed.
+   * Returns availability status for both ngrok and Cloudflare.
    *
    * @function tunnelCheckBinary
    * @memberof window.electron
-   * @returns {Promise<{installed: boolean, path?: string}>} Binary check result
+   * @returns {Promise<{ngrok: {available: boolean, path?: string, message: string}, cloudflare: {available: boolean, path?: string, message: string}}>} Binary check result for all providers
    * @example
    * const check = await window.electron.tunnelCheckBinary();
-   * if (!check.installed) {
-   *   showInstallInstructions();
+   * if (check.ngrok.available) {
+   *   console.log('ngrok found at:', check.ngrok.path);
+   * }
+   * if (check.cloudflare.available) {
+   *   console.log('cloudflared found at:', check.cloudflare.path);
    * }
    */
   tunnelCheckBinary: () => ipcRenderer.invoke('tunnel-check-binary'),
@@ -1212,19 +1223,44 @@ contextBridge.exposeInMainWorld('electron', {
   getTunnelEnabled: () => ipcRenderer.invoke('get-tunnel-enabled'),
 
   /**
+   * Sets the preferred tunnel provider.
+   *
+   * @function tunnelSetProvider
+   * @memberof window.electron
+   * @param {string} provider - Provider name: 'ngrok' or 'cloudflare'
+   * @returns {Promise<{success: boolean}>} Set result
+   * @example
+   * await window.electron.tunnelSetProvider('ngrok');
+   */
+  tunnelSetProvider: (provider) => ipcRenderer.invoke('tunnel-set-provider', provider),
+
+  /**
+   * Gets the currently configured tunnel provider.
+   *
+   * @function tunnelGetProvider
+   * @memberof window.electron
+   * @returns {Promise<string>} Current provider: 'ngrok' or 'cloudflare'
+   * @example
+   * const provider = await window.electron.tunnelGetProvider();
+   * console.log('Current tunnel provider:', provider);
+   */
+  tunnelGetProvider: () => ipcRenderer.invoke('tunnel-get-provider'),
+
+  /**
    * Subscribes to tunnel status change events.
    * Called when the tunnel connects, disconnects, or errors.
+   * Works with the currently active provider.
    *
    * @function onTunnelStatusChanged
    * @memberof window.electron
-   * @param {Function} callback - Handler receiving (status: {running, url, error?})
+   * @param {Function} callback - Handler receiving (status: {running, url, provider?, error?})
    * @returns {Function} Cleanup function to remove the listener
    * @example
    * const cleanup = window.electron.onTunnelStatusChanged((status) => {
    *   if (status.error) {
    *     showError('Tunnel failed:', status.error);
    *   } else if (status.running) {
-   *     showSuccess('Tunnel connected:', status.url);
+   *     showSuccess(`Tunnel connected via ${status.provider}:`, status.url);
    *   }
    * });
    */

@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface TunnelStatus {
-  status: 'disconnected' | 'connecting' | 'connected' | 'error';
-  tunnelUrl: string | null;
-  subdomain: string | null;
-  error: string | null;
-}
-
-interface BinaryCheck {
-  available: boolean;
-  path: string | null;
-  message: string;
-}
+import type { TunnelProvider, TunnelStatus, TunnelBinaryCheck, ProviderBinaryCheck } from '../types';
 
 interface TunnelStatusProps {
   onStatusChange?: (status: TunnelStatus) => void;
@@ -21,12 +9,12 @@ const TunnelStatusComponent: React.FC<TunnelStatusProps> = ({ onStatusChange }) 
   const [tunnelStatus, setTunnelStatus] = useState<TunnelStatus>({
     status: 'disconnected',
     tunnelUrl: null,
-    subdomain: null,
     error: null,
   });
   const [enabled, setEnabled] = useState(false);
-  const [binaryCheck, setBinaryCheck] = useState<BinaryCheck | null>(null);
+  const [binaryCheck, setBinaryCheck] = useState<TunnelBinaryCheck | null>(null);
   const [checking, setChecking] = useState(false);
+  const [provider, setProvider] = useState<TunnelProvider>('cloudflare');
 
   // Load initial status and settings
   useEffect(() => {
@@ -77,7 +65,7 @@ const TunnelStatusComponent: React.FC<TunnelStatusProps> = ({ onStatusChange }) 
       // Start tunnel
       setChecking(true);
       try {
-        const result = await window.electron?.tunnelStart(8765);
+        const result = await window.electron?.tunnelStart(8765, provider);
         if (result?.success) {
           await window.electron?.setTunnelEnabled(true);
           setEnabled(true);
@@ -124,27 +112,96 @@ const TunnelStatusComponent: React.FC<TunnelStatusProps> = ({ onStatusChange }) 
     }
   };
 
+  // Check if selected provider is available
+  const selectedProviderCheck = binaryCheck?.[provider];
+  const hasAnyProvider = binaryCheck?.cloudflare?.available || binaryCheck?.ngrok?.available;
+
   return (
     <div className="space-y-3">
       <h3 className="text-[10px] text-crt-white/50 font-mono uppercase tracking-wider border-b border-void-300 pb-1">
-        Public Access (tunnelto)
+        Public Access Tunnel
       </h3>
 
-      {/* Binary check status */}
-      {binaryCheck && !binaryCheck.available && (
+      {/* Provider selector */}
+      <div className="bg-void-200 rounded p-2 space-y-2">
+        <div className="text-[10px] text-crt-white/50 font-mono uppercase">Provider</div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setProvider('cloudflare')}
+            disabled={tunnelStatus.status === 'connected' || tunnelStatus.status === 'connecting'}
+            className={`flex-1 px-2 py-1.5 text-[10px] font-mono uppercase rounded border transition-colors ${
+              provider === 'cloudflare'
+                ? 'bg-accent/20 text-accent border-accent'
+                : 'bg-void-100 text-crt-white/50 border-void-300 hover:border-crt-white/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <span>Cloudflare</span>
+              {binaryCheck?.cloudflare?.available && (
+                <span className="w-1.5 h-1.5 rounded-full bg-crt-green" title="Available" />
+              )}
+              {binaryCheck && !binaryCheck.cloudflare?.available && (
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" title="Not installed" />
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => setProvider('ngrok')}
+            disabled={tunnelStatus.status === 'connected' || tunnelStatus.status === 'connecting'}
+            className={`flex-1 px-2 py-1.5 text-[10px] font-mono uppercase rounded border transition-colors ${
+              provider === 'ngrok'
+                ? 'bg-accent/20 text-accent border-accent'
+                : 'bg-void-100 text-crt-white/50 border-void-300 hover:border-crt-white/30'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <span>ngrok</span>
+              {binaryCheck?.ngrok?.available && (
+                <span className="w-1.5 h-1.5 rounded-full bg-crt-green" title="Available" />
+              )}
+              {binaryCheck && !binaryCheck.ngrok?.available && (
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" title="Not installed" />
+              )}
+            </div>
+          </button>
+        </div>
+        <div className="text-[9px] text-crt-white/30">
+          {provider === 'cloudflare' && 'No auth required. Uses trycloudflare.com'}
+          {provider === 'ngrok' && 'May require auth token for longer sessions'}
+        </div>
+      </div>
+
+      {/* Binary check status - show if selected provider not available */}
+      {binaryCheck && !selectedProviderCheck?.available && (
         <div className="bg-void-200 rounded p-2 text-[10px] text-crt-white/70 space-y-1">
-          <div className="text-accent font-mono">tunnelto not installed</div>
-          <div className="text-crt-white/50">
-            Install with: <code className="text-crt-amber">cargo install tunnelto</code>
+          <div className="text-accent font-mono">
+            {provider === 'cloudflare' ? 'cloudflared' : 'ngrok'} not installed
           </div>
-          <div className="text-crt-white/30 text-[9px]">
-            Or download from: <a href="https://github.com/agrinman/tunnelto" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">github.com/agrinman/tunnelto</a>
-          </div>
+          {provider === 'cloudflare' && (
+            <>
+              <div className="text-crt-white/50">
+                Download from: <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cloudflare.com/products/tunnel</a>
+              </div>
+              <div className="text-crt-white/30 text-[9px]">
+                Or install via package manager (brew, winget, apt)
+              </div>
+            </>
+          )}
+          {provider === 'ngrok' && (
+            <>
+              <div className="text-crt-white/50">
+                Install from: <a href="https://ngrok.com/download" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">ngrok.com</a>
+              </div>
+              <div className="text-crt-white/30 text-[9px]">
+                Or run: <code className="text-crt-amber">npm install -g ngrok</code>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {/* Status and toggle */}
-      {binaryCheck?.available && (
+      {selectedProviderCheck?.available && (
         <div className="bg-void-200 rounded p-3 space-y-3">
           {/* Status indicator */}
           <div className="flex items-center justify-between">
@@ -200,15 +257,31 @@ const TunnelStatusComponent: React.FC<TunnelStatusProps> = ({ onStatusChange }) 
           {tunnelStatus.status === 'disconnected' && (
             <div className="text-[10px] text-crt-white/30 leading-relaxed pt-2 border-t border-void-300">
               Enable to create a secure tunnel and access your AudioBash instance from anywhere on the internet.
-              Requires <code className="text-crt-white/50">tunnelto</code> CLI to be installed.
+              {provider === 'cloudflare' && ' Cloudflare tunnels are free and require no authentication.'}
+              {provider === 'ngrok' && ' ngrok may require a free account for sessions longer than 2 hours.'}
             </div>
           )}
         </div>
       )}
 
-      {/* What is tunnelto? */}
+      {/* Provider availability summary */}
+      {binaryCheck && (
+        <div className="text-[9px] text-crt-white/30 leading-relaxed space-y-1">
+          <div className="font-mono uppercase text-crt-white/40">Installed providers:</div>
+          <div className="flex gap-3">
+            <span className={binaryCheck.cloudflare?.available ? 'text-crt-green' : 'text-crt-white/20'}>
+              cloudflared: {binaryCheck.cloudflare?.available ? 'yes' : 'no'}
+            </span>
+            <span className={binaryCheck.ngrok?.available ? 'text-crt-green' : 'text-crt-white/20'}>
+              ngrok: {binaryCheck.ngrok?.available ? 'yes' : 'no'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* What are tunnels? */}
       <div className="text-[9px] text-crt-white/30 leading-relaxed">
-        tunnelto exposes your local WebSocket server via a public HTTPS URL, enabling remote access from anywhere (not just your local WiFi).
+        Tunnels expose your local WebSocket server via a public HTTPS URL, enabling remote access from anywhere (not just your local WiFi).
       </div>
     </div>
   );

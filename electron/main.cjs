@@ -13,9 +13,12 @@ let pty = null;
 const { RemoteControlServer } = require('./websocket-server.cjs');
 let remoteServer = null;
 
-// Tunnel service
-const { TunnelService } = require('./tunnelService.cjs');
-let tunnelService = null;
+// Tunnel services (ngrok and cloudflare)
+const { NgrokService } = require('./ngrokService.cjs');
+const { CloudflareService } = require('./cloudflareService.cjs');
+let ngrokService = null;
+let cloudflareService = null;
+let activeTunnelProvider = 'cloudflare'; // 'ngrok' or 'cloudflare'
 
 // Whisper service for local transcription
 const whisperService = require('./whisperService.cjs');
@@ -1428,15 +1431,40 @@ function setupIPC() {
     }
   });
 
-  // Tunnel service handlers
-  ipcMain.handle('tunnel-start', async (_, port) => {
+  // Tunnel service handlers (supports ngrok and cloudflare)
+  ipcMain.handle('tunnel-start', async (_, { port, provider } = {}) => {
     try {
-      if (!tunnelService) {
-        console.error('[AudioBash] Tunnel service not initialized');
-        return { success: false, error: 'Tunnel service not available' };
+      const targetPort = port || 8765;
+      const targetProvider = provider || activeTunnelProvider;
+
+      // Stop any running tunnel first
+      if (ngrokService) {
+        await ngrokService.stop();
       }
-      await tunnelService.start(port || 8765);
-      return { success: true, status: tunnelService.getStatus() };
+      if (cloudflareService) {
+        cloudflareService.stop();
+      }
+
+      // Start the selected provider
+      if (targetProvider === 'ngrok') {
+        if (!ngrokService) {
+          console.error('[AudioBash] ngrok service not initialized');
+          return { success: false, error: 'ngrok service not available' };
+        }
+        await ngrokService.start(targetPort);
+        activeTunnelProvider = 'ngrok';
+        store.set('tunnelProvider', 'ngrok');
+        return { success: true, status: ngrokService.getStatus(), provider: 'ngrok' };
+      } else {
+        if (!cloudflareService) {
+          console.error('[AudioBash] Cloudflare service not initialized');
+          return { success: false, error: 'Cloudflare service not available' };
+        }
+        await cloudflareService.start(targetPort);
+        activeTunnelProvider = 'cloudflare';
+        store.set('tunnelProvider', 'cloudflare');
+        return { success: true, status: cloudflareService.getStatus(), provider: 'cloudflare' };
+      }
     } catch (err) {
       console.error('[AudioBash] Tunnel start error:', err);
       return { success: false, error: err.message };
@@ -1445,10 +1473,13 @@ function setupIPC() {
 
   ipcMain.handle('tunnel-stop', async () => {
     try {
-      if (!tunnelService) {
-        return { success: false, error: 'Tunnel service not available' };
+      // Stop both services (whichever is running)
+      if (ngrokService) {
+        await ngrokService.stop();
       }
-      tunnelService.stop();
+      if (cloudflareService) {
+        cloudflareService.stop();
+      }
       return { success: true };
     } catch (err) {
       console.error('[AudioBash] Tunnel stop error:', err);
@@ -1458,42 +1489,62 @@ function setupIPC() {
 
   ipcMain.handle('tunnel-status', async () => {
     try {
-      if (!tunnelService) {
-        return {
-          status: 'disconnected',
-          tunnelUrl: null,
-          subdomain: null,
-          error: 'Tunnel service not initialized'
-        };
+      // Return status from active provider
+      if (activeTunnelProvider === 'ngrok' && ngrokService) {
+        return { ...ngrokService.getStatus(), provider: 'ngrok' };
       }
-      return tunnelService.getStatus();
+      if (cloudflareService) {
+        return { ...cloudflareService.getStatus(), provider: 'cloudflare' };
+      }
+      return {
+        status: 'disconnected',
+        tunnelUrl: null,
+        error: 'Tunnel service not initialized',
+        provider: activeTunnelProvider
+      };
     } catch (err) {
       console.error('[AudioBash] Tunnel status error:', err);
       return {
         status: 'error',
-        error: err.message
+        error: err.message,
+        provider: activeTunnelProvider
       };
     }
   });
 
   ipcMain.handle('tunnel-check-binary', async () => {
     try {
-      if (!tunnelService) {
-        return {
-          available: false,
-          path: null,
-          message: 'Tunnel service not initialized'
-        };
-      }
-      return tunnelService.checkBinary();
+      const results = {
+        ngrok: ngrokService ? ngrokService.checkBinary() : { available: false, path: null, message: 'ngrok service not initialized' },
+        cloudflare: cloudflareService ? cloudflareService.checkBinary() : { available: false, path: null, message: 'Cloudflare service not initialized' }
+      };
+      return results;
     } catch (err) {
       console.error('[AudioBash] Tunnel check binary error:', err);
       return {
-        available: false,
-        path: null,
-        message: err.message
+        ngrok: { available: false, path: null, message: err.message },
+        cloudflare: { available: false, path: null, message: err.message }
       };
     }
+  });
+
+  ipcMain.handle('tunnel-set-provider', async (_, provider) => {
+    try {
+      if (provider !== 'ngrok' && provider !== 'cloudflare') {
+        return { success: false, error: 'Invalid provider. Must be "ngrok" or "cloudflare"' };
+      }
+      activeTunnelProvider = provider;
+      store.set('tunnelProvider', provider);
+      console.log('[AudioBash] Tunnel provider set to:', provider);
+      return { success: true, provider };
+    } catch (err) {
+      console.error('[AudioBash] Set tunnel provider error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('tunnel-get-provider', async () => {
+    return { provider: activeTunnelProvider };
   });
 
   // Save tunnel enabled preference
@@ -1661,21 +1712,39 @@ app.whenReady().then(async () => {
     console.log('[AudioBash] Keep-awake restored (power blocker ID:', blockerId, ')');
   }
 
-  // Initialize tunnel service
-  tunnelService = new TunnelService();
-  tunnelService.onStatusChange = (status) => {
-    console.log('[TunnelService] Status:', status.status, status.tunnelUrl || '');
-    // Notify renderer of status change
+  // Initialize tunnel services (ngrok and cloudflare)
+  ngrokService = new NgrokService();
+  cloudflareService = new CloudflareService();
+
+  // Load saved provider preference
+  activeTunnelProvider = store.get('tunnelProvider', 'cloudflare');
+  console.log('[AudioBash] Tunnel provider preference:', activeTunnelProvider);
+
+  // Status change callback for ngrok
+  ngrokService.onStatusChange = (status) => {
+    console.log('[NgrokService] Status:', status.status, status.tunnelUrl || '');
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('tunnel-status-changed', status);
+      mainWindow.webContents.send('tunnel-status-changed', { ...status, provider: 'ngrok' });
+    }
+  };
+
+  // Status change callback for cloudflare
+  cloudflareService.onStatusChange = (status) => {
+    console.log('[CloudflareService] Status:', status.status, status.tunnelUrl || '');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('tunnel-status-changed', { ...status, provider: 'cloudflare' });
     }
   };
 
   // Auto-start tunnel if enabled
   const tunnelEnabled = store.get('tunnelEnabled', false);
   if (tunnelEnabled) {
-    console.log('[AudioBash] Auto-starting tunnel (saved preference)');
-    tunnelService.start(8765);
+    console.log(`[AudioBash] Auto-starting tunnel (${activeTunnelProvider}) from saved preference`);
+    if (activeTunnelProvider === 'ngrok') {
+      ngrokService.start(8765);
+    } else {
+      cloudflareService.start(8765);
+    }
   }
 });
 
@@ -1732,10 +1801,14 @@ app.on('activate', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 
-  // Stop tunnel
-  if (tunnelService) {
-    tunnelService.stop();
-    tunnelService = null;
+  // Stop tunnel services
+  if (ngrokService) {
+    ngrokService.stop();
+    ngrokService = null;
+  }
+  if (cloudflareService) {
+    cloudflareService.stop();
+    cloudflareService = null;
   }
 
   // Stop WebSocket server

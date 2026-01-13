@@ -190,7 +190,7 @@ describe('Mobile WebSocket manager', () => {
   });
 
   it('supports both IP address and tunnel URL formats', () => {
-    expect(mobileWebsocketCode).toContain('tunnelto');
+    expect(mobileWebsocketCode).toContain('trycloudflare');
     expect(mobileWebsocketCode).toContain('wss://');
     expect(mobileWebsocketCode).toContain('ws://');
   });
@@ -284,18 +284,27 @@ describe('Main process remote integration', () => {
   });
 });
 
-describe('Tunnel service', () => {
-  const tunnelServicePath = join(rootDir, 'electron', 'tunnelService.cjs');
+describe('Tunnel services', () => {
+  const cloudflareServicePath = join(rootDir, 'electron', 'cloudflareService.cjs');
+  const ngrokServicePath = join(rootDir, 'electron', 'ngrokService.cjs');
 
-  it('tunnel service file exists', () => {
-    expect(existsSync(tunnelServicePath)).toBe(true);
+  it('cloudflare service file exists', () => {
+    expect(existsSync(cloudflareServicePath)).toBe(true);
   });
 
-  it('uses tunnelto for public access', () => {
-    const tunnelServiceCode = readFileSync(tunnelServicePath, 'utf8');
-    expect(tunnelServiceCode).toContain('tunnelto');
-    expect(tunnelServiceCode).toContain('--port');
-    expect(tunnelServiceCode).toContain('--subdomain');
+  it('ngrok service file exists', () => {
+    expect(existsSync(ngrokServicePath)).toBe(true);
+  });
+
+  it('cloudflare service uses cloudflared for public access', () => {
+    const cloudflareServiceCode = readFileSync(cloudflareServicePath, 'utf8');
+    expect(cloudflareServiceCode).toContain('cloudflared');
+    expect(cloudflareServiceCode).toContain('trycloudflare');
+  });
+
+  it('ngrok service uses ngrok for public access', () => {
+    const ngrokServiceCode = readFileSync(ngrokServicePath, 'utf8');
+    expect(ngrokServiceCode).toContain('ngrok');
   });
 });
 

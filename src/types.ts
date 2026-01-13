@@ -156,11 +156,13 @@ export interface ElectronAPI {
   sendRemoteTranscriptionResult: (result: RemoteTranscriptionResult) => void;
   onRemoteSwitchTab: (callback: (tabId: string) => void) => (() => void);
 
-  // Tunnel service (tunnelto)
-  tunnelStart: (port?: number) => Promise<TunnelStartResult>;
+  // Tunnel service (cloudflare, ngrok)
+  tunnelStart: (port?: number, provider?: TunnelProvider) => Promise<TunnelStartResult>;
   tunnelStop: () => Promise<{ success: boolean; error?: string }>;
   tunnelGetStatus: () => Promise<TunnelStatus>;
   tunnelCheckBinary: () => Promise<TunnelBinaryCheck>;
+  tunnelSetProvider: (provider: TunnelProvider) => Promise<{ success: boolean }>;
+  tunnelGetProvider: () => Promise<TunnelProvider>;
   setTunnelEnabled: (enabled: boolean) => Promise<boolean>;
   getTunnelEnabled: () => Promise<boolean>;
   onTunnelStatusChanged: (callback: (status: TunnelStatus) => void) => (() => void);
@@ -295,10 +297,12 @@ export interface SaveTempAudioResult {
 }
 
 // Tunnel service types
+export type TunnelProvider = 'cloudflare' | 'ngrok';
+
 export interface TunnelStatus {
   status: 'disconnected' | 'connecting' | 'connected' | 'error';
   tunnelUrl: string | null;
-  subdomain: string | null;
+  provider?: TunnelProvider;
   error: string | null;
 }
 
@@ -308,8 +312,13 @@ export interface TunnelStartResult {
   error?: string;
 }
 
-export interface TunnelBinaryCheck {
+export interface ProviderBinaryCheck {
   available: boolean;
   path: string | null;
   message: string;
+}
+
+export interface TunnelBinaryCheck {
+  ngrok: ProviderBinaryCheck;
+  cloudflare: ProviderBinaryCheck;
 }

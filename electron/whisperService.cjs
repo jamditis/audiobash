@@ -12,7 +12,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const { app } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 
 // Model configurations
 const MODEL_CONFIGS = {
@@ -84,6 +84,78 @@ async function convertToWav(inputPath, outputPath) {
   });
 }
 
+/**
+ * Fallback zip extraction when @remotion/install-whisper-cpp fails
+ * Tries multiple extraction methods available on Windows
+ * @param {string} zipPath - Path to the zip file
+ * @param {string} destDir - Destination directory
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+async function fallbackExtractZip(zipPath, destDir) {
+  console.log('[WhisperService] Attempting fallback zip extraction...');
+  console.log('[WhisperService] Zip path:', zipPath);
+  console.log('[WhisperService] Dest dir:', destDir);
+
+  if (!fs.existsSync(zipPath)) {
+    return { success: false, error: 'Zip file not found for fallback extraction' };
+  }
+
+  // Ensure destination directory exists
+  fs.mkdirSync(destDir, { recursive: true });
+
+  // Method 1: Try 'unzip' command (available via Git Bash, Cygwin, WSL)
+  try {
+    console.log('[WhisperService] Trying unzip command...');
+    execSync(`unzip -o "${zipPath}" -d "${destDir}"`, {
+      stdio: 'pipe',
+      windowsHide: true
+    });
+    console.log('[WhisperService] Fallback extraction successful (unzip)');
+    return { success: true };
+  } catch (e) {
+    console.log('[WhisperService] unzip failed:', e.message);
+  }
+
+  // Method 2: Try 'tar' command (available in Windows 10 1803+)
+  try {
+    console.log('[WhisperService] Trying tar command...');
+    execSync(`tar -xf "${zipPath}" -C "${destDir}"`, {
+      stdio: 'pipe',
+      windowsHide: true
+    });
+    console.log('[WhisperService] Fallback extraction successful (tar)');
+    return { success: true };
+  } catch (e) {
+    console.log('[WhisperService] tar failed:', e.message);
+  }
+
+  // Method 3: Try 7-Zip if installed
+  const sevenZipPaths = [
+    'C:\\Program Files\\7-Zip\\7z.exe',
+    'C:\\Program Files (x86)\\7-Zip\\7z.exe'
+  ];
+  for (const szPath of sevenZipPaths) {
+    if (fs.existsSync(szPath)) {
+      try {
+        console.log('[WhisperService] Trying 7-Zip...');
+        execSync(`"${szPath}" x "${zipPath}" -o"${destDir}" -y`, {
+          stdio: 'pipe',
+          windowsHide: true
+        });
+        console.log('[WhisperService] Fallback extraction successful (7-Zip)');
+        return { success: true };
+      } catch (e) {
+        console.log('[WhisperService] 7-Zip failed:', e.message);
+      }
+    }
+  }
+
+  return {
+    success: false,
+    error: 'All extraction methods failed. Please install 7-Zip, Git Bash, or update Windows to 10 1803+.'
+  };
+}
+
 class WhisperService {
   constructor() {
     // Store whisper.cpp and models in app's userData directory
@@ -133,6 +205,7 @@ class WhisperService {
       // from C:\Program Files (requires admin privileges). We temporarily change
       // to the userData directory which is always writable.
       const originalCwd = process.cwd();
+      const userDataPath = app.getPath('userData');
 
       try {
         console.log('[WhisperService] Installing whisper.cpp...');
@@ -146,7 +219,6 @@ class WhisperService {
 
         // Change to userData directory before installing
         // This is where the zip file will be downloaded temporarily
-        const userDataPath = app.getPath('userData');
         console.log('[WhisperService] Changing cwd to:', userDataPath);
         process.chdir(userDataPath);
 
@@ -162,7 +234,31 @@ class WhisperService {
         console.log('[WhisperService] Whisper.cpp installed successfully');
         return { success: true };
       } catch (error) {
-        console.error('[WhisperService] Install error:', error);
+        console.error('[WhisperService] Primary install failed:', error.message);
+
+        // Fallback: Check if zip was downloaded but extraction failed (common on Windows)
+        // The remotion package uses PowerShell's Expand-Archive which can fail
+        const zipPath = path.join(userDataPath, 'whisper-bin-x64.zip');
+        const destDir = path.join(this.whisperDir, WHISPER_CPP_VERSION);
+
+        if (fs.existsSync(zipPath)) {
+          console.log('[WhisperService] Zip file found, attempting fallback extraction...');
+
+          const fallbackResult = await fallbackExtractZip(zipPath, destDir);
+
+          if (fallbackResult.success && this.isWhisperInstalled()) {
+            this.whisperInstalled = true;
+            console.log('[WhisperService] Whisper.cpp installed via fallback extraction');
+            return { success: true };
+          } else {
+            console.error('[WhisperService] Fallback extraction failed:', fallbackResult.error);
+            return {
+              success: false,
+              error: `Installation failed. ${fallbackResult.error || error.message}`
+            };
+          }
+        }
+
         return { success: false, error: error.message };
       } finally {
         // Always restore original cwd
@@ -225,10 +321,6 @@ class WhisperService {
    */
   async transcribe(audioPath) {
     let wavPath = null;
-    // Save original cwd - the @remotion/install-whisper-cpp package writes
-    // tmp.json to process.cwd(), which fails in production when running
-    // from C:\Program Files (requires admin privileges).
-    const originalCwd = process.cwd();
 
     try {
       console.log(`[WhisperService] Transcribing with model ${this.currentModel}: ${audioPath}`);
@@ -257,27 +349,63 @@ class WhisperService {
         inputPath = wavPath;
       }
 
-      // Change to userData directory before transcribing
-      // This is where tmp.json will be written
-      const userDataPath = app.getPath('userData');
-      process.chdir(userDataPath);
+      // Call whisper.cpp binary directly (more reliable than remotion package)
+      const binaryName = process.platform === 'win32' ? 'main.exe' : 'main';
+      const binaryPath = path.join(this.whisperDir, WHISPER_CPP_VERSION, binaryName);
+      const modelPath = path.join(this.whisperDir, `ggml-${this.currentModel}.bin`);
 
-      // Dynamic import for ESM module
-      const { transcribe } = await import('@remotion/install-whisper-cpp');
+      console.log(`[WhisperService] Running: ${binaryPath} -m ${modelPath} -f ${inputPath}`);
 
-      const result = await transcribe({
-        inputPath: inputPath,
-        model: this.currentModel,
-        whisperPath: this.whisperDir,
-        whisperCppVersion: WHISPER_CPP_VERSION,
-        tokenLevelTimestamps: false,
+      const text = await new Promise((resolve, reject) => {
+        const whisperProcess = spawn(binaryPath, [
+          '-m', modelPath,
+          '-f', inputPath,
+          '-nt',  // No timestamps
+          '-np',  // No prints (cleaner output)
+        ], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          windowsHide: true
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        whisperProcess.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        whisperProcess.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        whisperProcess.on('close', (code) => {
+          if (code === 0) {
+            // Clean up the output - remove whisper.cpp log lines
+            const lines = stdout.split('\n');
+            const textLines = lines.filter(line =>
+              !line.startsWith('whisper_') &&
+              !line.startsWith('main:') &&
+              !line.includes('system_info') &&
+              line.trim().length > 0
+            );
+            const transcribedText = textLines.join(' ').trim();
+            resolve(transcribedText);
+          } else {
+            console.error('[WhisperService] whisper.cpp stderr:', stderr);
+            reject(new Error(`Whisper transcription failed with code ${code}: ${stderr.slice(-500)}`));
+          }
+        });
+
+        whisperProcess.on('error', (err) => {
+          reject(new Error(`Failed to run whisper.cpp: ${err.message}`));
+        });
+
+        // Timeout after 60 seconds
+        setTimeout(() => {
+          whisperProcess.kill();
+          reject(new Error('Transcription timed out after 60 seconds'));
+        }, 60000);
       });
-
-      // Extract text from transcription result
-      const text = result.transcription
-        .map(segment => segment.text)
-        .join(' ')
-        .trim();
 
       console.log(`[WhisperService] Transcription complete: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
 
@@ -289,13 +417,6 @@ class WhisperService {
         error: error.message || 'Unknown transcription error'
       };
     } finally {
-      // Always restore original cwd
-      try {
-        process.chdir(originalCwd);
-      } catch (e) {
-        console.warn('[WhisperService] Failed to restore cwd:', e.message);
-      }
-
       // Clean up temporary WAV file
       if (wavPath && fs.existsSync(wavPath)) {
         try {
