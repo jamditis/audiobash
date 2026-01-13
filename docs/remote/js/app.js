@@ -132,18 +132,29 @@ function setupEventListeners() {
     if (e.key === 'Enter') handleConnect();
   });
 
-  // Handle QR code paste (format: ws://IP:PORT|CODE)
+  // Handle QR code paste (format: ws://IP:PORT|CODE or wss://hostname|CODE)
   elements.ipInput.addEventListener('paste', (e) => {
     // Small delay to let paste complete
     setTimeout(() => {
       const pastedText = elements.ipInput.value.trim();
-      const qrMatch = pastedText.match(/^wss?:\/\/([^:]+):(\d+)\|(.+)$/);
+      // Try format with port first: ws://IP:PORT|CODE
+      let qrMatch = pastedText.match(/^wss?:\/\/([^:/]+):(\d+)\|(.+)$/);
       if (qrMatch) {
         const [, ip, port, code] = qrMatch;
         elements.ipInput.value = ip;
         elements.codeInput.value = code;
         elements.codeInput.focus();
-        console.log('[App] Parsed QR code connection string');
+        console.log('[App] Parsed QR code connection string (with port)');
+        return;
+      }
+      // Try format without port: wss://hostname|CODE (for tunnels)
+      qrMatch = pastedText.match(/^wss?:\/\/([^|]+)\|(.+)$/);
+      if (qrMatch) {
+        const [, hostname, code] = qrMatch;
+        elements.ipInput.value = hostname;
+        elements.codeInput.value = code;
+        elements.codeInput.focus();
+        console.log('[App] Parsed QR code connection string (tunnel)');
       }
     }, 10);
   });
