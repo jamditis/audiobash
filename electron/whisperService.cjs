@@ -225,6 +225,11 @@ class WhisperService {
    */
   async transcribe(audioPath) {
     let wavPath = null;
+    // Save original cwd - the @remotion/install-whisper-cpp package writes
+    // tmp.json to process.cwd(), which fails in production when running
+    // from C:\Program Files (requires admin privileges).
+    const originalCwd = process.cwd();
+
     try {
       console.log(`[WhisperService] Transcribing with model ${this.currentModel}: ${audioPath}`);
 
@@ -251,6 +256,11 @@ class WhisperService {
         await convertToWav(audioPath, wavPath);
         inputPath = wavPath;
       }
+
+      // Change to userData directory before transcribing
+      // This is where tmp.json will be written
+      const userDataPath = app.getPath('userData');
+      process.chdir(userDataPath);
 
       // Dynamic import for ESM module
       const { transcribe } = await import('@remotion/install-whisper-cpp');
@@ -279,6 +289,13 @@ class WhisperService {
         error: error.message || 'Unknown transcription error'
       };
     } finally {
+      // Always restore original cwd
+      try {
+        process.chdir(originalCwd);
+      } catch (e) {
+        console.warn('[WhisperService] Failed to restore cwd:', e.message);
+      }
+
       // Clean up temporary WAV file
       if (wavPath && fs.existsSync(wavPath)) {
         try {
