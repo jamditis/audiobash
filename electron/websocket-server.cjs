@@ -616,37 +616,13 @@ class RemoteControlServer {
 
   /**
    * Handle terminal resize from mobile
+   * NOTE: We intentionally do NOT resize the actual PTY from mobile clients.
+   * This prevents the mobile view from affecting the desktop terminal size.
+   * The mobile client adapts to display whatever the desktop sends.
    */
   handleTerminalResize(message) {
-    const { tabId, cols, rows } = message;
-
-    // Validate inputs
-    if (!tabId || typeof tabId !== 'string') {
-      console.warn('[RemoteControl] Invalid tabId in terminal_resize:', tabId);
-      return;
-    }
-    if (!cols || !rows) {
-      console.warn('[RemoteControl] Invalid dimensions in terminal_resize:', { cols, rows });
-      return;
-    }
-
-    // Check if tab exists
-    if (!this.ptyProcesses?.has(tabId)) {
-      console.warn(`[RemoteControl] Tab not found for resize: ${tabId}`);
-      if (this.connectedClient) {
-        this.send(this.connectedClient, {
-          type: 'error',
-          message: `Terminal tab ${tabId} not found`,
-          context: 'terminal_resize',
-        });
-      }
-      return;
-    }
-
-    const ptyProcess = this.ptyProcesses.get(tabId);
-    if (ptyProcess) {
-      ptyProcess.resize(cols, rows);
-    }
+    // Intentionally ignore resize requests from mobile to preserve desktop terminal size
+    // Mobile client will scroll/wrap as needed to display desktop output
   }
 
   /**
