@@ -215,7 +215,7 @@
             <!-- Badge -->
             <div class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm font-mono mb-8">
                 <span class="w-2 h-2 bg-apple rounded-full animate-pulse-slow"></span>
-                v2.1.3 — ElevenLabs Real-time
+                <span data-version="v{version}">v2.2.0</span> — File browser & custom domain
             </div>
 
             <!-- Apple Icon -->
@@ -236,13 +236,13 @@
 
             <!-- Download Buttons -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-                <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash-2.1.3-arm64.dmg" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch animate-glow-apple">
+                <a href="#" data-download="mac-arm64" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch animate-glow-apple">
                     <span class="flex items-center gap-2">
                         <i data-lucide="cpu" class="w-5 h-5"></i>
                         Apple Silicon (M1/M2/M3/M4)
                     </span>
                 </a>
-                <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash-2.1.3.dmg" class="px-8 py-4 border-2 border-apple text-apple font-display font-bold text-lg tracking-wider hover:bg-appleDim transition-all">
+                <a href="#" data-download="mac-intel" class="px-8 py-4 border-2 border-apple text-apple font-display font-bold text-lg tracking-wider hover:bg-appleDim transition-all">
                     <span class="flex items-center gap-2">
                         <i data-lucide="laptop" class="w-5 h-5"></i>
                         Intel Mac
@@ -251,7 +251,7 @@
             </div>
 
             <p class="text-gray-500 text-sm">
-                Also available: <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash.Setup.2.1.3.exe" class="text-ice hover:underline">Windows installer</a>
+                Also available: <a href="#" data-download="windows" class="text-ice hover:underline">Windows installer</a>
             </p>
 
             <!-- App Preview Screenshot -->
@@ -311,11 +311,11 @@
                             <h4 class="font-display text-chrome text-lg mb-2">Download the DMG</h4>
                             <p class="text-gray-400 text-sm mb-3">Choose the right version for your Mac:</p>
                             <div class="flex flex-wrap gap-3">
-                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash-2.1.3-arm64.dmg" class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                                <a href="#" data-download="mac-arm64" class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
                                     <i data-lucide="download" class="w-4 h-4"></i>
                                     Apple Silicon DMG
                                 </a>
-                                <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash-2.1.3.dmg" class="inline-flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 text-sm hover:border-apple hover:text-apple transition-colors">
+                                <a href="#" data-download="mac-intel" class="inline-flex items-center gap-2 px-4 py-2 bg-void border border-white/20 text-gray-400 text-sm hover:border-apple hover:text-apple transition-colors">
                                     <i data-lucide="download" class="w-4 h-4"></i>
                                     Intel DMG
                                 </a>
@@ -463,7 +463,7 @@
         <section class="mb-20 section-animate">
             <div class="text-center mb-10">
                 <h2 class="font-display text-3xl text-chrome mb-2">FULL_FEATURES</h2>
-                <p class="text-gray-500">Everything included in v2.1.3</p>
+                <p class="text-gray-500" data-version="Everything included in v{version}">Everything included in v2.2.0</p>
             </div>
 
             <!-- Feature Screenshots Gallery -->
@@ -601,7 +601,7 @@
                 <p class="text-gray-400 mb-8 relative">Free and open source. Your voice, your terminal.</p>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 relative">
-                    <a href="https://github.com/jamditis/audiobash/releases/download/v2.1.3/AudioBash-2.1.3-arm64.dmg" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch">
+                    <a href="#" data-download="mac-arm64" class="px-8 py-4 apple-gradient text-black font-display font-bold text-lg tracking-wider hover:opacity-90 transition-all clip-notch">
                         DOWNLOAD FOR MAC
                     </a>
                     <a href="https://github.com/jamditis/audiobash" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-apple hover:text-apple transition-all">
@@ -620,17 +620,18 @@
     <footer class="border-t border-white/10 py-8 px-6 relative z-10">
         <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-[10px] text-gray-600 font-mono">
-                AUDIOBASH v2.1.3 // macOS EDITION // MIT LICENSE
+                <span data-version="AUDIOBASH v{version} // macOS EDITION // MIT LICENSE">AUDIOBASH v2.2.0 // macOS EDITION // MIT LICENSE</span>
             </div>
             <div class="flex items-center gap-4 text-gray-500 text-sm">
                 <a href="index.html" class="hover:text-apple transition-colors">Home</a>
                 <a href="manual.html" class="hover:text-apple transition-colors">Manual</a>
-                <a href="releases.html" class="hover:text-apple transition-colors">Releases</a>
+                <a href="about.html" class="hover:text-apple transition-colors">About</a>
                 <a href="https://github.com/jamditis" class="hover:text-apple transition-colors">@jamditis</a>
             </div>
         </div>
     </footer>
 
+    <script src="js/version.js"></script>
     <script>
         lucide.createIcons();
     </script>
