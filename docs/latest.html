@@ -196,6 +196,61 @@
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
 
+            <!-- v2.3.0 - Local Whisper Models, Console Errors, Model Cycling -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #00f0ff;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-ice/10 border border-ice/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="download-cloud" class="w-6 h-6 text-ice"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.3.0</span>
+                            <span class="text-gray-500 text-sm">January 12, 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Local Whisper: transcription without API keys</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            No API key? No problem. Download Whisper.cpp models directly from Settings and run transcription
+                            entirely offline. Plus, quick model cycling in the voice overlay and a new console error viewer
+                            for debugging.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="hard-drive" class="w-5 h-5 text-ice"></i>
+                                    <span class="text-chrome font-display">Local models</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Whisper tiny/base/small with one-click download</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="refresh-cw" class="w-5 h-5 text-ice"></i>
+                                    <span class="text-chrome font-display">Model cycling</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Click model name in overlay to switch providers</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="bug" class="w-5 h-5 text-ice"></i>
+                                    <span class="text-chrome font-display">Error viewer</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Console errors captured in status bar</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Offline transcription</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Whisper.cpp</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">ElevenLabs WebSocket fix</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Resizable directory picker</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
             <!-- v2.2.0 - File Browser, Domain & Audio Fixes -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
                 <div class="flex items-start gap-6">
@@ -204,9 +259,8 @@
                     </div>
                     <div class="flex-1">
                         <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.2.0</span>
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.2.0</span>
                             <span class="text-gray-500 text-sm">January 12, 2026</span>
-                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">Browse files from your phone</h2>
