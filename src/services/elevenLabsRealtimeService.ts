@@ -91,28 +91,17 @@ export class ElevenLabsRealtimeService {
           url.searchParams.set('keyterms', JSON.stringify(keyterms));
         }
 
+        // Browser WebSocket doesn't support custom headers, so we pass the API key
+        // as a query parameter. This is the standard approach for ElevenLabs.
+        url.searchParams.set('xi-api-key', this.config.apiKey);
+
         log.info('Connecting to ElevenLabs real-time', {
           endpoint: url.origin + url.pathname,
           language: this.config.language || 'auto',
           keytermsCount: this.config.keyterms?.length || 0,
         });
 
-        this.ws = new WebSocket(url.toString(), {
-          // @ts-ignore - headers supported in some WebSocket implementations
-          headers: {
-            'xi-api-key': this.config.apiKey,
-          },
-        });
-
-        // For browser WebSocket, we need to handle auth differently
-        // The xi-api-key header may not work in all browsers, so we also support
-        // passing it as a query param (less secure but more compatible)
-        if (typeof window !== 'undefined') {
-          // Close and reconnect with token in query string for browser compatibility
-          this.ws.close();
-          url.searchParams.set('xi-api-key', this.config.apiKey);
-          this.ws = new WebSocket(url.toString());
-        }
+        this.ws = new WebSocket(url.toString());
 
         const connectionTimeout = setTimeout(() => {
           if (this.ws?.readyState !== WebSocket.OPEN) {

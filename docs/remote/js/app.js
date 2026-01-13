@@ -36,6 +36,8 @@ const elements = {
 
   // Command input
   commandInput: document.getElementById('command-input'),
+  imageInput: document.getElementById('image-input'),
+  imageBtn: document.getElementById('image-btn'),
   sendBtn: document.getElementById('send-btn'),
 
   // Reconnect overlay
@@ -180,6 +182,12 @@ function setupEventListeners() {
   });
   elements.sendBtn?.addEventListener('click', handleSendCommand);
 
+  // Image upload
+  elements.imageBtn?.addEventListener('click', () => {
+    elements.imageInput?.click();
+  });
+  elements.imageInput?.addEventListener('change', handleImageSelect);
+
   // Cancel reconnect
   elements.cancelReconnect.addEventListener('click', () => {
     state.wsManager.cancelReconnect();
@@ -246,6 +254,21 @@ function setupWebSocketHandlers() {
   // Tabs update
   ws.on('tabs_update', (message) => {
     updateTabs(message.tabs);
+  });
+
+  // Image upload response
+  ws.on('image_uploaded', (message) => {
+    if (message.success) {
+      console.log('[App] Image saved to:', message.path);
+      // Show notification that image was saved
+      const filename = message.path.split(/[/\\]/).pop();
+      alert(`Image saved: ${filename}\n\nPath copied to clipboard. Paste in Claude to reference it.`);
+      // Try to copy path to clipboard
+      navigator.clipboard?.writeText(message.path).catch(() => {});
+    } else {
+      console.error('[App] Image upload failed:', message.error);
+      alert('Failed to save image: ' + message.error);
+    }
   });
 }
 
@@ -328,6 +351,73 @@ function handleSendCommand() {
 
   // Haptic feedback
   navigator.vibrate?.(30);
+}
+
+/**
+ * Handle image selection from file input
+ */
+async function handleImageSelect(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file');
+    return;
+  }
+
+  // Max 10MB
+  const MAX_SIZE = 10 * 1024 * 1024;
+  if (file.size > MAX_SIZE) {
+    alert('Image too large. Maximum size is 10MB.');
+    return;
+  }
+
+  // Show uploading state
+  elements.imageBtn?.classList.add('uploading');
+
+  try {
+    // Convert to base64
+    const base64 = await fileToBase64(file);
+
+    // Send to server
+    state.wsManager.send({
+      type: 'image_upload',
+      tabId: state.activeTabId,
+      filename: file.name,
+      mimeType: file.type,
+      data: base64,
+    });
+
+    // Haptic feedback
+    navigator.vibrate?.(50);
+
+    console.log('[App] Image uploaded:', file.name, file.size, 'bytes');
+
+  } catch (err) {
+    console.error('[App] Image upload failed:', err);
+    alert('Failed to upload image: ' + err.message);
+  } finally {
+    // Clear input so same file can be selected again
+    elements.imageInput.value = '';
+    elements.imageBtn?.classList.remove('uploading');
+  }
+}
+
+/**
+ * Convert file to base64 string
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Remove data URL prefix (e.g., "data:image/png;base64,")
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 /**

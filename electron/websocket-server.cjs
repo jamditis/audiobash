@@ -419,6 +419,9 @@ class RemoteControlServer {
         case 'get_tabs':
           this.handleGetTabs(ws);
           break;
+        case 'image_upload':
+          this.handleImageUpload(ws, message);
+          break;
         case 'pong':
           // Heartbeat response, already handled by ws.on('pong')
           break;
@@ -833,6 +836,92 @@ class RemoteControlServer {
       type: 'tabs',
       tabs: this.getTabsList(),
     });
+  }
+
+  /**
+   * Handle image upload from mobile
+   * Saves image to the current working directory of the active terminal
+   */
+  handleImageUpload(ws, message) {
+    const { tabId, filename, mimeType, data } = message;
+
+    try {
+      // Validate inputs
+      if (!data || typeof data !== 'string') {
+        throw new Error('No image data received');
+      }
+
+      // Security: Limit file size (base64 is ~33% larger than binary)
+      const MAX_BASE64_SIZE = 15 * 1024 * 1024; // ~10MB actual image
+      if (data.length > MAX_BASE64_SIZE) {
+        throw new Error('Image too large (max 10MB)');
+      }
+
+      // Decode base64
+      const buffer = Buffer.from(data, 'base64');
+
+      // Get the current working directory from the terminal
+      const cwd = this.terminalCwds?.get(tabId) || os.homedir();
+
+      // Security: Sanitize filename
+      const sanitizedFilename = this.sanitizeFilename(filename || 'uploaded-image.png');
+
+      // Create unique filename with timestamp to avoid overwrites
+      const timestamp = Date.now();
+      const ext = path.extname(sanitizedFilename) || '.png';
+      const baseName = path.basename(sanitizedFilename, ext);
+      const finalFilename = `${baseName}-${timestamp}${ext}`;
+
+      // Full path in current directory
+      const filePath = path.join(cwd, finalFilename);
+
+      // Write file
+      fs.writeFileSync(filePath, buffer);
+
+      console.log(`[RemoteControl] Image saved: ${filePath} (${buffer.length} bytes)`);
+
+      // Send success response
+      this.send(ws, {
+        type: 'image_uploaded',
+        success: true,
+        path: filePath,
+        filename: finalFilename,
+        size: buffer.length,
+      });
+
+    } catch (err) {
+      console.error('[RemoteControl] Image upload failed:', err.message);
+      this.send(ws, {
+        type: 'image_uploaded',
+        success: false,
+        error: err.message,
+      });
+    }
+  }
+
+  /**
+   * Sanitize filename to prevent path traversal attacks
+   */
+  sanitizeFilename(filename) {
+    // Remove path separators and parent directory references
+    let sanitized = filename
+      .replace(/[/\\]/g, '-')
+      .replace(/\.\./g, '')
+      .replace(/[<>:"|?*]/g, '-')
+      .trim();
+
+    // Limit length
+    if (sanitized.length > 100) {
+      const ext = path.extname(sanitized);
+      sanitized = sanitized.substring(0, 96 - ext.length) + ext;
+    }
+
+    // Default if empty
+    if (!sanitized || sanitized === '-') {
+      sanitized = 'uploaded-image.png';
+    }
+
+    return sanitized;
   }
 
   /**

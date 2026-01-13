@@ -349,13 +349,12 @@ html, body {
   opacity: 0.3;
 }
 
+#image-btn,
 #send-btn {
   width: 44px;
   height: 44px;
-  background: var(--accent);
   border: none;
   border-radius: 6px;
-  color: var(--void);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -364,10 +363,33 @@ html, body {
   flex-shrink: 0;
 }
 
+#image-btn {
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  color: var(--crt-white);
+  opacity: 0.7;
+}
+
+#image-btn:active {
+  opacity: 1;
+  background: var(--void-300);
+}
+
+#image-btn.uploading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+#send-btn {
+  background: var(--accent);
+  color: var(--void);
+}
+
 #send-btn:active {
   opacity: 0.8;
 }
 
+#image-btn svg,
 #send-btn svg {
   width: 20px;
   height: 20px;

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's new // AUDIOBASH</title>
+    <meta name="description" content="Recent updates, features, and improvements to AudioBash. The fun changelog.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="What's new in AudioBash">
+    <meta property="og:description" content="Recent updates, features, and improvements. The fun changelog.">
+    <meta property="og:type" content="website">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                        apple: '#a3aaae',
+                        appleDim: 'rgba(163, 170, 174, 0.1)',
+                        volt: '#ccff00',
+                        voltDim: 'rgba(204, 255, 0, 0.1)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ff3333;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.08;
+        }
+
+        .update-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .update-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--card-accent, #ff3333), transparent);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #050505;
+            position: relative;
+        }
+
+        .timeline-dot.active {
+            background: #ff3333;
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+        }
+
+        .timeline-line {
+            width: 2px;
+            background: linear-gradient(180deg, #333 0%, transparent 100%);
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.03] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">WHAT'S_NEW</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="blog.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-4xl mx-auto px-6 pt-28 pb-16">
+
+        <!-- HEADER -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6">
+                <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
+                Currently at v2.1.1
+            </div>
+            <h1 class="font-display text-5xl md:text-6xl text-chrome mb-4">What's new</h1>
+            <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+                The stuff that ships. Features, fixes, and the occasional breakthrough.
+            </p>
+        </div>
+
+        <!-- UPDATES TIMELINE -->
+        <div class="space-y-12">
+
+            <!-- v2.1.1 - CSP Fix -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.1.1</span>
+                            <span class="text-gray-500 text-sm">January 12, 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Voice is back</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            Turns out, the Content Security Policy was silently blocking all your transcription API calls.
+                            ElevenLabs, OpenAI, Anthropic - all of them. The fix was one line in the CSP header, but finding it
+                            required diving into the browser console during a remote debugging session from my phone.
+                        </p>
+
+                        <div class="bg-void border border-white/10 p-4 mb-6">
+                            <div class="font-mono text-sm text-gray-500 mb-2">// The culprit</div>
+                            <code class="text-accent text-sm">connect-src 'self' https://api.elevenlabs.io wss://api.elevenlabs.io...</code>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">CSP Fix</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">ElevenLabs</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">OpenAI</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Anthropic</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.1.0 - ElevenLabs Real-time -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #00f0ff;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-ice/10 border border-ice/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="zap" class="w-6 h-6 text-ice"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.1.0</span>
+                            <span class="text-gray-500 text-sm">January 10, 2026</span>
+                            <span class="px-2 py-0.5 bg-ice/20 text-ice text-xs font-mono">FEATURE</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Real-time transcription</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            ElevenLabs Scribe v2 brought WebSocket streaming, and it changes everything. Instead of waiting
+                            2-3 seconds after you stop talking, your words appear in ~150ms. It feels like the terminal
+                            is reading your mind.
+                        </p>
+
+                        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="text-3xl font-display text-ice mb-1">~150ms</div>
+                                <div class="text-sm text-gray-500">Transcription latency</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="text-3xl font-display text-ice mb-1">VAD</div>
+                                <div class="text-sm text-gray-500">Auto-commit on silence</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">WebSocket</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">PCM 16kHz</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Voice Activity Detection</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Remote Access -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-volt/10 border border-volt/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="smartphone" class="w-6 h-6 text-volt"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.1.x</span>
+                            <span class="text-gray-500 text-sm">January 2026</span>
+                            <span class="px-2 py-0.5 bg-volt/20 text-volt text-xs font-mono">EXPERIMENTAL</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Control from your phone</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            Your couch is 20 feet from your desk. AudioBash now includes a browser-based remote client.
+                            Scan a QR code, type on your phone's keyboard, and watch commands execute on your desktop.
+                            The phone's native voice keyboard means you can dictate without even touching the screen.
+                        </p>
+
+                        <div class="bg-void border border-white/10 p-4 mb-6">
+                            <div class="flex items-center gap-4">
+                                <div class="text-center">
+                                    <i data-lucide="qr-code" class="w-8 h-8 text-volt mx-auto mb-2"></i>
+                                    <div class="text-xs text-gray-500">Scan QR</div>
+                                </div>
+                                <i data-lucide="arrow-right" class="w-4 h-4 text-gray-600"></i>
+                                <div class="text-center">
+                                    <i data-lucide="key-round" class="w-8 h-8 text-volt mx-auto mb-2"></i>
+                                    <div class="text-xs text-gray-500">Enter code</div>
+                                </div>
+                                <i data-lucide="arrow-right" class="w-4 h-4 text-gray-600"></i>
+                                <div class="text-center">
+                                    <i data-lucide="terminal" class="w-8 h-8 text-volt mx-auto mb-2"></i>
+                                    <div class="text-xs text-gray-500">Type anywhere</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">WebSocket</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Cloudflare Tunnel</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Pairing codes</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.0.0 - macOS -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #a3aaae;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-apple/10 border border-apple/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="laptop" class="w-6 h-6 text-apple"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.0.0</span>
+                            <span class="text-gray-500 text-sm">January 2, 2026</span>
+                            <span class="px-2 py-0.5 bg-apple/20 text-apple text-xs font-mono">MAJOR</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Hello, macOS</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            AudioBash went cross-platform. Native Apple Silicon builds (M1/M2/M3), Intel support for older Macs,
+                            and automatic shell detection so it opens zsh instead of trying to spawn PowerShell on your Mac.
+                            The stress test suite expanded to 120+ tests to catch platform-specific edge cases.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4 text-center">
+                                <i data-lucide="cpu" class="w-6 h-6 text-apple mx-auto mb-2"></i>
+                                <div class="text-sm text-gray-400">Apple Silicon</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4 text-center">
+                                <i data-lucide="monitor" class="w-6 h-6 text-ice mx-auto mb-2"></i>
+                                <div class="text-sm text-gray-400">Windows</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4 text-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-accent mx-auto mb-2"></i>
+                                <div class="text-sm text-gray-400">120+ tests</div>
+                            </div>
+                        </div>
+
+                        <a href="macos.html" class="inline-flex items-center gap-2 text-apple hover:text-chrome transition-colors text-sm">
+                            Read the macOS announcement
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v1.1.0 - Custom Instructions -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="sliders" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v1.1.0</span>
+                            <span class="text-gray-500 text-sm">December 11, 2025</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Make it yours</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            Custom instructions let you tell the AI how to format your commands. Custom vocabulary maps
+                            your weird pronunciations to the right words. Audio chimes when Claude Code needs input.
+                            14 keyboard shortcuts. The whole package.
+                        </p>
+
+                        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="font-mono text-sm text-gray-500 mb-2">// Vocabulary example</div>
+                                <code class="text-accent text-sm">"lawn mow" → "npm"</code>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="font-mono text-sm text-gray-500 mb-2">// Shortcuts</div>
+                                <code class="text-accent text-sm">Alt+A, Alt+M, Alt+R...</code>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Custom instructions</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Vocabulary mapping</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Audio chimes</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+        </div>
+
+        <!-- FOOTER CTA -->
+        <div class="mt-16 text-center">
+            <p class="text-gray-500 mb-6">Want the full technical changelog?</p>
+            <a href="releases.html" class="inline-flex items-center gap-2 px-6 py-3 border border-white/20 text-chrome hover:border-accent hover:text-accent transition-colors font-display">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                View release notes
+            </a>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                AUDIOBASH v2.1.1 // WHAT'S NEW // MIT LICENSE
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
