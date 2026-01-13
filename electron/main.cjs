@@ -1195,7 +1195,13 @@ function setupIPC() {
   // Set static password for remote access
   ipcMain.handle('set-remote-password', async (_, password) => {
     if (remoteServer) {
-      remoteServer.setStaticPassword(password);
+      // Validate and set password (returns { success, error?, warning? })
+      const result = remoteServer.setStaticPassword(password);
+
+      // Only save if validation passed
+      if (!result.success) {
+        return result; // Return error to UI
+      }
 
       // Encrypt and save password
       if (password && safeStorage.isEncryptionAvailable()) {
@@ -1214,9 +1220,9 @@ function setupIPC() {
         store.set('remotePassword', password || '');
         store.set('remotePasswordEncrypted', '');
       }
-      return true;
+      return result; // Return success (with optional warning)
     }
-    return false;
+    return { success: false, error: 'Remote server not running' };
   });
 
   // Get remote password

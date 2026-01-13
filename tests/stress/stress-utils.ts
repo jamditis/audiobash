@@ -321,6 +321,8 @@ export class MockWebSocket {
   onclose: (() => void) | null = null;
   onerror: ((err: Error) => void) | null = null;
   isAlive = true;
+  // Mock socket for IP-based rate limiting
+  _socket = { remoteAddress: '127.0.0.1' };
 
   send(data: string | Buffer): void {
     this.messages.push(data);
