@@ -21,9 +21,10 @@ describe('electron-builder configuration', () => {
     expect(buildConfig.productName).toBe('AudioBash');
   });
 
-  it('has npmRebuild enabled for native modules', () => {
-    // Critical for node-pty to compile on target platform
-    expect(buildConfig.npmRebuild).toBe(true);
+  it('has npmRebuild disabled to use pre-built binaries', () => {
+    // Using pre-built binaries avoids node-gyp issues with spaces in paths
+    // Native modules like node-pty include pre-built binaries for common platforms
+    expect(buildConfig.npmRebuild).toBe(false);
   });
 
   it('includes required files in build', () => {

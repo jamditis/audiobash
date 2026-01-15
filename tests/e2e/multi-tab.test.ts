@@ -69,7 +69,7 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     mockCwds = new Map();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear all existing tabs
     mockPtyProcesses.clear();
     mockOutputBuffers.clear();
@@ -102,7 +102,7 @@ describe('E2E: Multi-Tab Terminal Management', () => {
       }),
     });
 
-    server.start();
+    await server.start();
   });
 
   afterEach(() => {

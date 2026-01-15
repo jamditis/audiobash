@@ -10,6 +10,8 @@ export default defineConfig({
     exclude: ['node_modules', 'dist'],
     testTimeout: 120000, // 2 minute timeout for stress tests
     setupFiles: ['./tests/setup.ts'],
+    // Run test files sequentially to avoid port conflicts in WebSocket tests
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'lcov', 'html'],

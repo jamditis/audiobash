@@ -95,7 +95,7 @@ describe('Remote Transcription Integration Tests', () => {
 
   // Helper to connect and authenticate client
   async function connectClient(): Promise<WsClient> {
-    server.start();
+    await server.start();
     const pairingCode = server.getStatus().pairingCode;
 
     const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -523,7 +523,7 @@ describe('Remote Transcription Integration Tests', () => {
   describe('Session Timeout Handling', () => {
     it('should timeout audio session after 30 seconds', async () => {
       // Use shorter timeout for test by modifying internal state
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -639,7 +639,7 @@ describe('Remote Transcription Integration Tests', () => {
     });
 
     it('should handle audio data without session', async () => {
-      server.start();
+      await server.start();
 
       // Manually simulate receiving audio data without session
       const mockBuffer = generateAudioData(5);

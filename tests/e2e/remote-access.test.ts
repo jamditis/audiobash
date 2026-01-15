@@ -82,7 +82,7 @@ describe('E2E: Remote Access Flow', () => {
   describe('Complete Remote Access Flow', () => {
     it('should complete full flow: start server -> generate code -> connect -> send command -> receive output', async () => {
       // Step 1: Start the server
-      const status = server.start();
+      const status = await server.start();
       expect(status.running).toBe(true);
       expect(status.port).toBe(38765);
 
@@ -142,7 +142,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle connection lifecycle with proper state transitions', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.pairingCode;
 
       // Initial state
@@ -177,7 +177,7 @@ describe('E2E: Remote Access Flow', () => {
    */
   describe('Local Network Connection', () => {
     it('should handle localhost connections', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       mockClient._socket = { remoteAddress: '127.0.0.1' };
 
@@ -191,7 +191,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle LAN connections', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       mockClient._socket = { remoteAddress: '192.168.1.100' };
 
@@ -204,7 +204,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should return local IP addresses for QR code generation', () => {
-      server.start();
+      await server.start();
       const addresses = server.getLocalIPAddresses();
       expect(Array.isArray(addresses)).toBe(true);
       // Note: In test environment, addresses may be empty
@@ -216,7 +216,7 @@ describe('E2E: Remote Access Flow', () => {
    */
   describe('Authentication with Pairing Code', () => {
     it('should accept valid pairing code (case-insensitive)', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.pairingCode;
       const mockClient = new MockWebSocket();
 
@@ -230,7 +230,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should regenerate pairing code after successful auth', async () => {
-      server.start();
+      await server.start();
       const originalCode = server.pairingCode;
       const mockClient = new MockWebSocket();
 
@@ -243,7 +243,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should allow manual pairing code regeneration', () => {
-      server.start();
+      await server.start();
       const originalCode = server.pairingCode;
 
       const newCode = server.regeneratePairingCode();
@@ -258,7 +258,7 @@ describe('E2E: Remote Access Flow', () => {
    */
   describe('Authentication with Static Password', () => {
     it('should accept static password and not regenerate pairing code', async () => {
-      server.start();
+      await server.start();
       const originalPairingCode = server.pairingCode;
 
       // Set a valid static password (8+ chars, mixed complexity)
@@ -277,7 +277,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should validate password strength requirements', () => {
-      server.start();
+      await server.start();
 
       // Too short
       let result = server.setStaticPassword('Short1!');
@@ -300,7 +300,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should allow clearing static password', () => {
-      server.start();
+      await server.start();
       server.setStaticPassword('ValidPass123!');
       expect(server.hasStaticPassword()).toBe(true);
 
@@ -309,7 +309,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should be case-sensitive for static passwords', async () => {
-      server.start();
+      await server.start();
       server.setStaticPassword('MyPassword123!');
 
       const mockClient = new MockWebSocket();
@@ -331,7 +331,7 @@ describe('E2E: Remote Access Flow', () => {
   describe('Error Scenarios', () => {
     describe('Invalid Pairing Code', () => {
       it('should reject invalid pairing code', async () => {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
 
         await server.handleAuth(mockClient, {
@@ -346,7 +346,7 @@ describe('E2E: Remote Access Flow', () => {
       });
 
       it('should reject empty pairing code', async () => {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
 
         await server.handleAuth(mockClient, {
@@ -360,7 +360,7 @@ describe('E2E: Remote Access Flow', () => {
       });
 
       it('should reject null/undefined pairing code', async () => {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
 
         await server.handleAuth(mockClient, {
@@ -374,7 +374,7 @@ describe('E2E: Remote Access Flow', () => {
 
     describe('Rate Limiting', () => {
       it('should track failed authentication attempts per IP', async () => {
-        server.start();
+        await server.start();
         const ip = '192.168.1.50';
 
         for (let i = 0; i < 3; i++) {
@@ -393,7 +393,7 @@ describe('E2E: Remote Access Flow', () => {
       });
 
       it('should lock out IP after MAX_AUTH_ATTEMPTS', async () => {
-        server.start();
+        await server.start();
         const ip = '192.168.1.51';
 
         // Make MAX_AUTH_ATTEMPTS failed attempts
@@ -421,7 +421,7 @@ describe('E2E: Remote Access Flow', () => {
       });
 
       it('should apply exponential backoff delay on failed attempts', async () => {
-        server.start();
+        await server.start();
         const ip = '192.168.1.52';
 
         const startTime = Date.now();
@@ -447,7 +447,7 @@ describe('E2E: Remote Access Flow', () => {
       it('should disconnect after inactivity timeout', async () => {
         // Create server with short timeout for testing
         server.INACTIVITY_TIMEOUT_MS = 100; // 100ms for testing
-        server.start();
+        await server.start();
 
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
@@ -474,7 +474,7 @@ describe('E2E: Remote Access Flow', () => {
 
       it('should reset inactivity timeout on message', async () => {
         server.INACTIVITY_TIMEOUT_MS = 300; // Longer timeout
-        server.start();
+        await server.start();
 
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
@@ -510,7 +510,7 @@ describe('E2E: Remote Access Flow', () => {
 
     describe('Already Connected', () => {
       it('should reject second connection when client already connected', async () => {
-        server.start();
+        await server.start();
         const pairingCode = server.pairingCode;
 
         // First client connects
@@ -547,7 +547,7 @@ describe('E2E: Remote Access Flow', () => {
    */
   describe('Message Handling', () => {
     it('should handle terminal_write messages', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -569,7 +569,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle get_context requests', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -599,7 +599,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle get_tabs requests', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -625,7 +625,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle switch_tab requests', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -646,7 +646,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle unknown message types gracefully', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -666,7 +666,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should handle malformed JSON gracefully', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -683,8 +683,8 @@ describe('E2E: Remote Access Flow', () => {
    * Test Suite: Server Lifecycle
    */
   describe('Server Lifecycle', () => {
-    it('should start and stop cleanly', () => {
-      const status1 = server.start();
+    it('should start and stop cleanly', async () => {
+      const status1 = await server.start();
       expect(status1.running).toBe(true);
 
       server.stop();
@@ -692,14 +692,14 @@ describe('E2E: Remote Access Flow', () => {
       expect(status2.running).toBe(false);
     });
 
-    it('should not start twice', () => {
-      server.start();
-      const status2 = server.start();
+    it('should not start twice', async () => {
+      await server.start();
+      const status2 = await server.start();
       expect(status2.running).toBe(true); // Still running, no error
     });
 
     it('should clean up resources on stop', async () => {
-      server.start();
+      await server.start();
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
         pairingCode: server.pairingCode,
@@ -714,7 +714,7 @@ describe('E2E: Remote Access Flow', () => {
     });
 
     it('should return correct status', () => {
-      server.start();
+      await server.start();
       const status = server.getStatus();
 
       expect(status).toHaveProperty('running');
@@ -752,7 +752,7 @@ describe('E2E: Remote Access Security', () => {
   });
 
   it('should trigger global lockout after distributed attack', async () => {
-    server.start();
+    await server.start();
 
     // Simulate distributed attack from multiple IPs
     for (let i = 0; i < server.GLOBAL_MAX_ATTEMPTS + 1; i++) {
@@ -771,7 +771,7 @@ describe('E2E: Remote Access Security', () => {
   }, 30000);
 
   it('should clear per-IP failed attempts after time window', async () => {
-    server.start();
+    await server.start();
     server.ATTEMPT_WINDOW = 50; // 50ms for testing (shorter window)
 
     const ip = '192.168.1.100';
@@ -811,8 +811,8 @@ describe('E2E: Remote Access Security', () => {
     expect(attemptData.count).toBeLessThanOrEqual(2);
   });
 
-  it('should validate pairing code format', () => {
-    server.start();
+  it('should validate pairing code format', async () => {
+    await server.start();
 
     // Generate multiple codes and verify format
     for (let i = 0; i < 50; i++) {

@@ -57,7 +57,7 @@ describe('E2E: Voice to Terminal Execution', () => {
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create a mock transcription handler that we can control
     transcriptionHandler = vi.fn().mockImplementation(
       async (audioBuffer: Buffer, tabId: string, mode: string) => {
@@ -93,7 +93,7 @@ describe('E2E: Voice to Terminal Execution', () => {
       transcribeAudio: transcriptionHandler,
     });
 
-    server.start();
+    await server.start();
   });
 
   afterEach(() => {
@@ -775,7 +775,7 @@ describe('E2E: Voice Pipeline Integration', () => {
   let mockPtyProcesses: Map<string, MockPtyProcess>;
   let executedCommands: string[] = [];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockPtyProcesses = new Map();
     executedCommands = [];
 
@@ -798,7 +798,7 @@ describe('E2E: Voice Pipeline Integration', () => {
       }),
     });
 
-    server.start();
+    await server.start();
   });
 
   afterEach(() => {

@@ -122,7 +122,7 @@ describe('E2E: Operating System Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
           pairingCode: server.pairingCode,
@@ -166,7 +166,7 @@ describe('E2E: Operating System Compatibility', () => {
           process.env.SHELL = shell;
         }
 
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
           pairingCode: server.pairingCode,
@@ -207,7 +207,7 @@ describe('E2E: Operating System Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
           pairingCode: server.pairingCode,
@@ -238,7 +238,7 @@ describe('E2E: Operating System Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
           pairingCode: server.pairingCode,
@@ -276,7 +276,7 @@ describe('E2E: Operating System Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
           pairingCode: server.pairingCode,
@@ -380,7 +380,7 @@ describe('E2E: Node.js Version Compatibility', () => {
           transcribeAudio: async () => ({ success: true, text: 'test', executed: true }),
         });
 
-        server.start();
+        await server.start();
 
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
@@ -500,7 +500,7 @@ describe('E2E: Network Configuration Compatibility', () => {
       let error: string | undefined;
 
       try {
-        const status = server.start();
+        const status = await server.start();
         expect(status.running).toBe(true);
         passed = true;
       } catch (e) {
@@ -517,7 +517,7 @@ describe('E2E: Network Configuration Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         mockClient._socket = { remoteAddress: host };
 
@@ -542,7 +542,7 @@ describe('E2E: Network Configuration Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         mockClient._socket = { remoteAddress: host };
 
@@ -582,7 +582,7 @@ describe('E2E: Network Configuration Compatibility', () => {
         let error: string | undefined;
 
         try {
-          server.start();
+          await server.start();
           const status = server.getStatus();
 
           // Note: WSS availability depends on certificate generation
@@ -604,7 +604,7 @@ describe('E2E: Network Configuration Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
 
         // Make several failed attempts
         for (let i = 0; i < 3; i++) {
@@ -637,7 +637,7 @@ describe('E2E: Network Configuration Compatibility', () => {
       let error: string | undefined;
 
       try {
-        server.start();
+        await server.start();
         const mockClient = new MockWebSocket();
         mockClient._socket = { remoteAddress: host };
 
@@ -772,7 +772,7 @@ describe('E2E: Environment Edge Cases', () => {
 
   it('should handle rapid server start/stop cycles', async () => {
     for (let i = 0; i < 5; i++) {
-      server.start();
+      await server.start();
       expect(server.getStatus().running).toBe(true);
       server.stop();
       expect(server.getStatus().running).toBe(false);
@@ -780,7 +780,7 @@ describe('E2E: Environment Edge Cases', () => {
   });
 
   it('should handle concurrent connection attempts from different IPs', async () => {
-    server.start();
+    await server.start();
     const pairingCode = server.pairingCode;
 
     const clients: MockWebSocket[] = [];
@@ -813,7 +813,7 @@ describe('E2E: Environment Edge Cases', () => {
   });
 
   it('should handle very long session', async () => {
-    server.start();
+    await server.start();
     const mockClient = new MockWebSocket();
     await server.handleAuth(mockClient, {
       pairingCode: server.pairingCode,
@@ -843,7 +843,7 @@ describe('E2E: Environment Edge Cases', () => {
   });
 
   it('should handle IPv6 addresses', async () => {
-    server.start();
+    await server.start();
     const mockClient = new MockWebSocket();
     mockClient._socket = { remoteAddress: '::1' }; // IPv6 localhost
 
@@ -856,7 +856,7 @@ describe('E2E: Environment Edge Cases', () => {
   });
 
   it('should handle special characters in device name', async () => {
-    server.start();
+    await server.start();
     const mockClient = new MockWebSocket();
 
     const specialNames = [

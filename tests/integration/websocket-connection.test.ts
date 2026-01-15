@@ -104,7 +104,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Server Startup', () => {
     it('should start WebSocket server on available port', async () => {
-      const status = server.start();
+      const status = await server.start();
 
       expect(status.running).toBe(true);
       expect(status.port).toBe(port);
@@ -112,23 +112,23 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(status.pairingCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
     });
 
-    it('should return existing status if already running', () => {
-      server.start();
-      const status2 = server.start();
+    it('should return existing status if already running', async () => {
+      await server.start();
+      const status2 = await server.start();
 
       expect(status2.running).toBe(true);
     });
 
-    it('should stop server cleanly', () => {
-      server.start();
+    it('should stop server cleanly', async () => {
+      await server.start();
       expect(server.getStatus().running).toBe(true);
 
       server.stop();
       expect(server.getStatus().running).toBe(false);
     });
 
-    it('should regenerate pairing code', () => {
-      server.start();
+    it('should regenerate pairing code', async () => {
+      await server.start();
       const code1 = server.getStatus().pairingCode;
 
       const code2 = server.regeneratePairingCode();
@@ -140,7 +140,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Client Connection and Authentication', () => {
     it('should accept client connection and require authentication', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -180,7 +180,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should reject invalid pairing code', async () => {
-      server.start();
+      await server.start();
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
 
@@ -211,7 +211,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should accept static password authentication', async () => {
-      server.start();
+      await server.start();
       const result = server.setStaticPassword('SecureP@ss123!');
       expect(result.success).toBe(true);
 
@@ -242,8 +242,8 @@ describe('WebSocket Connection Integration Tests', () => {
       });
     });
 
-    it('should reject weak passwords', () => {
-      server.start();
+    it('should reject weak passwords', async () => {
+      await server.start();
 
       // Too short
       let result = server.setStaticPassword('short');
@@ -264,7 +264,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Terminal Data Roundtrip', () => {
     it('should send terminal write to PTY process', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
       const mockPty = mockPtyProcesses.get('tab-1') as MockPtyProcess;
 
@@ -308,7 +308,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should receive terminal data updates', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -354,7 +354,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Reconnection After Disconnect', () => {
     it('should allow reconnection after clean disconnect', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       // First connection
@@ -417,7 +417,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should reject concurrent connection attempts', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       // First connection
@@ -484,7 +484,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Multiple Concurrent Connection Attempts', () => {
     it('should handle multiple rapid connection attempts', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const connectionPromises: Promise<boolean>[] = [];
@@ -533,7 +533,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should maintain server stability under rapid connect/disconnect', async () => {
-      server.start();
+      await server.start();
 
       for (let i = 0; i < 10; i++) {
         const pairingCode = server.getStatus().pairingCode;
@@ -579,7 +579,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Message Handling Edge Cases', () => {
     it('should handle malformed JSON messages', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -619,7 +619,7 @@ describe('WebSocket Connection Integration Tests', () => {
     });
 
     it('should handle unknown message types gracefully', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -657,7 +657,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Heartbeat and Timeout', () => {
     it('should track client alive status via ping/pong', async () => {
-      server.start();
+      await server.start();
       const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -698,7 +698,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
   describe('Rate Limiting', () => {
     it('should rate limit failed authentication attempts', async () => {
-      server.start();
+      await server.start();
       const wrongCode = 'WRONG1';
 
       // Make multiple failed auth attempts from same "IP"
