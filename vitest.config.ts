@@ -36,9 +36,10 @@ export default defineConfig({
       // Component tests use jsdom
       ['tests/components/**', 'jsdom'],
       ['tests/unit/**', 'jsdom'],
-      // Stress tests and integration tests use node
+      // Stress tests, integration tests, and E2E tests use node
       ['tests/stress/**', 'node'],
       ['tests/integration/**', 'node'],
+      ['tests/e2e/**', 'node'],
     ],
   },
 });
