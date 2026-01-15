@@ -2,6 +2,16 @@
 
 export type ApiProvider = 'gemini' | 'openai' | 'anthropic' | 'elevenlabs';
 
+export type ShellType = 'powershell' | 'cmd' | 'bash';
+
+/** Array of valid shell types for iteration */
+export const SHELL_TYPES: readonly ShellType[] = ['powershell', 'cmd', 'bash'] as const;
+
+/** Type guard to check if a string is a valid ShellType */
+export function isShellType(value: string): value is ShellType {
+  return SHELL_TYPES.includes(value as ShellType);
+}
+
 export interface Shortcuts {
   toggleRecording: string;
   cancelRecording: string;
