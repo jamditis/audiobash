@@ -11,6 +11,35 @@ const https = require('https');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
+
+/**
+ * Check if a port is available for binding
+ * @param {number} port - Port number to check
+ * @param {string} host - Host address to check
+ * @returns {Promise<boolean>} - true if port is available
+ */
+function isPortAvailable(port, host = '0.0.0.0') {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        // Other errors, assume port might be available
+        resolve(true);
+      }
+    });
+
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+
+    server.listen(port, host);
+  });
+}
 
 /**
  * Generate a self-signed certificate for WSS
@@ -298,17 +327,36 @@ class RemoteControlServer {
   /**
    * Start the WebSocket server (both ws:// and wss://)
    */
-  start() {
+  async start() {
     if (this.wss) {
       console.log('[RemoteControl] Server already running');
       return this.getStatus();
+    }
+
+    // Check if ports are available before binding
+    const host = this.localOnly ? '127.0.0.1' : '0.0.0.0';
+
+    if (!await isPortAvailable(this.port, host)) {
+      const error = `Port ${this.port} is already in use. Please close other applications using this port.`;
+      console.error('[RemoteControl]', error);
+      this.status = 'error';
+      this.error = error;
+      this.notifyStatusChange();
+      return { success: false, error };
+    }
+
+    let securePortAvailable = true;
+    if (this.securePort && !await isPortAvailable(this.securePort, host)) {
+      console.warn(`[RemoteControl] Secure port ${this.securePort} is already in use, WSS will be disabled`);
+      securePortAvailable = false;
+      // Continue without secure server - we'll skip WSS setup below
     }
 
     try {
       // Start regular WebSocket server (ws://)
       this.wss = new WebSocketServer({
         port: this.port,
-        host: this.localOnly ? '127.0.0.1' : '0.0.0.0'
+        host: host
       });
       this.generatePairingCode();
 
@@ -318,8 +366,8 @@ class RemoteControlServer {
 
       console.log(`[RemoteControl] WS server started on port ${this.port}`);
 
-      // Try to start secure WebSocket server (wss://)
-      const certs = this.getOrCreateCertificate();
+      // Try to start secure WebSocket server (wss://) only if port is available
+      const certs = securePortAvailable ? this.getOrCreateCertificate() : null;
       if (certs) {
         try {
           this.httpsServer = https.createServer(certs);
@@ -335,6 +383,8 @@ class RemoteControlServer {
         } catch (wssErr) {
           console.warn('[RemoteControl] Failed to start WSS server:', wssErr.message);
         }
+      } else if (!securePortAvailable) {
+        console.log('[RemoteControl] WSS not available (port in use)');
       } else {
         console.log('[RemoteControl] WSS not available (no certificate)');
       }

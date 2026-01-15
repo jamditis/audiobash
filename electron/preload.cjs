@@ -976,6 +976,24 @@ contextBridge.exposeInMainWorld('electron', {
   regeneratePairingCode: () => ipcRenderer.invoke('regenerate-pairing-code'),
 
   /**
+   * Generates a QR code for mobile pairing.
+   * The QR code encodes connection info including URL, pairing code, and device name.
+   * Uses tunnel URL if available, otherwise falls back to local IP.
+   *
+   * @function generatePairingQR
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, data?: {qrDataUrl: string, url: string, code: string, name: string}, error?: string}>} QR code result
+   * @example
+   * const result = await window.electron.generatePairingQR();
+   * if (result.success) {
+   *   qrImage.src = result.data.qrDataUrl;
+   *   console.log('Connect to:', result.data.url);
+   *   console.log('Pairing code:', result.data.code);
+   * }
+   */
+  generatePairingQR: () => ipcRenderer.invoke('generate-pairing-qr'),
+
+  /**
    * Sets a password for remote connections.
    *
    * @function setRemotePassword
@@ -997,6 +1015,23 @@ contextBridge.exposeInMainWorld('electron', {
    * const password = await window.electron.getRemotePassword();
    */
   getRemotePassword: () => ipcRenderer.invoke('get-remote-password'),
+
+  /**
+   * Gets diagnostic information for troubleshooting remote access issues.
+   * Returns detailed status of WebSocket server, tunnels, SSL, and network config.
+   *
+   * @function getRemoteDiagnostics
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, data?: Object, error?: string}>} Diagnostics result
+   * @example
+   * const result = await window.electron.getRemoteDiagnostics();
+   * if (result.success) {
+   *   console.log('Platform:', result.data.platform);
+   *   console.log('WS Server:', result.data.wsServer);
+   *   console.log('Tunnels:', result.data.tunnels);
+   * }
+   */
+  getRemoteDiagnostics: () => ipcRenderer.invoke('get-remote-diagnostics'),
 
   /**
    * Sets whether to prevent the system from sleeping.

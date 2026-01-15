@@ -1195,6 +1195,87 @@ function setupIPC() {
     return null;
   });
 
+  // Generate QR code for mobile pairing
+  ipcMain.handle('generate-pairing-qr', async () => {
+    try {
+      const QRCode = require('qrcode');
+
+      // Get current pairing code from remote server
+      if (!remoteServer) {
+        return { success: false, error: 'Remote server not running' };
+      }
+
+      const status = remoteServer.getStatus();
+      const code = status.pairingCode;
+
+      if (!code) {
+        return { success: false, error: 'No pairing code available' };
+      }
+
+      // Determine the connection URL
+      // Priority: tunnel URL > local IP:port
+      let url = null;
+
+      // Check for active tunnel (Cloudflare or ngrok)
+      if (activeTunnelProvider === 'cloudflare' && cloudflareService) {
+        const cfStatus = cloudflareService.getStatus();
+        if (cfStatus.status === 'connected' && cfStatus.tunnelUrl) {
+          url = cfStatus.tunnelUrl;
+          console.log('[AudioBash] QR using Cloudflare tunnel URL:', url);
+        }
+      } else if (activeTunnelProvider === 'ngrok' && ngrokService) {
+        const ngrokStatus = ngrokService.getStatus();
+        if (ngrokStatus.status === 'connected' && ngrokStatus.tunnelUrl) {
+          url = ngrokStatus.tunnelUrl;
+          console.log('[AudioBash] QR using ngrok tunnel URL:', url);
+        }
+      }
+
+      // Fall back to local IP if no tunnel
+      if (!url) {
+        const addresses = status.addresses || [];
+        const localIP = addresses[0] || '127.0.0.1';
+        const port = status.port || 8765;
+        url = `ws://${localIP}:${port}`;
+        console.log('[AudioBash] QR using local URL:', url);
+      }
+
+      // Build the pairing payload
+      const pairingPayload = {
+        url,
+        code,
+        version: 1,
+        name: 'AudioBash Desktop'
+      };
+
+      // Generate QR code as data URL
+      const qrDataUrl = await QRCode.toDataURL(JSON.stringify(pairingPayload), {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 256,
+        color: {
+          dark: '#e5e5e5',  // Chrome color (matches AudioBash aesthetic)
+          light: '#050505'  // Void color
+        }
+      });
+
+      console.log('[AudioBash] QR code generated for pairing');
+
+      return {
+        success: true,
+        data: {
+          qrDataUrl,
+          url,
+          code,
+          name: 'AudioBash Desktop'
+        }
+      };
+    } catch (err) {
+      console.error('[AudioBash] Failed to generate QR code:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
   // Set static password for remote access
   ipcMain.handle('set-remote-password', async (_, password) => {
     if (remoteServer) {
@@ -1259,6 +1340,60 @@ function setupIPC() {
     }
 
     return plainPassword;
+  });
+
+  // Remote diagnostics for troubleshooting
+  ipcMain.handle('get-remote-diagnostics', async () => {
+    try {
+      const diagnostics = {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+
+        // WebSocket server status
+        wsServer: {
+          running: remoteServer?.status === 'running',
+          port: remoteServer?.port || 8765,
+          securePort: remoteServer?.securePort || 8766,
+          hasSecure: !!remoteServer?.wssSecure,
+          status: remoteServer?.status || 'not initialized',
+          error: remoteServer?.error || null,
+        },
+
+        // Network configuration
+        network: {
+          addresses: remoteServer?.getLocalIPAddresses?.() || [],
+          localOnly: store.get('localOnly', false),
+        },
+
+        // Tunnel services
+        tunnels: {
+          provider: activeTunnelProvider || 'cloudflare',
+          ngrok: {
+            binaryFound: !!ngrokService?.getNgrokBinaryPath?.(),
+            status: ngrokService?.status || 'not initialized',
+            url: ngrokService?.tunnelUrl || null,
+          },
+          cloudflare: {
+            binaryFound: !!cloudflareService?.getCloudflaredBinaryPath?.(),
+            status: cloudflareService?.status || 'not initialized',
+            url: cloudflareService?.tunnelUrl || null,
+          },
+        },
+
+        // SSL certificates
+        ssl: {
+          certDir: app.getPath('userData'),
+          certExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-cert.pem')),
+          keyExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-key.pem')),
+        },
+      };
+
+      return { success: true, data: diagnostics };
+    } catch (error) {
+      console.error('[AudioBash] get-remote-diagnostics error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // Set local-only mode (requires server restart)
@@ -1652,6 +1787,7 @@ app.whenReady().then(async () => {
   remoteServer = new RemoteControlServer({
     port: 8765,
     localOnly: localOnlyEnabled,
+    appDataPath: app.getPath('userData'),
     ptyProcesses,
     terminalOutputBuffers,
     terminalCwds,

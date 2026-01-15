@@ -42,8 +42,8 @@ class NgrokService {
         stdio: ['pipe', 'pipe', 'pipe']
       }).trim();
       if (result) {
-        console.log('[NgrokService] Found ngrok CLI at:', result.split('\n')[0]);
-        return result.split('\n')[0];
+        console.log('[NgrokService] Found ngrok CLI at:', result.split(/\r?\n/)[0]);
+        return result.split(/\r?\n/)[0];
       }
     } catch (err) {
       console.log('[NgrokService] ngrok CLI not found in PATH');
@@ -56,13 +56,20 @@ class NgrokService {
       commonPaths.push(
         path.join(os.homedir(), 'ngrok.exe'),
         path.join(os.homedir(), 'Downloads', 'ngrok.exe'),
+        path.join(os.homedir(), 'Desktop', 'ngrok.exe'),
         path.join(process.env.LOCALAPPDATA || '', 'ngrok', 'ngrok.exe'),
-        path.join(process.env.ProgramFiles || '', 'ngrok', 'ngrok.exe')
+        path.join(process.env.ProgramFiles || '', 'ngrok', 'ngrok.exe'),
+        // Chocolatey
+        path.join(process.env.ChocolateyInstall || 'C:\\ProgramData\\chocolatey', 'bin', 'ngrok.exe'),
+        // Scoop
+        path.join(os.homedir(), 'scoop', 'shims', 'ngrok.exe')
       );
     } else if (process.platform === 'darwin') {
       commonPaths.push(
         '/usr/local/bin/ngrok',
         '/opt/homebrew/bin/ngrok',
+        // MacPorts
+        '/opt/local/bin/ngrok',
         path.join(os.homedir(), 'ngrok'),
         path.join(os.homedir(), 'Downloads', 'ngrok')
       );
@@ -70,8 +77,11 @@ class NgrokService {
       commonPaths.push(
         '/usr/local/bin/ngrok',
         '/usr/bin/ngrok',
+        // Snap
+        '/snap/bin/ngrok',
         path.join(os.homedir(), 'ngrok'),
-        path.join(os.homedir(), 'bin', 'ngrok')
+        path.join(os.homedir(), 'bin', 'ngrok'),
+        path.join(os.homedir(), '.local', 'bin', 'ngrok')
       );
     }
 
