@@ -1,5 +1,12 @@
 # AudioBash
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub release](https://img.shields.io/github/v/release/jamditis/audiobash)](https://github.com/jamditis/audiobash/releases)
+[![GitHub stars](https://img.shields.io/github/stars/jamditis/audiobash)](https://github.com/jamditis/audiobash/stargazers)
+[![Build](https://github.com/jamditis/audiobash/actions/workflows/build.yml/badge.svg)](https://github.com/jamditis/audiobash/actions/workflows/build.yml)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/jamditis/audiobash/releases)
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://github.com/jamditis/audiobash/releases)
+
 ![AudioBash](https://i.imgur.com/rUHuOhx.png)
 
 A voice-controlled terminal for developers. Speak commands, execute them instantly.
