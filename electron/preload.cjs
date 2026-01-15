@@ -1017,6 +1017,23 @@ contextBridge.exposeInMainWorld('electron', {
   getRemotePassword: () => ipcRenderer.invoke('get-remote-password'),
 
   /**
+   * Gets diagnostic information for troubleshooting remote access issues.
+   * Returns detailed status of WebSocket server, tunnels, SSL, and network config.
+   *
+   * @function getRemoteDiagnostics
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, data?: Object, error?: string}>} Diagnostics result
+   * @example
+   * const result = await window.electron.getRemoteDiagnostics();
+   * if (result.success) {
+   *   console.log('Platform:', result.data.platform);
+   *   console.log('WS Server:', result.data.wsServer);
+   *   console.log('Tunnels:', result.data.tunnels);
+   * }
+   */
+  getRemoteDiagnostics: () => ipcRenderer.invoke('get-remote-diagnostics'),
+
+  /**
    * Sets whether to prevent the system from sleeping.
    * Useful when waiting for remote voice commands.
    *

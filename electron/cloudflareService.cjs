@@ -32,8 +32,8 @@ class CloudflareService {
         stdio: ['pipe', 'pipe', 'pipe']
       }).trim();
       if (result) {
-        console.log('[CloudflareService] Found cloudflared at:', result.split('\n')[0]);
-        return result.split('\n')[0];
+        console.log('[CloudflareService] Found cloudflared at:', result.split(/\r?\n/)[0]);
+        return result.split(/\r?\n/)[0];
       }
     } catch (err) {
       console.log('[CloudflareService] cloudflared not found in PATH');
@@ -46,14 +46,19 @@ class CloudflareService {
       commonPaths.push(
         path.join(os.homedir(), 'cloudflared.exe'),
         path.join(os.homedir(), 'Downloads', 'cloudflared.exe'),
+        path.join(os.homedir(), 'Desktop', 'cloudflared.exe'),
         path.join(process.env.LOCALAPPDATA || '', 'cloudflared', 'cloudflared.exe'),
         path.join(process.env.ProgramFiles || '', 'cloudflared', 'cloudflared.exe'),
-        'C:\\cloudflared\\cloudflared.exe'
+        'C:\\cloudflared\\cloudflared.exe',
+        // Scoop
+        path.join(os.homedir(), 'scoop', 'shims', 'cloudflared.exe')
       );
     } else if (process.platform === 'darwin') {
       commonPaths.push(
         '/usr/local/bin/cloudflared',
         '/opt/homebrew/bin/cloudflared',
+        // MacPorts
+        '/opt/local/bin/cloudflared',
         path.join(os.homedir(), 'cloudflared'),
         path.join(os.homedir(), 'Downloads', 'cloudflared')
       );
@@ -61,8 +66,11 @@ class CloudflareService {
       commonPaths.push(
         '/usr/local/bin/cloudflared',
         '/usr/bin/cloudflared',
+        // Snap
+        '/snap/bin/cloudflared',
         path.join(os.homedir(), 'cloudflared'),
-        path.join(os.homedir(), 'bin', 'cloudflared')
+        path.join(os.homedir(), 'bin', 'cloudflared'),
+        path.join(os.homedir(), '.local', 'bin', 'cloudflared')
       );
     }
 

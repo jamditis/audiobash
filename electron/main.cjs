@@ -1342,6 +1342,60 @@ function setupIPC() {
     return plainPassword;
   });
 
+  // Remote diagnostics for troubleshooting
+  ipcMain.handle('get-remote-diagnostics', async () => {
+    try {
+      const diagnostics = {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+
+        // WebSocket server status
+        wsServer: {
+          running: remoteServer?.status === 'running',
+          port: remoteServer?.port || 8765,
+          securePort: remoteServer?.securePort || 8766,
+          hasSecure: !!remoteServer?.wssSecure,
+          status: remoteServer?.status || 'not initialized',
+          error: remoteServer?.error || null,
+        },
+
+        // Network configuration
+        network: {
+          addresses: remoteServer?.getLocalIPAddresses?.() || [],
+          localOnly: store.get('localOnly', false),
+        },
+
+        // Tunnel services
+        tunnels: {
+          provider: activeTunnelProvider || 'cloudflare',
+          ngrok: {
+            binaryFound: !!ngrokService?.getNgrokBinaryPath?.(),
+            status: ngrokService?.status || 'not initialized',
+            url: ngrokService?.tunnelUrl || null,
+          },
+          cloudflare: {
+            binaryFound: !!cloudflareService?.getCloudflaredBinaryPath?.(),
+            status: cloudflareService?.status || 'not initialized',
+            url: cloudflareService?.tunnelUrl || null,
+          },
+        },
+
+        // SSL certificates
+        ssl: {
+          certDir: app.getPath('userData'),
+          certExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-cert.pem')),
+          keyExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-key.pem')),
+        },
+      };
+
+      return { success: true, data: diagnostics };
+    } catch (error) {
+      console.error('[AudioBash] get-remote-diagnostics error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Set local-only mode (requires server restart)
   ipcMain.handle('set-local-only', async (_, enabled) => {
     if (remoteServer) {
@@ -1733,6 +1787,7 @@ app.whenReady().then(async () => {
   remoteServer = new RemoteControlServer({
     port: 8765,
     localOnly: localOnlyEnabled,
+    appDataPath: app.getPath('userData'),
     ptyProcesses,
     terminalOutputBuffers,
     terminalCwds,
