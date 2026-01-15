@@ -10,6 +10,40 @@ import { blobToBase64 } from "../utils/audioUtils";
 import { transcriptionLog as log } from "../utils/logger";
 
 /**
+ * Type guard to check if an unknown error has a message property
+ */
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message: unknown }).message === 'string'
+  );
+}
+
+/**
+ * Type guard to check if an unknown error has a name property (for TypeError checks)
+ */
+function isErrorWithName(error: unknown): error is { name: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    typeof (error as { name: unknown }).name === 'string'
+  );
+}
+
+/**
+ * Safely extract error message from unknown error type
+ */
+function getErrorMessage(error: unknown): string {
+  if (isErrorWithMessage(error)) {
+    return error.message;
+  }
+  return String(error);
+}
+
+/**
  * Error class for transcription-specific errors with context
  */
 export class TranscriptionError extends Error {
@@ -469,9 +503,9 @@ export class TranscriptionService {
       const cost = (tokens / 1000000) * 0.10;
 
       return { text, cost: `$${cost.toFixed(6)}` };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Parse Gemini-specific errors
-      const message = error?.message || String(error);
+      const message = getErrorMessage(error);
 
       if (message.includes('API key')) {
         throw new TranscriptionError(message, 'Gemini', 'INVALID_API_KEY', error);
@@ -668,11 +702,14 @@ export class TranscriptionService {
 
       log.debug('Parakeet transcription successful', { textLength: data.text?.length || 0 });
       return { text: data.text || "", cost: "$0.00 (Local)" };
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
 
+      const message = getErrorMessage(e);
+      const name = isErrorWithName(e) ? e.name : '';
+
       // Check for connection errors
-      if (e.message?.includes('fetch') || e.message?.includes('network') || e.name === 'TypeError') {
+      if (message.includes('fetch') || message.includes('network') || name === 'TypeError') {
         log.error('Local Parakeet server not reachable', e);
         throw new TranscriptionError(
           'Local Parakeet server is not running or not reachable',
@@ -682,7 +719,7 @@ export class TranscriptionService {
         );
       }
 
-      throw new TranscriptionError("Local Parakeet error: " + e.message, 'Parakeet', 'UNKNOWN', e);
+      throw new TranscriptionError("Local Parakeet error: " + message, 'Parakeet', 'UNKNOWN', e);
     }
   }
 
@@ -740,9 +777,9 @@ export class TranscriptionService {
         text: result.text || "",
         cost: "$0.00 (Local)"
       };
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
-      throw new TranscriptionError("Local Whisper error: " + e.message, 'Whisper', 'UNKNOWN', e);
+      throw new TranscriptionError("Local Whisper error: " + getErrorMessage(e), 'Whisper', 'UNKNOWN', e);
     }
   }
 }

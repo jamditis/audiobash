@@ -51,9 +51,10 @@ export function useVAD(options: UseVADOptions) {
       vad.start();
       setIsListening(true);
       console.log('[VAD] Started listening');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[VAD] Failed to start:', err);
-      setVadError(err.message || 'Failed to start VAD');
+      const message = err instanceof Error ? err.message : String(err);
+      setVadError(message || 'Failed to start VAD');
       setIsListening(false);
     }
   }, []);
@@ -67,7 +68,7 @@ export function useVAD(options: UseVADOptions) {
         setIsListening(false);
         setIsSpeaking(false);
         console.log('[VAD] Stopped listening');
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[VAD] Error stopping:', err);
       }
     }

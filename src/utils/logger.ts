@@ -246,9 +246,30 @@ class CategoryLogger {
   }
 }
 
+// Vite import.meta.env type declaration
+interface ImportMetaEnv {
+  readonly DEV: boolean;
+  readonly PROD: boolean;
+  readonly MODE: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
 // Singleton instance with dev/prod configuration
-// @ts-ignore - Vite provides import.meta.env
-const isDev = (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) ?? false;
+// Use type assertion with proper interface to avoid `any`
+const isDev = (() => {
+  try {
+    // Check if import.meta.env exists (Vite environment)
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      return (import.meta as ImportMeta).env.DEV;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+})();
 
 export const logger = new Logger({
   minLevel: isDev ? 'debug' : 'info',

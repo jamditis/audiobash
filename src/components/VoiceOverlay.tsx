@@ -139,12 +139,14 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         setIsRecording(false);
         vadStopRef.current?.();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Voice transcription failed', err);
       // Use user-friendly error message if available
       const errorMessage = err instanceof TranscriptionError
         ? err.toUserMessage()
-        : err.message || 'An unknown error occurred';
+        : err instanceof Error
+          ? err.message
+          : 'An unknown error occurred';
       setError(errorMessage);
       audioFeedback.playError();
       setStatus('idle');
@@ -459,12 +461,14 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           } else {
             log.debug('Empty transcription result');
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           log.error('Transcription failed', err);
           // Use user-friendly error message if available
           const errorMessage = err instanceof TranscriptionError
             ? err.toUserMessage()
-            : err.message || 'An unknown error occurred';
+            : err instanceof Error
+              ? err.message
+              : 'An unknown error occurred';
           setError(errorMessage);
           audioFeedback.playError();
         }
@@ -477,13 +481,15 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       setStatus('recording');
       audioFeedback.playStart();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Failed to start recording', err);
-      const errorMessage = err.name === 'NotAllowedError'
+      const errName = err instanceof Error ? err.name : '';
+      const errMessage = err instanceof Error ? err.message : String(err);
+      const errorMessage = errName === 'NotAllowedError'
         ? 'Microphone access denied. Please allow microphone access in your browser settings.'
-        : err.name === 'NotFoundError'
+        : errName === 'NotFoundError'
         ? 'No microphone found. Please connect a microphone and try again.'
-        : `Failed to start recording: ${err.message}`;
+        : `Failed to start recording: ${errMessage}`;
       setError(errorMessage);
       audioFeedback.playError();
     }

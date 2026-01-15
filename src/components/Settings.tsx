@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
 import { useTheme } from '../themes';
-import { Shortcuts, SecurityEvent } from '../types';
+import { Shortcuts, SecurityEvent, ShellType, SHELL_TYPES, isShellType } from '../types';
 import TunnelStatus from './TunnelStatus';
 import QRCode from 'qrcode';
 
@@ -28,7 +28,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [elevenlabsKey, setElevenlabsKey] = useState('');
   const [elevenlabsKeyInput, setElevenlabsKeyInput] = useState('');
 
-  const [shell, setShell] = useState<'powershell' | 'cmd' | 'bash'>('powershell');
+  const [shell, setShell] = useState<ShellType>('powershell');
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [autoSend, setAutoSend] = useState(true);
   const [previewBeforeExecute, setPreviewBeforeExecute] = useState(false);
@@ -176,7 +176,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     const savedPreviewBeforeExecute = localStorage.getItem('audiobash-preview-before-execute');
     const savedScanlines = localStorage.getItem('audiobash-scanlines');
 
-    if (savedShell) setShell(savedShell as any);
+    if (savedShell && isShellType(savedShell)) setShell(savedShell);
     if (savedModel) setModel(savedModel as ModelId);
     if (savedAutoSend !== null) setAutoSend(savedAutoSend === 'true');
     if (savedPreviewBeforeExecute !== null) setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
@@ -904,10 +904,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               Default shell
             </label>
             <div className="flex gap-2">
-              {['powershell', 'cmd', 'bash'].map((s) => (
+              {SHELL_TYPES.map((s) => (
                 <button
                   key={s}
-                  onClick={() => setShell(s as any)}
+                  onClick={() => setShell(s)}
                   className={`flex-1 py-1.5 text-xs font-mono uppercase border rounded transition-colors ${
                     shell === s
                       ? 'border-accent/50 bg-accent/10 text-accent'
