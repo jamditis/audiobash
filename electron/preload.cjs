@@ -976,6 +976,24 @@ contextBridge.exposeInMainWorld('electron', {
   regeneratePairingCode: () => ipcRenderer.invoke('regenerate-pairing-code'),
 
   /**
+   * Generates a QR code for mobile pairing.
+   * The QR code encodes connection info including URL, pairing code, and device name.
+   * Uses tunnel URL if available, otherwise falls back to local IP.
+   *
+   * @function generatePairingQR
+   * @memberof window.electron
+   * @returns {Promise<{success: boolean, data?: {qrDataUrl: string, url: string, code: string, name: string}, error?: string}>} QR code result
+   * @example
+   * const result = await window.electron.generatePairingQR();
+   * if (result.success) {
+   *   qrImage.src = result.data.qrDataUrl;
+   *   console.log('Connect to:', result.data.url);
+   *   console.log('Pairing code:', result.data.code);
+   * }
+   */
+  generatePairingQR: () => ipcRenderer.invoke('generate-pairing-qr'),
+
+  /**
    * Sets a password for remote connections.
    *
    * @function setRemotePassword

@@ -1195,6 +1195,87 @@ function setupIPC() {
     return null;
   });
 
+  // Generate QR code for mobile pairing
+  ipcMain.handle('generate-pairing-qr', async () => {
+    try {
+      const QRCode = require('qrcode');
+
+      // Get current pairing code from remote server
+      if (!remoteServer) {
+        return { success: false, error: 'Remote server not running' };
+      }
+
+      const status = remoteServer.getStatus();
+      const code = status.pairingCode;
+
+      if (!code) {
+        return { success: false, error: 'No pairing code available' };
+      }
+
+      // Determine the connection URL
+      // Priority: tunnel URL > local IP:port
+      let url = null;
+
+      // Check for active tunnel (Cloudflare or ngrok)
+      if (activeTunnelProvider === 'cloudflare' && cloudflareService) {
+        const cfStatus = cloudflareService.getStatus();
+        if (cfStatus.status === 'connected' && cfStatus.tunnelUrl) {
+          url = cfStatus.tunnelUrl;
+          console.log('[AudioBash] QR using Cloudflare tunnel URL:', url);
+        }
+      } else if (activeTunnelProvider === 'ngrok' && ngrokService) {
+        const ngrokStatus = ngrokService.getStatus();
+        if (ngrokStatus.status === 'connected' && ngrokStatus.tunnelUrl) {
+          url = ngrokStatus.tunnelUrl;
+          console.log('[AudioBash] QR using ngrok tunnel URL:', url);
+        }
+      }
+
+      // Fall back to local IP if no tunnel
+      if (!url) {
+        const addresses = status.addresses || [];
+        const localIP = addresses[0] || '127.0.0.1';
+        const port = status.port || 8765;
+        url = `ws://${localIP}:${port}`;
+        console.log('[AudioBash] QR using local URL:', url);
+      }
+
+      // Build the pairing payload
+      const pairingPayload = {
+        url,
+        code,
+        version: 1,
+        name: 'AudioBash Desktop'
+      };
+
+      // Generate QR code as data URL
+      const qrDataUrl = await QRCode.toDataURL(JSON.stringify(pairingPayload), {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 256,
+        color: {
+          dark: '#e5e5e5',  // Chrome color (matches AudioBash aesthetic)
+          light: '#050505'  // Void color
+        }
+      });
+
+      console.log('[AudioBash] QR code generated for pairing');
+
+      return {
+        success: true,
+        data: {
+          qrDataUrl,
+          url,
+          code,
+          name: 'AudioBash Desktop'
+        }
+      };
+    } catch (err) {
+      console.error('[AudioBash] Failed to generate QR code:', err);
+      return { success: false, error: err.message || String(err) };
+    }
+  });
+
   // Set static password for remote access
   ipcMain.handle('set-remote-password', async (_, password) => {
     if (remoteServer) {
