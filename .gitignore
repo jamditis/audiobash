@@ -30,3 +30,13 @@ npm-debug.log*
 # Local server
 local_server/__pycache__/
 local_server/*.pyc
+
+# Test outputs
+test-output.txt
+*.test-output.*
+
+# Security analysis (local only)
+security-lab/
+
+# Claude local settings
+.claude/settings.local.json
