@@ -43,9 +43,10 @@ describe('WebSocket Server Authentication Tests', () => {
   });
 
   it('validates pairing code case-insensitively', () => {
-    // Check case-insensitive comparison
+    // Check case-insensitive comparison for pairing codes
     expect(websocketServerCode).toContain('pairingCode?.toUpperCase()');
-    expect(websocketServerCode).toContain('this.staticPassword.toUpperCase()');
+    // Static passwords are case-sensitive for security (no toUpperCase on password)
+    expect(websocketServerCode).toContain('pairingCode === this.staticPassword');
   });
 
   it('returns specific error codes for auth failures', () => {

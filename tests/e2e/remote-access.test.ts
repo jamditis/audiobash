@@ -203,7 +203,7 @@ describe('E2E: Remote Access Flow', () => {
       expect(server.connectedClient).toBe(mockClient);
     });
 
-    it('should return local IP addresses for QR code generation', () => {
+    it('should return local IP addresses for QR code generation', async () => {
       await server.start();
       const addresses = server.getLocalIPAddresses();
       expect(Array.isArray(addresses)).toBe(true);
@@ -242,7 +242,7 @@ describe('E2E: Remote Access Flow', () => {
       expect(server.pairingCode).not.toBe(originalCode);
     });
 
-    it('should allow manual pairing code regeneration', () => {
+    it('should allow manual pairing code regeneration', async () => {
       await server.start();
       const originalCode = server.pairingCode;
 
@@ -276,7 +276,7 @@ describe('E2E: Remote Access Flow', () => {
       expect(server.pairingCode).toBe(originalPairingCode);
     });
 
-    it('should validate password strength requirements', () => {
+    it('should validate password strength requirements', async () => {
       await server.start();
 
       // Too short
@@ -284,10 +284,10 @@ describe('E2E: Remote Access Flow', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('at least 8 characters');
 
-      // Missing complexity
+      // Lowercase only - now accepted with warning (for mobile keyboard compatibility)
       result = server.setStaticPassword('alllowercase');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('at least 2 of');
+      expect(result.success).toBe(true);
+      expect(result.warning).toContain('mixed case');
 
       // Common weak password
       result = server.setStaticPassword('password123!');
@@ -299,7 +299,7 @@ describe('E2E: Remote Access Flow', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should allow clearing static password', () => {
+    it('should allow clearing static password', async () => {
       await server.start();
       server.setStaticPassword('ValidPass123!');
       expect(server.hasStaticPassword()).toBe(true);
@@ -713,7 +713,7 @@ describe('E2E: Remote Access Flow', () => {
       expect(server.heartbeatInterval).toBeNull();
     });
 
-    it('should return correct status', () => {
+    it('should return correct status', async () => {
       await server.start();
       const status = server.getStatus();
 

@@ -79,26 +79,17 @@ describe('TranscriptionService', () => {
       }
     });
 
-    it('has all expected OpenAI models', () => {
-      const openaiModels = ['openai-whisper', 'openai-gpt4'];
-      for (const modelId of openaiModels) {
+    it('has all expected ElevenLabs models', () => {
+      const elevenLabsModels = ['elevenlabs-scribe', 'elevenlabs-scribe-realtime'];
+      for (const modelId of elevenLabsModels) {
         const info = service.getModelInfo(modelId as ModelId);
         expect(info).toBeDefined();
-        expect(info?.provider).toBe('openai');
-      }
-    });
-
-    it('has all expected Claude models', () => {
-      const claudeModels = ['claude-sonnet', 'claude-haiku'];
-      for (const modelId of claudeModels) {
-        const info = service.getModelInfo(modelId as ModelId);
-        expect(info).toBeDefined();
-        expect(info?.provider).toBe('anthropic');
+        expect(info?.provider).toBe('elevenlabs');
       }
     });
 
     it('has local models', () => {
-      const localModels = ['parakeet-local', 'whisper-local-tiny', 'whisper-local-base', 'whisper-local-small'];
+      const localModels = ['parakeet-local', 'whisper-local-small'];
       for (const modelId of localModels) {
         const info = service.getModelInfo(modelId as ModelId);
         expect(info).toBeDefined();
@@ -114,9 +105,14 @@ describe('TranscriptionService', () => {
       expect(rawOnlyModels.length).toBeGreaterThan(0);
     });
 
-    it('Whisper-only models do not support agent mode', () => {
-      const whisperOnly = service.getModelInfo('openai-whisper');
-      expect(whisperOnly?.supportsAgent).toBe(false);
+    it('ElevenLabs models do not support agent mode', () => {
+      const elevenLabs = service.getModelInfo('elevenlabs-scribe');
+      expect(elevenLabs?.supportsAgent).toBe(false);
+    });
+
+    it('Local Whisper models do not support agent mode', () => {
+      const whisperLocal = service.getModelInfo('whisper-local-small');
+      expect(whisperLocal?.supportsAgent).toBe(false);
     });
 
     it('Gemini models support agent mode', () => {
@@ -350,7 +346,8 @@ describe('Model Configurations', () => {
     });
 
     it('has at least one model per provider type', () => {
-      const providers = ['gemini', 'openai', 'anthropic', 'local'];
+      // Current providers: gemini, elevenlabs, local
+      const providers = ['gemini', 'elevenlabs', 'local'];
       for (const provider of providers) {
         const models = MODELS.filter((m) => m.provider === provider);
         expect(models.length).toBeGreaterThan(0);

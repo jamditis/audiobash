@@ -242,20 +242,20 @@ describe('WebSocket Connection Integration Tests', () => {
       });
     });
 
-    it('should reject weak passwords', async () => {
+    it('should reject weak passwords and warn about complexity', async () => {
       await server.start();
 
-      // Too short
+      // Too short - should be rejected
       let result = server.setStaticPassword('short');
       expect(result.success).toBe(false);
       expect(result.error).toContain('at least');
 
-      // No complexity
+      // Lowercase only - accepted but with warning (for mobile keyboard compatibility)
       result = server.setStaticPassword('alllowercase');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('at least 2 of');
+      expect(result.success).toBe(true);
+      expect(result.warning).toContain('mixed case');
 
-      // Common pattern
+      // Common pattern - should be rejected
       result = server.setStaticPassword('password123');
       expect(result.success).toBe(false);
       expect(result.error).toContain('weak pattern');
