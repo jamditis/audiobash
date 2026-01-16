@@ -14,25 +14,13 @@ const fs = require('fs');
 const { app } = require('electron');
 const { spawn, execSync } = require('child_process');
 
-// Model configurations
+// Model configurations - only small.en is supported now
 const MODEL_CONFIGS = {
-  'tiny.en': {
-    size: '75 MB',
-    speed: 'Fastest',
-    accuracy: 'Good',
-    description: 'Fastest model, good for most use cases'
-  },
-  'base.en': {
-    size: '142 MB',
-    speed: 'Fast',
-    accuracy: 'Better',
-    description: 'Balanced speed and accuracy (default)'
-  },
   'small.en': {
     size: '466 MB',
-    speed: 'Medium',
+    speed: 'Fast',
     accuracy: 'Best',
-    description: 'Slower but more accurate'
+    description: 'High accuracy local transcription'
   },
 };
 
@@ -160,7 +148,7 @@ class WhisperService {
   constructor() {
     // Store whisper.cpp and models in app's userData directory
     this.whisperDir = null; // Set after app is ready
-    this.currentModel = 'base.en';
+    this.currentModel = 'small.en';
     this.whisperInstalled = false;
     this.installPromise = null;
   }
@@ -446,8 +434,8 @@ class WhisperService {
    */
   setModel(modelName) {
     if (!MODEL_CONFIGS[modelName]) {
-      console.warn(`[WhisperService] Invalid model name: ${modelName}, using base.en`);
-      this.currentModel = 'base.en';
+      console.warn(`[WhisperService] Invalid model name: ${modelName}, using small.en`);
+      this.currentModel = 'small.en';
       return;
     }
 
@@ -523,7 +511,7 @@ class WhisperService {
    * @param {function} onProgress - Progress callback
    * @returns {Promise<{success: boolean, error?: string}>}
    */
-  async fullSetup(modelName = 'base.en', onProgress) {
+  async fullSetup(modelName = 'small.en', onProgress) {
     try {
       if (onProgress) onProgress({ stage: 'whisper', progress: 0 });
 

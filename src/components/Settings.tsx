@@ -21,10 +21,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   // API keys for each provider
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyInput, setGeminiKeyInput] = useState('');
-  const [openaiKey, setOpenaiKey] = useState('');
-  const [openaiKeyInput, setOpenaiKeyInput] = useState('');
-  const [anthropicKey, setAnthropicKey] = useState('');
-  const [anthropicKeyInput, setAnthropicKeyInput] = useState('');
   const [elevenlabsKey, setElevenlabsKey] = useState('');
   const [elevenlabsKeyInput, setElevenlabsKeyInput] = useState('');
 
@@ -145,20 +141,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
         setGeminiKey(key);
         setGeminiKeyInput(key);
         transcriptionService.setApiKey(key, 'gemini');
-      }
-    });
-    window.electron?.getApiKey('openai').then((key: string) => {
-      if (key) {
-        setOpenaiKey(key);
-        setOpenaiKeyInput(key);
-        transcriptionService.setApiKey(key, 'openai');
-      }
-    });
-    window.electron?.getApiKey('anthropic').then((key: string) => {
-      if (key) {
-        setAnthropicKey(key);
-        setAnthropicKeyInput(key);
-        transcriptionService.setApiKey(key, 'anthropic');
       }
     });
     window.electron?.getApiKey('elevenlabs').then((key: string) => {
@@ -363,7 +345,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   }, [recordingShortcut, handleKeyDown]);
 
   // One-click setup for local transcription (installs whisper.cpp + downloads model)
-  const setupLocalTranscription = async (modelId: string = 'base.en') => {
+  const setupLocalTranscription = async (modelId: string = 'small.en') => {
     setIsSettingUp(true);
     setSetupError(null);
     setDownloadingModel(modelId);
@@ -422,16 +404,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
       setGeminiKey(geminiKeyInput);
       transcriptionService.setApiKey(geminiKeyInput, 'gemini');
     }
-    if (openaiKeyInput !== openaiKey) {
-      await window.electron?.setApiKey(openaiKeyInput, 'openai');
-      setOpenaiKey(openaiKeyInput);
-      transcriptionService.setApiKey(openaiKeyInput, 'openai');
-    }
-    if (anthropicKeyInput !== anthropicKey) {
-      await window.electron?.setApiKey(anthropicKeyInput, 'anthropic');
-      setAnthropicKey(anthropicKeyInput);
-      transcriptionService.setApiKey(anthropicKeyInput, 'anthropic');
-    }
     if (elevenlabsKeyInput !== elevenlabsKey) {
       await window.electron?.setApiKey(elevenlabsKeyInput, 'elevenlabs');
       setElevenlabsKey(elevenlabsKeyInput);
@@ -488,8 +460,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const hasRequiredKey = () => {
     switch (selectedProvider) {
       case 'gemini': return !!geminiKeyInput;
-      case 'openai': return !!openaiKeyInput;
-      case 'anthropic': return !!openaiKeyInput && !!anthropicKeyInput; // Claude needs both
       case 'elevenlabs': return !!elevenlabsKeyInput;
       case 'local': return true;
       default: return false;
@@ -540,53 +510,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 placeholder="AIza..."
                 className="w-full bg-void-200 border border-void-300 rounded px-3 py-1.5 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none"
               />
-            </div>
-
-            {/* OpenAI */}
-            <div>
-              <label className="flex items-center justify-between text-[10px] text-crt-white/50 font-mono uppercase mb-1">
-                <span>OpenAI API key</span>
-                <a
-                  href="https://platform.openai.com/api-keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent/70 hover:text-accent"
-                >
-                  Get key →
-                </a>
-              </label>
-              <input
-                type="password"
-                value={openaiKeyInput}
-                onChange={(e) => setOpenaiKeyInput(e.target.value)}
-                placeholder="sk-..."
-                className="w-full bg-void-200 border border-void-300 rounded px-3 py-1.5 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none"
-              />
-            </div>
-
-            {/* Anthropic */}
-            <div>
-              <label className="flex items-center justify-between text-[10px] text-crt-white/50 font-mono uppercase mb-1">
-                <span>Anthropic API key</span>
-                <a
-                  href="https://console.anthropic.com/settings/keys"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent/70 hover:text-accent"
-                >
-                  Get key →
-                </a>
-              </label>
-              <input
-                type="password"
-                value={anthropicKeyInput}
-                onChange={(e) => setAnthropicKeyInput(e.target.value)}
-                placeholder="sk-ant-..."
-                className="w-full bg-void-200 border border-void-300 rounded px-3 py-1.5 text-xs font-mono text-crt-white placeholder:text-crt-white/20 focus:border-accent focus:outline-none"
-              />
-              <div className="text-[9px] text-crt-white/30 mt-0.5">
-                Claude models require both OpenAI (for Whisper) and Anthropic keys
-              </div>
             </div>
 
             {/* ElevenLabs */}
@@ -686,8 +609,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             <div className="space-y-1.5">
               {MODELS.filter(m => !m.id.startsWith('whisper-local-')).map((m) => {
                 const needsKey = m.provider === 'gemini' ? !geminiKeyInput :
-                  m.provider === 'openai' ? !openaiKeyInput :
-                  m.provider === 'anthropic' ? (!openaiKeyInput || !anthropicKeyInput) :
                   m.provider === 'elevenlabs' ? !elevenlabsKeyInput :
                   false;
 
@@ -756,7 +677,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               </span>
               {!whisperInstalled && !isSettingUp && (
                 <button
-                  onClick={() => setupLocalTranscription('base.en')}
+                  onClick={() => setupLocalTranscription('small.en')}
                   className="ml-auto text-[9px] px-2 py-1 bg-green-500/20 text-green-400 rounded uppercase hover:bg-green-500/30 transition-colors"
                 >
                   One-click setup
@@ -783,13 +704,13 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             {/* Model list - click to select, shows download/delete options */}
             <div className="space-y-2">
               {localModels.map((m) => {
-                // Map local model id (e.g., 'base.en') to the ModelId format (e.g., 'whisper-local-base')
+                // Map local model id (e.g., 'small.en') to the ModelId format (e.g., 'whisper-local-small')
                 const modelIdMap: Record<string, ModelId> = {
-                  'tiny.en': 'whisper-local-tiny',
-                  'base.en': 'whisper-local-base',
                   'small.en': 'whisper-local-small',
                 };
                 const mappedModelId = modelIdMap[m.id];
+                // Skip models that aren't in our supported list
+                if (!mappedModelId) return null;
                 const isSelected = model === mappedModelId;
                 const canSelect = m.downloaded && whisperInstalled;
 

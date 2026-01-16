@@ -143,16 +143,10 @@ export interface ModelInfo {
 export const MODELS: ModelInfo[] = [
   { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', description: 'Fast, native audio support', supportsAgent: true },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', description: 'Latest Gemini with audio', supportsAgent: true },
-  { id: 'openai-whisper', name: 'OpenAI Whisper', provider: 'openai', description: 'Whisper transcription only', supportsAgent: false },
-  { id: 'openai-gpt4', name: 'Whisper + GPT-4', provider: 'openai', description: 'Whisper → GPT-4 for agent mode', supportsAgent: true },
-  { id: 'claude-sonnet', name: 'Whisper + Claude Sonnet', provider: 'anthropic', description: 'Whisper → Claude for agent mode', supportsAgent: true },
-  { id: 'claude-haiku', name: 'Whisper + Claude Haiku', provider: 'anthropic', description: 'Whisper → Claude Haiku (faster)', supportsAgent: true },
   { id: 'elevenlabs-scribe', name: 'ElevenLabs Scribe', provider: 'elevenlabs', description: 'High-quality speech-to-text (batch)', supportsAgent: false },
   { id: 'elevenlabs-scribe-realtime', name: 'ElevenLabs Scribe v2', provider: 'elevenlabs', description: 'Real-time streaming (~150ms)', supportsAgent: false, isRealtime: true },
   { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
-  { id: 'whisper-local-tiny', name: 'Whisper Local (Tiny)', provider: 'local', description: '75 MB, fastest, offline', supportsAgent: false },
-  { id: 'whisper-local-base', name: 'Whisper Local (Base)', provider: 'local', description: '142 MB, balanced, offline', supportsAgent: false },
-  { id: 'whisper-local-small', name: 'Whisper Local (Small)', provider: 'local', description: '466 MB, best accuracy, offline', supportsAgent: false },
+  { id: 'whisper-local-small', name: 'Whisper Local', provider: 'local', description: '466 MB, best accuracy, offline', supportsAgent: false },
 ];
 
 // Build vocabulary section for prompts
