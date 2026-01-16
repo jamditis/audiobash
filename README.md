@@ -6,10 +6,13 @@
 [![Build](https://github.com/jamditis/audiobash/actions/workflows/build.yml/badge.svg)](https://github.com/jamditis/audiobash/actions/workflows/build.yml)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/jamditis/audiobash/releases)
 [![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://github.com/jamditis/audiobash/releases)
+[![Website](https://img.shields.io/badge/website-audiobash.app-ff3333)](https://audiobash.app)
 
 ![AudioBash](https://i.imgur.com/rUHuOhx.png)
 
 A voice-controlled terminal for developers. Speak commands, execute them instantly.
+
+**Website:** [audiobash.app](https://audiobash.app) | **Remote control:** [remote.audiobash.app](https://remote.audiobash.app)
 
 ## Features
 

@@ -2,28 +2,37 @@
 
 ---
 
-## 📖 Documentation & GitHub Pages (2025-01-02)
+## 📖 Documentation & websites (2026-01-16)
 
-AudioBash has comprehensive web documentation hosted on GitHub Pages:
+AudioBash has a custom domain and web documentation:
 
-### Live documentation URLs
-- **Landing page:** https://jamditis.github.io/audiobash/
-- **User manual:** https://jamditis.github.io/audiobash/manual.html
-- **macOS guide:** https://jamditis.github.io/audiobash/macos.html
-- **Release notes:** https://jamditis.github.io/audiobash/releases.html
+### Live URLs
+- **Main website:** https://audiobash.app
+- **Remote control app:** https://remote.audiobash.app
+- **User manual:** https://audiobash.app/manual.html
+- **macOS guide:** https://audiobash.app/macos.html
+- **Release notes:** https://audiobash.app/releases.html
+- **About:** https://audiobash.app/about.html
+
+### Hosting setup
+- **audiobash.app** - GitHub Pages (serves `docs/` folder)
+- **remote.audiobash.app** - Cloudflare Pages (serves `docs/remote/` folder)
 
 ### Documentation files
 ```
 docs/
 ├── index.html          # Landing page with download links
+├── about.html          # About page with author bio
 ├── manual.html         # Full user manual with screenshots
 ├── macos.html          # macOS-specific announcement page
 ├── releases.html       # Version history and changelog
+├── blog.html           # Blog index
+├── CNAME               # Custom domain for GitHub Pages
+├── remote/             # Remote control PWA (deployed to Cloudflare Pages)
+│   ├── index.html
+│   ├── manifest.json
+│   └── ...
 └── screenshots/        # UI screenshots (full + web-optimized)
-    ├── 01-main-window.png
-    ├── 01-main-window-web.png (800px max width)
-    ├── 02-settings-panel.png
-    ├── ...
 ```
 
 ### Screenshot capture scripts
