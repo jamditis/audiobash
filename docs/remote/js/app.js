@@ -284,7 +284,8 @@ function setupWebSocketHandlers() {
  */
 async function handleConnect() {
   const address = elements.ipInput.value.trim();
-  const code = elements.codeInput.value.trim().toUpperCase();
+  // Don't force uppercase - passwords are case-sensitive, pairing codes aren't
+  const code = elements.codeInput.value.trim();
 
   // Validation
   if (!address) {

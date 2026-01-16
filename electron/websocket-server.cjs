@@ -153,11 +153,10 @@ class RemoteControlServer {
     const hasSpecial = /[^A-Za-z0-9]/.test(password);
     const complexityScore = [hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length;
 
+    // Warn about complexity but don't reject (remote app auto-capitalizes)
+    let complexityWarning = null;
     if (complexityScore < 2) {
-      return {
-        valid: false,
-        error: 'Password must contain at least 2 of: uppercase, lowercase, numbers, special characters',
-      };
+      complexityWarning = 'Consider using mixed case, numbers, or special characters for better security';
     }
 
     // Check for common weak passwords
@@ -169,13 +168,14 @@ class RemoteControlServer {
       };
     }
 
-    // Warn if below recommended length
-    let warning = null;
+    // Combine warnings
+    const warnings = [];
+    if (complexityWarning) warnings.push(complexityWarning);
     if (password.length < this.RECOMMENDED_PASSWORD_LENGTH) {
-      warning = `Consider using ${this.RECOMMENDED_PASSWORD_LENGTH}+ characters for better security`;
+      warnings.push(`Consider using ${this.RECOMMENDED_PASSWORD_LENGTH}+ characters for better security`);
     }
 
-    return { valid: true, warning };
+    return { valid: true, warning: warnings.length > 0 ? warnings.join('. ') : null };
   }
 
   /**
