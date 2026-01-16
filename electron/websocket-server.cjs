@@ -81,6 +81,7 @@ class RemoteControlServer {
 
     this.wss = null;
     this.wssSecure = null; // Secure WebSocket server
+    this.httpServer = null; // HTTP server for WS (required for tunnel proxies)
     this.httpsServer = null;
     this.connectedClient = null; // Single device only
     this.connectedDeviceName = null;
@@ -353,18 +354,35 @@ class RemoteControlServer {
     }
 
     try {
-      // Start regular WebSocket server (ws://)
-      this.wss = new WebSocketServer({
-        port: this.port,
-        host: host
+      // Create HTTP server to handle WebSocket upgrades (required for Cloudflare tunnels)
+      this.httpServer = http.createServer((req, res) => {
+        // Handle health check requests from tunnels/load balancers
+        if (req.url === '/health' || req.url === '/') {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('AudioBash WebSocket Server OK');
+          return;
+        }
+        // Return 426 Upgrade Required for other HTTP requests
+        res.writeHead(426, { 'Content-Type': 'text/plain' });
+        res.end('WebSocket connection required');
       });
+
+      // Start regular WebSocket server (ws://) attached to HTTP server
+      this.wss = new WebSocketServer({ server: this.httpServer });
       this.generatePairingCode();
 
       this.wss.on('connection', (ws, req) => {
         this.setupConnectionHandlers(ws, req);
       });
 
-      console.log(`[RemoteControl] WS server started on port ${this.port}`);
+      // Listen on the HTTP server
+      await new Promise((resolve, reject) => {
+        this.httpServer.on('error', reject);
+        this.httpServer.listen(this.port, host, () => {
+          console.log(`[RemoteControl] WS server started on port ${this.port}`);
+          resolve();
+        });
+      });
 
       // Try to start secure WebSocket server (wss://) only if port is available
       const certs = securePortAvailable ? this.getOrCreateCertificate() : null;
@@ -440,6 +458,10 @@ class RemoteControlServer {
     if (this.httpsServer) {
       this.httpsServer.close();
       this.httpsServer = null;
+    }
+    if (this.httpServer) {
+      this.httpServer.close();
+      this.httpServer = null;
     }
     this.connectedClient = null;
     this.connectedDeviceName = null;
