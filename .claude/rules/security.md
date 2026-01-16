@@ -262,6 +262,12 @@ app.on('ready', () => {
 ```
 
 ### Sanitize HTML Output
+
+> **NOTE:** The code examples below are for DOCUMENTATION PURPOSES ONLY.
+> The "WRONG" examples demonstrate vulnerable patterns that should NEVER be used.
+> Static analysis tools may flag these as vulnerabilities - they are intentional
+> examples of what NOT to do.
+
 - Never use `dangerouslySetInnerHTML` without sanitization
 - Use DOMPurify for HTML sanitization
 - Prefer React components over raw HTML
@@ -275,7 +281,7 @@ function SafeHtml({ html }: { html: string }) {
   return <div dangerouslySetInnerHTML={{ __html: clean }} />;
 }
 
-// ❌ WRONG - Unsanitized HTML
+// ❌ WRONG - EXAMPLE OF VULNERABLE CODE - DO NOT USE
 function UnsafeHtml({ html }: { html: string }) {
   return <div dangerouslySetInnerHTML={{ __html: html }} />;  // XSS risk!
 }

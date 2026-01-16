@@ -17,6 +17,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '../../..');
 
 /**
+ * Sanitize user input to prevent command injection
+ * Only allows alphanumeric characters, spaces, hyphens, underscores, and dots
+ */
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return '';
+  // Remove any shell metacharacters - only allow safe characters
+  return input.replace(/[^a-zA-Z0-9\s\-_.]/g, '');
+}
+
+/**
  * Execute a command in the AudioBash project directory
  */
 async function runCommand(command, options = {}) {
@@ -241,7 +251,11 @@ class AudioBashToolsServer {
           case 'audiobash_run_tests': {
             let command = 'npm test';
             if (args?.filter) {
-              command += ` -- --testNamePattern="${args.filter}"`;
+              // Sanitize filter input to prevent command injection
+              const safeFilter = sanitizeInput(args.filter);
+              if (safeFilter) {
+                command += ` -- --testNamePattern="${safeFilter}"`;
+              }
             }
             if (args?.verbose) {
               command += ' -- --verbose';
