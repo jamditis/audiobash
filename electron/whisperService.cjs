@@ -186,8 +186,21 @@ class WhisperService {
    */
   isWhisperInstalled() {
     const binaryName = process.platform === 'win32' ? 'main.exe' : 'main';
-    const binaryPath = path.join(this.whisperDir, WHISPER_CPP_VERSION, binaryName);
-    return fs.existsSync(binaryPath);
+    // Check both versioned path and root path (for backwards compatibility)
+    const versionedPath = path.join(this.whisperDir, WHISPER_CPP_VERSION, binaryName);
+    const rootPath = path.join(this.whisperDir, binaryName);
+    return fs.existsSync(versionedPath) || fs.existsSync(rootPath);
+  }
+
+  /**
+   * Get the actual path to the whisper.cpp binary
+   */
+  getWhisperBinaryPath() {
+    const binaryName = process.platform === 'win32' ? 'main.exe' : 'main';
+    const versionedPath = path.join(this.whisperDir, WHISPER_CPP_VERSION, binaryName);
+    const rootPath = path.join(this.whisperDir, binaryName);
+    // Prefer versioned path, fall back to root
+    return fs.existsSync(versionedPath) ? versionedPath : rootPath;
   }
 
   /**
@@ -350,8 +363,7 @@ class WhisperService {
       }
 
       // Call whisper.cpp binary directly (more reliable than remotion package)
-      const binaryName = process.platform === 'win32' ? 'main.exe' : 'main';
-      const binaryPath = path.join(this.whisperDir, WHISPER_CPP_VERSION, binaryName);
+      const binaryPath = this.getWhisperBinaryPath();
       const modelPath = path.join(this.whisperDir, `ggml-${this.currentModel}.bin`);
 
       console.log(`[WhisperService] Running: ${binaryPath} -m ${modelPath} -f ${inputPath}`);
