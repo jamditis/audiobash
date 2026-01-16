@@ -36,6 +36,9 @@ const elements = {
   disconnectBtn: document.getElementById('disconnect-btn'),
   terminalContainer: document.getElementById('terminal-container'),
 
+  // Auxiliary keys
+  auxKeys: document.getElementById('aux-keys'),
+
   // Command input
   commandInput: document.getElementById('command-input'),
   imageInput: document.getElementById('image-input'),
@@ -45,6 +48,12 @@ const elements = {
 
   // Reconnect overlay
   cancelReconnect: document.getElementById('cancel-reconnect'),
+};
+
+// Modifier key state (for ctrl/alt toggle)
+const modifierState = {
+  ctrl: false,
+  alt: false,
 };
 
 /**
@@ -97,15 +106,38 @@ function init() {
 }
 
 /**
+ * Safe localStorage wrapper (handles tracking prevention blocks)
+ */
+const storage = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('[Storage] Access blocked:', e.message);
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.warn('[Storage] Write blocked:', e.message);
+      return false;
+    }
+  }
+};
+
+/**
  * Load saved connection info from localStorage
  */
 function loadSavedConnection() {
-  const savedIP = localStorage.getItem('audiobash-remote-ip');
+  const savedIP = storage.get('audiobash-remote-ip');
   if (savedIP) {
     elements.ipInput.value = savedIP;
   }
   // Also load saved password/code
-  const savedCode = localStorage.getItem('audiobash-remote-code');
+  const savedCode = storage.get('audiobash-remote-code');
   if (savedCode) {
     elements.codeInput.value = savedCode;
   }
@@ -115,10 +147,10 @@ function loadSavedConnection() {
  * Save connection info to localStorage
  */
 function saveConnection(ip, code) {
-  localStorage.setItem('audiobash-remote-ip', ip);
+  storage.set('audiobash-remote-ip', ip);
   // Save the code/password for persistent access
   if (code) {
-    localStorage.setItem('audiobash-remote-code', code);
+    storage.set('audiobash-remote-code', code);
   }
 }
 
@@ -200,6 +232,160 @@ function setupEventListeners() {
     state.wsManager.cancelReconnect();
     showScreen('connect');
     elements.reconnectOverlay.hidden = true;
+  });
+
+  // Auxiliary keys
+  setupAuxiliaryKeys();
+}
+
+/**
+ * Set up auxiliary key row event handlers
+ */
+function setupAuxiliaryKeys() {
+  if (!elements.auxKeys) return;
+
+  elements.auxKeys.addEventListener('click', (e) => {
+    const btn = e.target.closest('.aux-key');
+    if (!btn) return;
+
+    // Haptic feedback
+    navigator.vibrate?.(15);
+
+    // Handle different key types
+    if (btn.dataset.modifier) {
+      // Toggle modifier (ctrl/alt)
+      handleModifierToggle(btn, btn.dataset.modifier);
+    } else if (btn.dataset.key) {
+      // Special keys (Tab, Escape)
+      handleSpecialKey(btn.dataset.key);
+    } else if (btn.dataset.send) {
+      // Control sequences (^C, ^D, ^Z)
+      handleControlSequence(btn.dataset.send);
+    } else if (btn.dataset.char) {
+      // Insert character (|, ~, `)
+      handleCharacterInsert(btn.dataset.char);
+    } else if (btn.dataset.arrow) {
+      // Arrow keys
+      handleArrowKey(btn.dataset.arrow);
+    }
+  });
+}
+
+/**
+ * Handle modifier key toggle (ctrl/alt)
+ */
+function handleModifierToggle(btn, modifier) {
+  modifierState[modifier] = !modifierState[modifier];
+  btn.classList.toggle('active', modifierState[modifier]);
+
+  // Visual feedback - flash the command input
+  if (modifierState[modifier]) {
+    elements.commandInput?.focus();
+  }
+}
+
+/**
+ * Handle special keys (Tab, Escape)
+ */
+function handleSpecialKey(key) {
+  // Send directly to terminal as escape sequence
+  let sequence;
+  switch (key) {
+    case 'Tab':
+      sequence = '\t';
+      break;
+    case 'Escape':
+      sequence = '\x1b';
+      break;
+    default:
+      return;
+  }
+
+  sendToTerminal(sequence);
+  clearModifiers();
+}
+
+/**
+ * Handle control sequences (^C, ^D, ^Z)
+ */
+function handleControlSequence(seq) {
+  // Convert ^X notation to actual control character
+  const char = seq.charAt(1);
+  const ctrlChar = String.fromCharCode(char.charCodeAt(0) - 64);
+
+  sendToTerminal(ctrlChar);
+  clearModifiers();
+}
+
+/**
+ * Handle character insertion (|, ~, `)
+ */
+function handleCharacterInsert(char) {
+  // If command input is focused, insert there
+  if (document.activeElement === elements.commandInput) {
+    const input = elements.commandInput;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const value = input.value;
+
+    input.value = value.substring(0, start) + char + value.substring(end);
+    input.selectionStart = input.selectionEnd = start + 1;
+  } else {
+    // Otherwise send directly to terminal
+    sendToTerminal(char);
+  }
+
+  clearModifiers();
+}
+
+/**
+ * Handle arrow key presses
+ */
+function handleArrowKey(direction) {
+  // ANSI escape sequences for arrow keys
+  const sequences = {
+    up: '\x1b[A',
+    down: '\x1b[B',
+    right: '\x1b[C',
+    left: '\x1b[D',
+  };
+
+  sendToTerminal(sequences[direction]);
+  clearModifiers();
+}
+
+/**
+ * Send data to terminal with optional modifier handling
+ */
+function sendToTerminal(data) {
+  if (!state.wsManager) return;
+
+  // Apply modifiers if set
+  if (modifierState.ctrl && data.length === 1) {
+    // Convert to control character
+    const upper = data.toUpperCase();
+    if (upper >= 'A' && upper <= 'Z') {
+      data = String.fromCharCode(upper.charCodeAt(0) - 64);
+    }
+  }
+
+  state.wsManager.send({
+    type: 'terminal_write',
+    tabId: state.activeTabId,
+    data: data,
+  });
+}
+
+/**
+ * Clear all modifier states
+ */
+function clearModifiers() {
+  modifierState.ctrl = false;
+  modifierState.alt = false;
+
+  // Update UI
+  elements.auxKeys?.querySelectorAll('.aux-key.modifier').forEach(btn => {
+    btn.classList.remove('active');
   });
 }
 

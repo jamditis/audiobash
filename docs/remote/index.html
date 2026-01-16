@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#050505">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="AudioBash Remote">
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css">
   <link rel="stylesheet" href="css/styles.css">
   <title>AudioBash Remote</title>
@@ -28,11 +29,11 @@
 
       <div class="connect-form">
         <div class="input-group">
-          <label for="ip-input">Server address</label>
+          <label for="ip-input">Tunnel URL or local IP</label>
           <input
             type="text"
             id="ip-input"
-            placeholder="ws.audiobash.app"
+            placeholder="abc123.trycloudflare.com"
             inputmode="url"
             autocomplete="off"
           >
@@ -61,7 +62,8 @@
       </div>
 
       <div class="connect-help">
-        <p>Find connection details in AudioBash Settings &gt; Remote Control</p>
+        <p>Open AudioBash → Settings → Remote Control to get your tunnel URL and pairing code</p>
+        <p style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">Requires Cloudflare or ngrok tunnel for remote access</p>
       </div>
     </div>
 
@@ -126,12 +128,28 @@
         <textarea id="file-content" spellcheck="false"></textarea>
       </div>
 
+      <!-- Terminal Auxiliary Keys -->
+      <div id="aux-keys">
+        <button class="aux-key" data-key="Tab" title="Tab (autocomplete)">tab</button>
+        <button class="aux-key" data-key="Escape" title="Escape">esc</button>
+        <button class="aux-key modifier" data-modifier="ctrl" title="Ctrl modifier">ctrl</button>
+        <button class="aux-key modifier" data-modifier="alt" title="Alt modifier">alt</button>
+        <button class="aux-key" data-send="^C" title="Ctrl+C (interrupt)">^C</button>
+        <button class="aux-key" data-send="^D" title="Ctrl+D (EOF)">^D</button>
+        <button class="aux-key" data-send="^Z" title="Ctrl+Z (suspend)">^Z</button>
+        <button class="aux-key" data-char="|" title="Pipe">|</button>
+        <button class="aux-key" data-char="~" title="Tilde">~</button>
+        <button class="aux-key" data-char="`" title="Backtick">`</button>
+        <button class="aux-key" data-arrow="up" title="Up arrow">↑</button>
+        <button class="aux-key" data-arrow="down" title="Down arrow">↓</button>
+      </div>
+
       <!-- Command Input -->
       <div id="command-input-container">
         <input
           type="text"
           id="command-input"
-          placeholder="Type command or use voice keyboard..."
+          placeholder="Type command or use voice..."
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"

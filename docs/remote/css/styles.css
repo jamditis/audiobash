@@ -319,6 +319,105 @@ html, body {
 }
 
 /* ===================== */
+/* Auxiliary Keys        */
+/* ===================== */
+
+#aux-keys {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--void-100);
+  border-top: 1px solid var(--void-300);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-shrink: 0;
+}
+
+#aux-keys::-webkit-scrollbar {
+  display: none;
+}
+
+.aux-key {
+  min-width: 42px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--void-200);
+  border: 1px solid var(--void-300);
+  border-radius: 6px;
+  color: var(--crt-white);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.aux-key:active {
+  background: var(--void-300);
+  transform: scale(0.95);
+}
+
+/* Modifier keys (ctrl, alt) - toggle state */
+.aux-key.modifier.active {
+  background: var(--accent);
+  color: var(--void);
+  border-color: var(--accent);
+}
+
+/* Control sequences (^C, ^D, ^Z) - danger styling */
+.aux-key[data-send="^C"],
+.aux-key[data-send="^D"],
+.aux-key[data-send="^Z"] {
+  color: var(--accent);
+  border-color: rgba(255, 51, 51, 0.3);
+}
+
+.aux-key[data-send="^C"]:active,
+.aux-key[data-send="^D"]:active,
+.aux-key[data-send="^Z"]:active {
+  background: var(--accent);
+  color: var(--void);
+}
+
+/* Arrow keys */
+.aux-key[data-arrow] {
+  font-size: 1rem;
+  min-width: 38px;
+}
+
+/* Special characters - subtle accent */
+.aux-key[data-char] {
+  color: var(--crt-amber);
+  font-size: 0.875rem;
+}
+
+/* Tab key - slightly wider for importance */
+.aux-key[data-key="Tab"] {
+  min-width: 48px;
+  color: var(--crt-green);
+  border-color: rgba(51, 255, 51, 0.3);
+}
+
+.aux-key[data-key="Tab"]:active {
+  background: var(--crt-green);
+  color: var(--void);
+}
+
+/* Esc key */
+.aux-key[data-key="Escape"] {
+  color: var(--crt-amber);
+}
+
+/* ===================== */
 /* Command Input         */
 /* ===================== */
 
@@ -953,5 +1052,31 @@ html, body {
 
   #voice-controls {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  #command-input-container {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ===================== */
+/* S24 Ultra optimizations */
+/* ===================== */
+
+/* S24 Ultra: 3120x1440 at 505ppi = ~412dp width portrait */
+@media screen and (min-width: 400px) and (max-width: 450px) {
+  #aux-keys {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .aux-key {
+    min-width: 44px;
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .aux-key[data-key="Tab"] {
+    min-width: 52px;
   }
 }
