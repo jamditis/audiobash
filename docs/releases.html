@@ -158,17 +158,17 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v2.2.0 -->
+            <!-- v2.3.5 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.2.0</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.3.5</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
-                    <span class="text-gray-500 text-sm">January 12, 2026</span>
+                    <span class="text-gray-500 text-sm">January 15, 2026</span>
                 </div>
 
-                <h2 class="font-display text-2xl text-chrome mb-4">ElevenLabs real-time fix</h2>
+                <h2 class="font-display text-2xl text-chrome mb-4">Remote connection & Whisper fixes</h2>
 
-                <p class="text-gray-400 mb-6">Fixed ElevenLabs real-time transcription, added mobile image upload feature, and new /latest page for quick changelog access.</p>
+                <p class="text-gray-400 mb-6">Fixed WebSocket proxy compatibility for Cloudflare tunnels, password handling improvements, and Whisper.cpp path resolution for local transcription.</p>
 
                 <!-- Downloads -->
                 <div class="bg-void border border-white/10 p-4 mb-6">
@@ -188,6 +188,35 @@
                         </a>
                     </div>
                 </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Fixed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Remote connection fixes</strong> - WebSocket proxy compatibility for Cloudflare tunnels (ws.audiobash.app)</li>
+                            <li>• <strong>Password/pairing code fixes</strong> - Removed auto-capitalize from remote app; passwords are case-sensitive</li>
+                            <li>• <strong>Whisper.cpp path fix</strong> - Fixed binary path resolution for local transcription</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-amber-400 text-sm mb-2">Changed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Simpler passwords allowed</strong> - Password complexity changed from error to warning</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.2.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v2.2.0</span>
+                    <span class="text-gray-500 text-sm">January 12, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">ElevenLabs real-time fix</h2>
+
+                <p class="text-gray-400 mb-6">Fixed ElevenLabs real-time transcription, added mobile image upload feature, and new /latest page for quick changelog access.</p>
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>

@@ -196,6 +196,68 @@
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
 
+            <!-- v2.3.5 - Remote Connection Fixes, Password/Pairing, Whisper Path -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="wifi" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.3.5</span>
+                            <span class="text-gray-500 text-sm">January 15, 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Remote reliability improvements</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            This release focuses on making remote connections more reliable. WebSocket proxy compatibility
+                            for Cloudflare tunnels is fixed, password inputs are now properly case-sensitive, and the
+                            local Whisper model path resolution works correctly on all platforms.
+                        </p>
+
+                        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="cloud" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Cloudflare tunnel fix</span>
+                                </div>
+                                <div class="text-xs text-gray-500">WebSocket proxy compatibility restored</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="key" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Case-sensitive passwords</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Auto-capitalize disabled on pairing input</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="shield-alert" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Simpler passwords</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Complexity requirements now warn instead of block</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="file-audio" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Whisper path fix</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Local model binaries resolve correctly</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">WebSocket proxy</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Cloudflare tunnels</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Whisper.cpp</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Remote pairing</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
             <!-- v2.3.0 - Local Whisper Models, Console Errors, Model Cycling -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #00f0ff;">
                 <div class="flex items-start gap-6">
@@ -204,9 +266,8 @@
                     </div>
                     <div class="flex-1">
                         <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.3.0</span>
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.3.0</span>
                             <span class="text-gray-500 text-sm">January 12, 2026</span>
-                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">Local Whisper: transcription without API keys</h2>
