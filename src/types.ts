@@ -155,27 +155,11 @@ export interface ElectronAPI {
 
   // Remote control (mobile companion)
   getRemoteStatus: () => Promise<RemoteStatus>;
-  regeneratePairingCode: () => Promise<string | null>;
   setRemotePassword: (password: string) => Promise<PasswordValidationResult>;
   getRemotePassword: () => Promise<string>;
   setKeepAwake: (enabled: boolean) => Promise<boolean>;
   getKeepAwake: () => Promise<boolean>;
   onRemoteStatusChanged: (callback: (status: RemoteStatus) => void) => (() => void);
-  onRemoteSecurityEvent: (callback: (event: SecurityEvent) => void) => (() => void);
-  onRemoteTranscriptionRequest: (callback: (request: RemoteTranscriptionRequest) => void) => (() => void);
-  sendRemoteTranscriptionResult: (result: RemoteTranscriptionResult) => void;
-  onRemoteSwitchTab: (callback: (tabId: string) => void) => (() => void);
-
-  // Tunnel service (cloudflare, ngrok)
-  tunnelStart: (port?: number, provider?: TunnelProvider) => Promise<TunnelStartResult>;
-  tunnelStop: () => Promise<{ success: boolean; error?: string }>;
-  tunnelGetStatus: () => Promise<TunnelStatus>;
-  tunnelCheckBinary: () => Promise<TunnelBinaryCheck>;
-  tunnelSetProvider: (provider: TunnelProvider) => Promise<{ success: boolean }>;
-  tunnelGetProvider: () => Promise<TunnelProvider>;
-  setTunnelEnabled: (enabled: boolean) => Promise<boolean>;
-  getTunnelEnabled: () => Promise<boolean>;
-  onTunnelStatusChanged: (callback: (status: TunnelStatus) => void) => (() => void);
 }
 
 declare global {
@@ -229,47 +213,16 @@ export interface ValidatePathResult {
 export interface RemoteStatus {
   running: boolean;
   port: number;
-  securePort: number | null;
-  hasSecure: boolean;
-  pairingCode: string | null;
-  staticPassword: string | null;
   hasStaticPassword: boolean;
   addresses: string[];
   connected: boolean;
   deviceName: string | null;
 }
 
-export interface RemoteTranscriptionRequest {
-  requestId: string;
-  audioBase64: string;
-  tabId: string;
-  mode: 'agent' | 'raw';
-}
-
-export interface RemoteTranscriptionResult {
-  requestId: string;
-  success: boolean;
-  text?: string;
-  executed?: boolean;
-  error?: string;
-}
-
 export interface PasswordValidationResult {
   success: boolean;
   error?: string;
   warning?: string;
-}
-
-export interface SecurityEvent {
-  type: 'failed_auth' | 'ip_lockout' | 'global_lockout' | 'global_lockout_triggered';
-  ip?: string;
-  attemptCount?: number;
-  globalAttemptCount?: number;
-  duration?: number;
-  message?: string;
-  remainingSeconds?: number;
-  totalAttempts?: number;
-  timestamp?: number;
 }
 
 // Whisper local transcription types
@@ -306,29 +259,3 @@ export interface SaveTempAudioResult {
   error?: string;
 }
 
-// Tunnel service types
-export type TunnelProvider = 'cloudflare' | 'ngrok';
-
-export interface TunnelStatus {
-  status: 'disconnected' | 'connecting' | 'connected' | 'error';
-  tunnelUrl: string | null;
-  provider?: TunnelProvider;
-  error: string | null;
-}
-
-export interface TunnelStartResult {
-  success: boolean;
-  status?: TunnelStatus;
-  error?: string;
-}
-
-export interface ProviderBinaryCheck {
-  available: boolean;
-  path: string | null;
-  message: string;
-}
-
-export interface TunnelBinaryCheck {
-  ngrok: ProviderBinaryCheck;
-  cloudflare: ProviderBinaryCheck;
-}

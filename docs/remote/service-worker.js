@@ -3,7 +3,7 @@
  * Provides offline PWA support with cache-first strategy
  */
 
-const CACHE_NAME = 'audiobash-remote-v2';
+const CACHE_NAME = 'audiobash-remote-v3';
 
 // Files to cache for offline support
 const CACHE_FILES = [
@@ -12,9 +12,7 @@ const CACHE_FILES = [
   '/remote/css/styles.css',
   '/remote/js/app.js',
   '/remote/js/websocket.js',
-  '/remote/js/voice.js',
   '/remote/js/terminal.js',
-  '/remote/js/file-browser.js',
   '/remote/icon.svg',
   '/remote/manifest.json',
   'https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js',

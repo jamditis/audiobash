@@ -11,8 +11,6 @@ import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 // Import services for testing
-const { CloudflareService } = require('../../electron/cloudflareService.cjs');
-const { NgrokService } = require('../../electron/ngrokService.cjs');
 const { RemoteControlServer } = require('../../electron/websocket-server.cjs');
 
 // Store original platform for restoration
@@ -174,101 +172,19 @@ describe('Path Separator Handling', () => {
   });
 });
 
-describe('Binary Path Resolution', () => {
-  describe('Cloudflare Binary Path', () => {
-    it('should search correct paths for current platform', () => {
-      const service = new CloudflareService();
-      const binaryPath = service.getCloudflareBinaryPath();
+describe('which/where Command', () => {
+  it('should use correct command for platform', () => {
+    const whichCommand = process.platform === 'win32' ? 'where' : 'which';
 
-      // Path should be platform-appropriate if found
-      if (binaryPath) {
-        expect(path.isAbsolute(binaryPath)).toBe(true);
-        expect(fs.existsSync(binaryPath)).toBe(true);
-
-        if (process.platform === 'win32') {
-          expect(binaryPath.toLowerCase()).toContain('.exe');
-        }
-      }
-    });
-
-    it('should check homebrew path on macOS', () => {
-      if (process.platform !== 'darwin') return;
-
-      const homebrewPath = '/opt/homebrew/bin/cloudflared';
-      const usrLocalPath = '/usr/local/bin/cloudflared';
-
-      // Just verify these are valid paths (may not exist)
-      expect(path.isAbsolute(homebrewPath)).toBe(true);
-      expect(path.isAbsolute(usrLocalPath)).toBe(true);
-    });
-
-    it('should check Program Files on Windows', () => {
-      if (process.platform !== 'win32') return;
-
-      const programFiles = process.env.ProgramFiles || '';
-      const expectedPath = path.join(programFiles, 'cloudflared', 'cloudflared.exe');
-
-      expect(path.isAbsolute(expectedPath)).toBe(true);
-    });
-
-    it('should check user home directory', () => {
-      const service = new CloudflareService();
-      const homeDir = os.homedir();
-      const expectedBinary = process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared';
-      const homePath = path.join(homeDir, expectedBinary);
-
-      expect(path.isAbsolute(homePath)).toBe(true);
-    });
-  });
-
-  describe('ngrok Binary Path', () => {
-    it('should search correct paths for current platform', () => {
-      const service = new NgrokService();
-      const binaryPath = service.getNgrokBinaryPath();
-
-      if (binaryPath) {
-        expect(path.isAbsolute(binaryPath)).toBe(true);
-        expect(fs.existsSync(binaryPath)).toBe(true);
-
-        if (process.platform === 'win32') {
-          expect(binaryPath.toLowerCase()).toContain('.exe');
-        }
-      }
-    });
-
-    it('should check npm package availability', () => {
-      const service = new NgrokService();
-      const hasNpmPackage = service.checkNpmPackage();
-
-      // Just verify the check runs without error
-      expect(typeof hasNpmPackage).toBe('boolean');
-    });
-
-    it('should prefer npm package over CLI', () => {
-      const service = new NgrokService();
-      const result = service.checkBinary();
-
-      // If npm package is available, path should indicate that
-      if (service.ngrokModule) {
-        expect(result.path).toContain('npm package');
-      }
-    });
-  });
-
-  describe('which/where Command', () => {
-    it('should use correct command for platform', () => {
-      const whichCommand = process.platform === 'win32' ? 'where' : 'which';
-
-      try {
-        // Test with a command that exists on all platforms
-        const nodeCommand = process.platform === 'win32' ? 'node.exe' : 'node';
-        execSync(`${whichCommand} ${nodeCommand}`, { stdio: 'pipe' });
-        expect(true).toBe(true);
-      } catch {
-        // Node might not be in PATH in some environments
-        expect(true).toBe(true);
-      }
-    });
+    try {
+      // Test with a command that exists on all platforms
+      const nodeCommand = process.platform === 'win32' ? 'node.exe' : 'node';
+      execSync(`${whichCommand} ${nodeCommand}`, { stdio: 'pipe' });
+      expect(true).toBe(true);
+    } catch {
+      // Node might not be in PATH in some environments
+      expect(true).toBe(true);
+    }
   });
 });
 
@@ -414,22 +330,17 @@ describe('Environment Variable Handling', () => {
     expect(fs.existsSync(home!)).toBe(true);
   });
 
-  it('should read NGROK_AUTHTOKEN if set', () => {
-    const service = new NgrokService();
-    const hasToken = service.hasAuthToken();
-
-    if (process.env.NGROK_AUTHTOKEN) {
-      expect(hasToken).toBe(true);
-    } else {
-      expect(hasToken).toBe(false);
-    }
-  });
-
   it('should handle missing environment variables gracefully', () => {
-    delete process.env.NGROK_AUTHTOKEN;
+    // Environment variables should have sensible defaults
+    const originalShell = process.env.SHELL;
+    delete process.env.SHELL;
 
-    const service = new NgrokService();
-    expect(service.hasAuthToken()).toBe(false);
+    const fallbackShell = process.env.SHELL || 'bash';
+    expect(fallbackShell).toBe('bash');
+
+    if (originalShell !== undefined) {
+      process.env.SHELL = originalShell;
+    }
   });
 });
 
@@ -465,23 +376,6 @@ describe('WebSocket Server Cross-Platform', () => {
     for (const addr of addresses) {
       expect(addr).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
     }
-  });
-
-  it('should generate pairing codes consistently', () => {
-    const server = new RemoteControlServer({ port: 29998 });
-    const codes: string[] = [];
-
-    for (let i = 0; i < 10; i++) {
-      const code = server.generatePairingCode();
-      codes.push(code);
-
-      // All codes should match format
-      expect(code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
-    }
-
-    // Codes should be unique (with high probability)
-    const uniqueCodes = new Set(codes);
-    expect(uniqueCodes.size).toBe(10);
   });
 
   it('should report correct OS in desktop info', () => {

@@ -91,6 +91,10 @@
       {
         "from": "audiobash-logo.ico",
         "to": "audiobash-logo.ico"
+      },
+      {
+        "from": "docs/remote",
+        "to": "remote"
       }
     ],
     "win": {

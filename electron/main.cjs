@@ -25,13 +25,6 @@ let pty = null;
 const { RemoteControlServer } = require('./websocket-server.cjs');
 let remoteServer = null;
 
-// Tunnel services (ngrok and cloudflare)
-const { NgrokService } = require('./ngrokService.cjs');
-const { CloudflareService } = require('./cloudflareService.cjs');
-let ngrokService = null;
-let cloudflareService = null;
-let activeTunnelProvider = 'cloudflare'; // 'ngrok' or 'cloudflare'
-
 // Whisper service for local transcription
 const whisperService = require('./whisperService.cjs');
 
@@ -1365,99 +1358,10 @@ function setupIPC() {
     return remoteServer?.getStatus() || {
       running: false,
       port: 8765,
-      pairingCode: null,
       addresses: [],
       connected: false,
       deviceName: null,
     };
-  });
-
-  ipcMain.handle('regenerate-pairing-code', async () => {
-    if (remoteServer) {
-      return remoteServer.regeneratePairingCode();
-    }
-    return null;
-  });
-
-  // Generate QR code for mobile pairing
-  ipcMain.handle('generate-pairing-qr', async () => {
-    try {
-      const QRCode = require('qrcode');
-
-      // Get current pairing code from remote server
-      if (!remoteServer) {
-        return { success: false, error: 'Remote server not running' };
-      }
-
-      const status = remoteServer.getStatus();
-      const code = status.pairingCode;
-
-      if (!code) {
-        return { success: false, error: 'No pairing code available' };
-      }
-
-      // Determine the connection URL
-      // Priority: tunnel URL > local IP:port
-      let url = null;
-
-      // Check for active tunnel (Cloudflare or ngrok)
-      if (activeTunnelProvider === 'cloudflare' && cloudflareService) {
-        const cfStatus = cloudflareService.getStatus();
-        if (cfStatus.status === 'connected' && cfStatus.tunnelUrl) {
-          url = cfStatus.tunnelUrl;
-          console.log('[AudioBash] QR using Cloudflare tunnel URL:', url);
-        }
-      } else if (activeTunnelProvider === 'ngrok' && ngrokService) {
-        const ngrokStatus = ngrokService.getStatus();
-        if (ngrokStatus.status === 'connected' && ngrokStatus.tunnelUrl) {
-          url = ngrokStatus.tunnelUrl;
-          console.log('[AudioBash] QR using ngrok tunnel URL:', url);
-        }
-      }
-
-      // Fall back to local IP if no tunnel
-      if (!url) {
-        const addresses = status.addresses || [];
-        const localIP = addresses[0] || '127.0.0.1';
-        const port = status.port || 8765;
-        url = `ws://${localIP}:${port}`;
-        console.log('[AudioBash] QR using local URL:', url);
-      }
-
-      // Build the pairing payload
-      const pairingPayload = {
-        url,
-        code,
-        version: 1,
-        name: 'AudioBash Desktop'
-      };
-
-      // Generate QR code as data URL
-      const qrDataUrl = await QRCode.toDataURL(JSON.stringify(pairingPayload), {
-        errorCorrectionLevel: 'M',
-        margin: 2,
-        width: 256,
-        color: {
-          dark: '#e5e5e5',  // Chrome color (matches AudioBash aesthetic)
-          light: '#050505'  // Void color
-        }
-      });
-
-      console.log('[AudioBash] QR code generated for pairing');
-
-      return {
-        success: true,
-        data: {
-          qrDataUrl,
-          url,
-          code,
-          name: 'AudioBash Desktop'
-        }
-      };
-    } catch (err) {
-      console.error('[AudioBash] Failed to generate QR code:', err);
-      return { success: false, error: err.message || String(err) };
-    }
   });
 
   // Set static password for remote access
@@ -1526,76 +1430,6 @@ function setupIPC() {
     return plainPassword;
   });
 
-  // Remote diagnostics for troubleshooting
-  ipcMain.handle('get-remote-diagnostics', async () => {
-    try {
-      const diagnostics = {
-        platform: process.platform,
-        arch: process.arch,
-        nodeVersion: process.version,
-
-        // WebSocket server status
-        wsServer: {
-          running: remoteServer?.status === 'running',
-          port: remoteServer?.port || 8765,
-          securePort: remoteServer?.securePort || 8766,
-          hasSecure: !!remoteServer?.wssSecure,
-          status: remoteServer?.status || 'not initialized',
-          error: remoteServer?.error || null,
-        },
-
-        // Network configuration
-        network: {
-          addresses: remoteServer?.getLocalIPAddresses?.() || [],
-          localOnly: store.get('localOnly', false),
-        },
-
-        // Tunnel services
-        tunnels: {
-          provider: activeTunnelProvider || 'cloudflare',
-          ngrok: {
-            binaryFound: !!ngrokService?.getNgrokBinaryPath?.(),
-            status: ngrokService?.status || 'not initialized',
-            url: ngrokService?.tunnelUrl || null,
-          },
-          cloudflare: {
-            binaryFound: !!cloudflareService?.getCloudflaredBinaryPath?.(),
-            status: cloudflareService?.status || 'not initialized',
-            url: cloudflareService?.tunnelUrl || null,
-          },
-        },
-
-        // SSL certificates
-        ssl: {
-          certDir: app.getPath('userData'),
-          certExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-cert.pem')),
-          keyExists: fs.existsSync(path.join(app.getPath('userData'), 'audiobash-key.pem')),
-        },
-      };
-
-      return { success: true, data: diagnostics };
-    } catch (error) {
-      console.error('[AudioBash] get-remote-diagnostics error:', error);
-      return { success: false, error: error.message };
-    }
-  });
-
-  // Set local-only mode (requires server restart)
-  ipcMain.handle('set-local-only', async (_, enabled) => {
-    if (remoteServer) {
-      const changed = remoteServer.setLocalOnly(enabled);
-      // Save to store
-      store.set('localOnly', enabled);
-      return { success: true, changed, requiresRestart: changed };
-    }
-    return { success: false, error: 'Remote server not available' };
-  });
-
-  // Get local-only mode
-  ipcMain.handle('get-local-only', async () => {
-    return store.get('localOnly', false);
-  });
-
   // Keep-awake mode for remote access
   let powerBlockerId = null;
 
@@ -1620,12 +1454,6 @@ function setupIPC() {
 
   ipcMain.handle('get-keep-awake', async () => {
     return store.get('keepAwakeEnabled', false);
-  });
-
-  // Remote transcription result (from renderer back to main)
-  ipcMain.on('remote-transcription-result', (event, result) => {
-    // This is handled by the promise in handleRemoteTranscription
-    // The event is emitted and caught by the handler registered there
   });
 
   // Whisper local transcription
@@ -1750,132 +1578,6 @@ function setupIPC() {
     }
   });
 
-  // Tunnel service handlers (supports ngrok and cloudflare)
-  ipcMain.handle('tunnel-start', async (_, { port, provider } = {}) => {
-    try {
-      const targetPort = port || 8765;
-      const targetProvider = provider || activeTunnelProvider;
-
-      // Stop any running tunnel first
-      if (ngrokService) {
-        await ngrokService.stop();
-      }
-      if (cloudflareService) {
-        cloudflareService.stop();
-      }
-
-      // Start the selected provider
-      if (targetProvider === 'ngrok') {
-        if (!ngrokService) {
-          console.error('[AudioBash] ngrok service not initialized');
-          return { success: false, error: 'ngrok service not available' };
-        }
-        await ngrokService.start(targetPort);
-        activeTunnelProvider = 'ngrok';
-        store.set('tunnelProvider', 'ngrok');
-        return { success: true, status: ngrokService.getStatus(), provider: 'ngrok' };
-      } else {
-        if (!cloudflareService) {
-          console.error('[AudioBash] Cloudflare service not initialized');
-          return { success: false, error: 'Cloudflare service not available' };
-        }
-        await cloudflareService.start(targetPort);
-        activeTunnelProvider = 'cloudflare';
-        store.set('tunnelProvider', 'cloudflare');
-        return { success: true, status: cloudflareService.getStatus(), provider: 'cloudflare' };
-      }
-    } catch (err) {
-      console.error('[AudioBash] Tunnel start error:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('tunnel-stop', async () => {
-    try {
-      // Stop both services (whichever is running)
-      if (ngrokService) {
-        await ngrokService.stop();
-      }
-      if (cloudflareService) {
-        cloudflareService.stop();
-      }
-      return { success: true };
-    } catch (err) {
-      console.error('[AudioBash] Tunnel stop error:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('tunnel-status', async () => {
-    try {
-      // Return status from active provider
-      if (activeTunnelProvider === 'ngrok' && ngrokService) {
-        return { ...ngrokService.getStatus(), provider: 'ngrok' };
-      }
-      if (cloudflareService) {
-        return { ...cloudflareService.getStatus(), provider: 'cloudflare' };
-      }
-      return {
-        status: 'disconnected',
-        tunnelUrl: null,
-        error: 'Tunnel service not initialized',
-        provider: activeTunnelProvider
-      };
-    } catch (err) {
-      console.error('[AudioBash] Tunnel status error:', err);
-      return {
-        status: 'error',
-        error: err.message,
-        provider: activeTunnelProvider
-      };
-    }
-  });
-
-  ipcMain.handle('tunnel-check-binary', async () => {
-    try {
-      const results = {
-        ngrok: ngrokService ? ngrokService.checkBinary() : { available: false, path: null, message: 'ngrok service not initialized' },
-        cloudflare: cloudflareService ? cloudflareService.checkBinary() : { available: false, path: null, message: 'Cloudflare service not initialized' }
-      };
-      return results;
-    } catch (err) {
-      console.error('[AudioBash] Tunnel check binary error:', err);
-      return {
-        ngrok: { available: false, path: null, message: err.message },
-        cloudflare: { available: false, path: null, message: err.message }
-      };
-    }
-  });
-
-  ipcMain.handle('tunnel-set-provider', async (_, provider) => {
-    try {
-      if (provider !== 'ngrok' && provider !== 'cloudflare') {
-        return { success: false, error: 'Invalid provider. Must be "ngrok" or "cloudflare"' };
-      }
-      activeTunnelProvider = provider;
-      store.set('tunnelProvider', provider);
-      console.log('[AudioBash] Tunnel provider set to:', provider);
-      return { success: true, provider };
-    } catch (err) {
-      console.error('[AudioBash] Set tunnel provider error:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('tunnel-get-provider', async () => {
-    return { provider: activeTunnelProvider };
-  });
-
-  // Save tunnel enabled preference
-  ipcMain.handle('set-tunnel-enabled', async (_, enabled) => {
-    store.set('tunnelEnabled', enabled);
-    return true;
-  });
-
-  ipcMain.handle('get-tunnel-enabled', async () => {
-    return store.get('tunnelEnabled', false);
-  });
-
   // Preview pane: Capture screenshot
   ipcMain.handle('capture-preview', async (_, url, cwd) => {
     const { clipboard, nativeImage, BrowserWindow: BW } = require('electron');
@@ -1968,22 +1670,17 @@ app.whenReady().then(async () => {
   spawnShell('tab-1');
 
   // Start remote control server (auto-start)
-  const localOnlyEnabled = store.get('localOnly', false);
   remoteServer = new RemoteControlServer({
     port: 8765,
-    localOnly: localOnlyEnabled,
-    appDataPath: app.getPath('userData'),
     ptyProcesses,
     terminalOutputBuffers,
     terminalCwds,
     mainWindow,
-    transcribeAudio: handleRemoteTranscription,
     onStatusChange: (status) => {
       console.log('[RemoteControl] Status:', status.connected ? `Connected: ${status.deviceName}` : 'Waiting for connection');
     },
   });
   remoteServer.start();
-  console.log(`[RemoteControl] Server started with localOnly=${localOnlyEnabled}`);
 
   // Load saved static password for remote access
   let savedRemotePassword = '';
@@ -2033,41 +1730,6 @@ app.whenReady().then(async () => {
     console.log('[AudioBash] Keep-awake restored (power blocker ID:', blockerId, ')');
   }
 
-  // Initialize tunnel services (ngrok and cloudflare)
-  ngrokService = new NgrokService();
-  cloudflareService = new CloudflareService();
-
-  // Load saved provider preference
-  activeTunnelProvider = store.get('tunnelProvider', 'cloudflare');
-  console.log('[AudioBash] Tunnel provider preference:', activeTunnelProvider);
-
-  // Status change callback for ngrok
-  ngrokService.onStatusChange = (status) => {
-    console.log('[NgrokService] Status:', status.status, status.tunnelUrl || '');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('tunnel-status-changed', { ...status, provider: 'ngrok' });
-    }
-  };
-
-  // Status change callback for cloudflare
-  cloudflareService.onStatusChange = (status) => {
-    console.log('[CloudflareService] Status:', status.status, status.tunnelUrl || '');
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('tunnel-status-changed', { ...status, provider: 'cloudflare' });
-    }
-  };
-
-  // Auto-start tunnel if enabled
-  const tunnelEnabled = store.get('tunnelEnabled', false);
-  if (tunnelEnabled) {
-    console.log(`[AudioBash] Auto-starting tunnel (${activeTunnelProvider}) from saved preference`);
-    if (activeTunnelProvider === 'ngrok') {
-      ngrokService.start(8765);
-    } else {
-      cloudflareService.start(8765);
-    }
-  }
-
   } catch (err) {
     console.error('[AudioBash] Startup failed:', err);
     try { appLog.error('Startup failed', err); } catch (_) { /* logger may not be initialized */ }
@@ -2078,43 +1740,6 @@ app.whenReady().then(async () => {
     }
   }
 });
-
-/**
- * Handle audio transcription from remote mobile client
- * This bridges the remote server to the renderer's transcription service
- */
-async function handleRemoteTranscription(audioBuffer, tabId, mode) {
-  return new Promise((resolve) => {
-    // Send audio to renderer for transcription (reuses existing transcriptionService)
-    const requestId = `remote-${crypto.randomUUID()}`;
-
-    const handler = (event, result) => {
-      if (result.requestId === requestId) {
-        ipcMain.removeListener('remote-transcription-result', handler);
-        resolve(result);
-      }
-    };
-    ipcMain.on('remote-transcription-result', handler);
-
-    // Send to renderer
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('remote-transcription-request', {
-        requestId,
-        audioBase64: audioBuffer.toString('base64'),
-        tabId,
-        mode,
-      });
-    } else {
-      resolve({ success: false, error: 'Main window not available' });
-    }
-
-    // Timeout after 30 seconds
-    setTimeout(() => {
-      ipcMain.removeListener('remote-transcription-result', handler);
-      resolve({ success: false, error: 'Transcription timeout' });
-    }, 30000);
-  });
-}
 
 app.on('window-all-closed', () => {
   // Don't quit on macOS
@@ -2131,16 +1756,6 @@ app.on('activate', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-
-  // Stop tunnel services
-  if (ngrokService) {
-    ngrokService.stop();
-    ngrokService = null;
-  }
-  if (cloudflareService) {
-    cloudflareService.stop();
-    cloudflareService = null;
-  }
 
   // Stop WebSocket server
   if (remoteServer) {

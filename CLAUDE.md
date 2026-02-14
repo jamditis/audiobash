@@ -8,7 +8,6 @@ AudioBash has a custom domain and web documentation:
 
 ### Live URLs
 - **Main website:** https://audiobash.app
-- **Remote control app:** https://remote.audiobash.app
 - **User manual:** https://audiobash.app/manual.html
 - **macOS guide:** https://audiobash.app/macos.html
 - **Release notes:** https://audiobash.app/releases.html
@@ -16,7 +15,9 @@ AudioBash has a custom domain and web documentation:
 
 ### Hosting setup
 - **audiobash.app** - GitHub Pages (serves `docs/` folder)
-- **remote.audiobash.app** - Cloudflare Pages (serves `docs/remote/` folder)
+
+### Remote control
+The mobile remote page is served directly by AudioBash's WebSocket server at `http://<ip>:8765/`. The static files live in `docs/remote/` and are bundled via `extraResources` in electron-builder. No separate hosting needed.
 
 ### Documentation files
 ```
@@ -28,7 +29,7 @@ docs/
 ├── releases.html       # Version history and changelog
 ├── blog.html           # Blog index
 ├── CNAME               # Custom domain for GitHub Pages
-├── remote/             # Remote control PWA (deployed to Cloudflare Pages)
+├── remote/             # Mobile remote control page (served by WebSocket server)
 │   ├── index.html
 │   ├── manifest.json
 │   └── ...

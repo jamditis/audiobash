@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { MockWebSocket, MockPtyProcess, sleep, generateRandomData } from '../stress/stress-utils';
+import { MockWebSocket, MockPtyProcess } from '../stress/stress-utils';
 
 // Mock the ws module before importing
 vi.mock('ws', () => ({
@@ -90,16 +90,10 @@ describe('E2E: Multi-Tab Terminal Management', () => {
 
     server = new RemoteControlServer({
       port: 48765,
-      securePort: 48766,
       ptyProcesses: mockPtyProcesses,
       terminalOutputBuffers: mockOutputBuffers,
       terminalCwds: mockCwds,
       mainWindow: mockMainWindow as unknown as Electron.BrowserWindow,
-      transcribeAudio: async (buffer: Buffer, tabId: string) => ({
-        success: true,
-        text: `command for ${tabId}`,
-        executed: true,
-      }),
     });
 
     await server.start();
@@ -123,7 +117,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should return all active tabs on connection', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -139,7 +132,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should return tabs with titles', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -153,7 +145,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle get_tabs request', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -180,7 +171,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
 
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -196,7 +186,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should notify main window on tab switch request', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -215,7 +204,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle switching to all available tabs', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -244,7 +232,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle switch to non-existent tab gracefully', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -278,7 +265,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
 
       const mockClient = new MockWebSocket();
       await serverNoWindow.handleAuth(mockClient, {
-        pairingCode: serverNoWindow.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -302,7 +288,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should route command to correct tab', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -334,7 +319,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should not route command to other tabs', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -359,7 +343,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle command to non-existent tab', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -390,7 +373,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle command with missing tabId', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -407,7 +389,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle command with null/undefined data', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -436,7 +417,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should send output with correct tabId', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -467,7 +447,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should maintain separate output streams per tab', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -511,7 +490,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
 
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -538,7 +516,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should return correct CWD for each tab', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -561,7 +538,7 @@ describe('E2E: Multi-Tab Terminal Management', () => {
         });
 
         const context = JSON.parse(contextMsg);
-        expect(context.context.cwd).toBe(expectedCwd);
+        expect(context.cwd).toBe(expectedCwd);
       }
     });
 
@@ -572,7 +549,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
 
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -595,7 +571,7 @@ describe('E2E: Multi-Tab Terminal Management', () => {
         });
 
         const context = JSON.parse(contextMsg);
-        expect(context.context.recentOutput).toContain(expectedContent);
+        expect(context.recentOutput).toContain(expectedContent);
       }
     });
   });
@@ -607,7 +583,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should notify client when tabs are updated', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -633,7 +608,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle tab removal correctly', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -660,7 +634,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should reflect tabs accurately in get_tabs after changes', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -697,100 +670,12 @@ describe('E2E: Multi-Tab Terminal Management', () => {
   });
 
   /**
-   * Test Suite: Voice Commands Per Tab
-   */
-  describe('Voice Commands Per Tab', () => {
-    it('should route voice transcription to correct tab', async () => {
-      const transcribedTabs: string[] = [];
-
-      const serverWithTracking = new RemoteControlServer({
-        port: 48768,
-        ptyProcesses: mockPtyProcesses,
-        terminalOutputBuffers: mockOutputBuffers,
-        terminalCwds: mockCwds,
-        mainWindow: null,
-        transcribeAudio: async (buffer: Buffer, tabId: string) => {
-          transcribedTabs.push(tabId);
-          return { success: true, text: `cmd for ${tabId}`, executed: true };
-        },
-      });
-      serverWithTracking.start();
-
-      const mockClient = new MockWebSocket();
-      await serverWithTracking.handleAuth(mockClient, {
-        pairingCode: serverWithTracking.pairingCode,
-        deviceName: 'Test Phone',
-      });
-
-      // Voice command to tab-1
-      serverWithTracking.handleMessage(
-        mockClient,
-        JSON.stringify({ type: 'audio_start', tabId: 'tab-1', mode: 'agent' }),
-        false
-      );
-      serverWithTracking.handleMessage(mockClient, generateRandomData(4096), true);
-      await serverWithTracking.handleAudioEnd({ tabId: 'tab-1' });
-
-      // Voice command to tab-2
-      serverWithTracking.handleMessage(
-        mockClient,
-        JSON.stringify({ type: 'audio_start', tabId: 'tab-2', mode: 'agent' }),
-        false
-      );
-      serverWithTracking.handleMessage(mockClient, generateRandomData(4096), true);
-      await serverWithTracking.handleAudioEnd({ tabId: 'tab-2' });
-
-      // Voice command to tab-3
-      serverWithTracking.handleMessage(
-        mockClient,
-        JSON.stringify({ type: 'audio_start', tabId: 'tab-3', mode: 'agent' }),
-        false
-      );
-      serverWithTracking.handleMessage(mockClient, generateRandomData(4096), true);
-      await serverWithTracking.handleAudioEnd({ tabId: 'tab-3' });
-
-      expect(transcribedTabs).toEqual(['tab-1', 'tab-2', 'tab-3']);
-
-      serverWithTracking.stop();
-    });
-
-    it('should return transcription result with correct tabId', async () => {
-      const mockClient = new MockWebSocket();
-      await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
-        deviceName: 'Test Phone',
-      });
-
-      mockClient.messages = [];
-
-      // Voice command to tab-2
-      server.handleMessage(
-        mockClient,
-        JSON.stringify({ type: 'audio_start', tabId: 'tab-2', mode: 'agent' }),
-        false
-      );
-      server.handleMessage(mockClient, generateRandomData(4096), true);
-      await server.handleAudioEnd({ tabId: 'tab-2' });
-
-      const transcriptionMsg = mockClient.messages.find((m) => {
-        const parsed = JSON.parse(m);
-        return parsed.type === 'transcription';
-      });
-
-      expect(transcriptionMsg).toBeDefined();
-      const result = JSON.parse(transcriptionMsg);
-      expect(result.tabId).toBe('tab-2');
-    });
-  });
-
-  /**
    * Test Suite: Concurrent Operations Across Tabs
    */
   describe('Concurrent Operations Across Tabs', () => {
     it('should handle simultaneous commands to multiple tabs', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 
@@ -827,7 +712,6 @@ describe('E2E: Multi-Tab Terminal Management', () => {
     it('should handle interleaved output from multiple tabs', async () => {
       const mockClient = new MockWebSocket();
       await server.handleAuth(mockClient, {
-        pairingCode: server.pairingCode,
         deviceName: 'Test Phone',
       });
 

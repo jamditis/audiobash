@@ -84,13 +84,10 @@ describe('WebSocket Connection Integration Tests', () => {
 
     server = new RemoteControlServer({
       port,
-      securePort: port + 1,
-      localOnly: true, // Use localhost for tests
       ptyProcesses: mockPtyProcesses,
       terminalOutputBuffers: mockOutputBuffers,
       terminalCwds: mockCwds,
       mainWindow: null,
-      transcribeAudio: async () => ({ success: true, text: 'test transcription' }),
     });
   });
 
@@ -108,8 +105,6 @@ describe('WebSocket Connection Integration Tests', () => {
 
       expect(status.running).toBe(true);
       expect(status.port).toBe(port);
-      expect(status.pairingCode).toBeDefined();
-      expect(status.pairingCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
     });
 
     it('should return existing status if already running', async () => {
@@ -127,32 +122,21 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(server.getStatus().running).toBe(false);
     });
 
-    it('should regenerate pairing code', async () => {
-      await server.start();
-      const code1 = server.getStatus().pairingCode;
-
-      const code2 = server.regeneratePairingCode();
-
-      expect(code2).not.toBe(code1);
-      expect(code2).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
-    });
   });
 
   describe('Client Connection and Authentication', () => {
     it('should accept client connection and require authentication', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
       const messages: string[] = [];
 
       await new Promise<void>((resolve, reject) => {
         client.on('open', () => {
-          // Send auth message
+          // Send auth message (no password needed since none is set)
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -162,7 +146,7 @@ describe('WebSocket Connection Integration Tests', () => {
           messages.push(data.toString());
           const parsed = JSON.parse(data.toString());
 
-          if (parsed.type === 'auth_response') {
+          if (parsed.type === 'auth_result') {
             expect(parsed.success).toBe(true);
             expect(parsed.sessionId).toBeDefined();
             expect(parsed.desktopInfo).toBeDefined();
@@ -179,8 +163,9 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(messages.length).toBeGreaterThan(0);
     });
 
-    it('should reject invalid pairing code', async () => {
+    it('should reject wrong password', async () => {
       await server.start();
+      server.setStaticPassword('TestPass123!');
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
 
@@ -189,7 +174,7 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: 'WRONG1',
+              password: 'wrongpassword',
               deviceName: 'Test Device',
             })
           );
@@ -197,9 +182,9 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response') {
+          if (parsed.type === 'auth_result') {
             expect(parsed.success).toBe(false);
-            expect(parsed.error).toBe('invalid_code');
+            expect(parsed.error).toBe('Invalid password');
             client.close();
             resolve();
           }
@@ -222,7 +207,7 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: 'SecureP@ss123!',
+              password: 'SecureP@ss123!',
               deviceName: 'Test Device',
             })
           );
@@ -230,7 +215,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response') {
+          if (parsed.type === 'auth_result') {
             expect(parsed.success).toBe(true);
             client.close();
             resolve();
@@ -250,10 +235,9 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('at least');
 
-      // Lowercase only - accepted but with warning (for mobile keyboard compatibility)
+      // Lowercase only - accepted (simplified validation)
       result = server.setStaticPassword('alllowercase');
       expect(result.success).toBe(true);
-      expect(result.warning).toContain('mixed case');
 
       // Common pattern - should be rejected
       result = server.setStaticPassword('password123');
@@ -265,7 +249,6 @@ describe('WebSocket Connection Integration Tests', () => {
   describe('Terminal Data Roundtrip', () => {
     it('should send terminal write to PTY process', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
       const mockPty = mockPtyProcesses.get('tab-1') as MockPtyProcess;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
@@ -275,7 +258,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -283,7 +265,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Send terminal write
             client.send(
               JSON.stringify({
@@ -309,7 +291,6 @@ describe('WebSocket Connection Integration Tests', () => {
 
     it('should receive terminal data updates', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
       const receivedData: string[] = [];
@@ -319,7 +300,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -328,7 +308,7 @@ describe('WebSocket Connection Integration Tests', () => {
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
 
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Simulate terminal output
             setTimeout(() => {
               server.sendTerminalData('tab-1', 'output from terminal');
@@ -355,7 +335,6 @@ describe('WebSocket Connection Integration Tests', () => {
   describe('Reconnection After Disconnect', () => {
     it('should allow reconnection after clean disconnect', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       // First connection
       const client1 = new WsClient(`ws://127.0.0.1:${port}`);
@@ -365,7 +344,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client1.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Device 1',
             })
           );
@@ -373,7 +351,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client1.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Disconnect cleanly
             client1.close();
             resolve();
@@ -387,8 +365,7 @@ describe('WebSocket Connection Integration Tests', () => {
       // Wait for disconnect to be processed
       await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // Second connection should work with new pairing code
-      const newPairingCode = server.getStatus().pairingCode;
+      // Second connection should work
       const client2 = new WsClient(`ws://127.0.0.1:${port}`);
 
       await new Promise<void>((resolve, reject) => {
@@ -396,7 +373,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client2.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: newPairingCode,
               deviceName: 'Device 2',
             })
           );
@@ -404,7 +380,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client2.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response') {
+          if (parsed.type === 'auth_result') {
             expect(parsed.success).toBe(true);
             client2.close();
             resolve();
@@ -418,7 +394,6 @@ describe('WebSocket Connection Integration Tests', () => {
 
     it('should reject concurrent connection attempts', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       // First connection
       const client1 = new WsClient(`ws://127.0.0.1:${port}`);
@@ -429,7 +404,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client1.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Device 1',
             })
           );
@@ -437,7 +411,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client1.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             client1Connected = true;
             resolve();
           }
@@ -457,7 +431,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client2.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: server.getStatus().pairingCode,
               deviceName: 'Device 2',
             })
           );
@@ -465,9 +438,9 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client2.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response') {
+          if (parsed.type === 'auth_result') {
             expect(parsed.success).toBe(false);
-            expect(parsed.error).toBe('already_connected');
+            expect(parsed.error).toBe('Another device is already connected');
             client2.close();
             resolve();
           }
@@ -485,7 +458,6 @@ describe('WebSocket Connection Integration Tests', () => {
   describe('Multiple Concurrent Connection Attempts', () => {
     it('should handle multiple rapid connection attempts', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const connectionPromises: Promise<boolean>[] = [];
 
@@ -499,7 +471,6 @@ describe('WebSocket Connection Integration Tests', () => {
               client.send(
                 JSON.stringify({
                   type: 'auth',
-                  pairingCode: pairingCode,
                   deviceName: `Device ${i}`,
                 })
               );
@@ -507,7 +478,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
             client.on('message', (data) => {
               const parsed = JSON.parse(data.toString());
-              if (parsed.type === 'auth_response') {
+              if (parsed.type === 'auth_result') {
                 client.close();
                 resolve(parsed.success);
               }
@@ -536,7 +507,6 @@ describe('WebSocket Connection Integration Tests', () => {
       await server.start();
 
       for (let i = 0; i < 10; i++) {
-        const pairingCode = server.getStatus().pairingCode;
         const client = new WsClient(`ws://127.0.0.1:${port}`);
 
         await new Promise<void>((resolve, reject) => {
@@ -544,7 +514,6 @@ describe('WebSocket Connection Integration Tests', () => {
             client.send(
               JSON.stringify({
                 type: 'auth',
-                pairingCode: pairingCode,
                 deviceName: `Device ${i}`,
               })
             );
@@ -552,10 +521,10 @@ describe('WebSocket Connection Integration Tests', () => {
 
           client.on('message', (data) => {
             const parsed = JSON.parse(data.toString());
-            if (parsed.type === 'auth_response' && parsed.success) {
+            if (parsed.type === 'auth_result' && parsed.success) {
               client.close();
               resolve();
-            } else if (parsed.type === 'auth_response' && !parsed.success) {
+            } else if (parsed.type === 'auth_result' && !parsed.success) {
               client.close();
               resolve(); // Continue even on auth failure
             }
@@ -580,7 +549,6 @@ describe('WebSocket Connection Integration Tests', () => {
   describe('Message Handling Edge Cases', () => {
     it('should handle malformed JSON messages', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
 
@@ -590,7 +558,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -598,7 +565,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Send malformed JSON - should not crash server
             client.send('{invalid json');
             client.send('null');
@@ -620,7 +587,6 @@ describe('WebSocket Connection Integration Tests', () => {
 
     it('should handle unknown message types gracefully', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
 
@@ -629,7 +595,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -637,7 +602,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Send unknown message type
             client.send(JSON.stringify({ type: 'unknown_type_xyz' }));
 
@@ -658,7 +623,6 @@ describe('WebSocket Connection Integration Tests', () => {
   describe('Heartbeat and Timeout', () => {
     it('should track client alive status via ping/pong', async () => {
       await server.start();
-      const pairingCode = server.getStatus().pairingCode;
 
       const client = new WsClient(`ws://127.0.0.1:${port}`);
 
@@ -667,7 +631,6 @@ describe('WebSocket Connection Integration Tests', () => {
           client.send(
             JSON.stringify({
               type: 'auth',
-              pairingCode: pairingCode,
               deviceName: 'Test Device',
             })
           );
@@ -675,7 +638,7 @@ describe('WebSocket Connection Integration Tests', () => {
 
         client.on('message', (data) => {
           const parsed = JSON.parse(data.toString());
-          if (parsed.type === 'auth_response' && parsed.success) {
+          if (parsed.type === 'auth_result' && parsed.success) {
             // Wait briefly to verify heartbeat is set up
             setTimeout(() => {
               expect(server.getStatus().connected).toBe(true);
@@ -696,42 +659,4 @@ describe('WebSocket Connection Integration Tests', () => {
     });
   });
 
-  describe('Rate Limiting', () => {
-    it('should rate limit failed authentication attempts', async () => {
-      await server.start();
-      const wrongCode = 'WRONG1';
-
-      // Make multiple failed auth attempts from same "IP"
-      for (let i = 0; i < 6; i++) {
-        const client = new WsClient(`ws://127.0.0.1:${port}`);
-
-        await new Promise<void>((resolve) => {
-          client.on('open', () => {
-            client.send(
-              JSON.stringify({
-                type: 'auth',
-                pairingCode: wrongCode,
-                deviceName: `Attacker ${i}`,
-              })
-            );
-          });
-
-          client.on('message', (data) => {
-            const parsed = JSON.parse(data.toString());
-            if (parsed.type === 'auth_response') {
-              client.close();
-              resolve();
-            }
-          });
-
-          client.on('error', () => resolve());
-          setTimeout(() => resolve(), 2000);
-        });
-      }
-
-      // The rate limiter should be tracking attempts
-      // (actual lockout testing would require mocking time)
-      expect(server.getStatus().running).toBe(true);
-    });
-  });
 });

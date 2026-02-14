@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
 import { useTheme } from '../themes';
-import { Shortcuts, SecurityEvent, ShellType, SHELL_TYPES, isShellType } from '../types';
-import TunnelStatus from './TunnelStatus';
-import QRCode from 'qrcode';
+import { Shortcuts, ShellType, SHELL_TYPES, isShellType } from '../types';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -100,8 +98,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [remoteStatus, setRemoteStatus] = useState<{
     running: boolean;
     port: number;
-    pairingCode: string | null;
-    staticPassword: string | null;
     hasStaticPassword: boolean;
     addresses: string[];
     connected: boolean;
@@ -109,8 +105,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   }>({
     running: false,
     port: 8765,
-    pairingCode: null,
-    staticPassword: null,
     hasStaticPassword: false,
     addresses: [],
     connected: false,
@@ -122,17 +116,6 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [remotePasswordInput, setRemotePasswordInput] = useState('');
   const [keepAwakeEnabled, setKeepAwakeEnabled] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
-
-  // Security alerts state
-  const [securityAlerts, setSecurityAlerts] = useState<Array<{
-    id: number;
-    type: string;
-    message: string;
-    timestamp: number;
-  }>>([]);
-
-  // QR code state
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     // Load all API keys
@@ -222,70 +205,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
       setRemoteStatus(status);
     });
 
-    // Listen for security events (failed auth, lockouts)
-    const cleanupSecurity = window.electron?.onRemoteSecurityEvent?.((event: SecurityEvent) => {
-      let message = '';
-      switch (event.type) {
-        case 'failed_auth':
-          message = `Failed auth attempt from ${event.ip} (${event.globalAttemptCount} total attempts)`;
-          break;
-        case 'ip_lockout':
-          message = `IP ${event.ip} locked out for 15 minutes`;
-          break;
-        case 'global_lockout_triggered':
-          message = event.message || 'Possible brute-force attack detected. System locked.';
-          break;
-        default:
-          message = `Security event: ${event.type}`;
-      }
-
-      setSecurityAlerts(prev => [
-        { id: Date.now(), type: event.type, message, timestamp: Date.now() },
-        ...prev.slice(0, 9), // Keep last 10 alerts
-      ]);
-    });
-
     return () => {
       cleanupRemote?.();
-      cleanupSecurity?.();
     };
   }, [isOpen]);
-
-  // Generate QR code when remote status changes
-  useEffect(() => {
-    async function generateQRCode() {
-      if (!remoteStatus.running || !remoteStatus.pairingCode) {
-        setQrCodeDataUrl(null);
-        return;
-      }
-
-      // Use the first available address, or 'localhost' if none
-      const address = remoteStatus.addresses[0] || 'localhost';
-      const port = remoteStatus.port;
-      const code = remoteStatus.staticPassword || remoteStatus.pairingCode;
-
-      // Create connection string in format: ws://IP:PORT|CODE
-      const connectionString = `ws://${address}:${port}|${code}`;
-
-      try {
-        // Generate QR code as data URL
-        const dataUrl = await QRCode.toDataURL(connectionString, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#050505',  // void color
-            light: '#ccff00', // acid color
-          },
-        });
-        setQrCodeDataUrl(dataUrl);
-      } catch (err) {
-        console.error('[Settings] Failed to generate QR code:', err);
-        setQrCodeDataUrl(null);
-      }
-    }
-
-    generateQRCode();
-  }, [remoteStatus.running, remoteStatus.pairingCode, remoteStatus.staticPassword, remoteStatus.addresses, remoteStatus.port]);
 
   // Handle keyboard shortcut recording
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -941,90 +864,22 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 )}
               </div>
 
-              {/* Pairing code */}
-              {remoteStatus.pairingCode && !remoteStatus.connected && (
-                <div className="space-y-2">
-                  <div className="text-[10px] text-crt-white/50">Pairing code:</div>
-                  <div className="flex items-center justify-between">
-                    <div className="font-mono text-2xl tracking-[0.3em] text-accent font-bold">
-                      {remoteStatus.pairingCode}
-                    </div>
-                    <button
-                      onClick={async () => {
-                        const newCode = await window.electron?.regeneratePairingCode();
-                        if (newCode) {
-                          setRemoteStatus(prev => ({ ...prev, pairingCode: newCode }));
-                        }
-                      }}
-                      className="text-[10px] text-crt-white/50 hover:text-accent transition-colors px-2 py-1 border border-void-300 rounded"
-                    >
-                      Regenerate
-                    </button>
-                  </div>
-
-                  {/* QR Code */}
-                  {qrCodeDataUrl && (
-                    <div className="flex flex-col items-center pt-2 pb-1">
-                      <div className="text-[10px] text-crt-white/50 mb-2">Or scan QR code:</div>
-                      <div className="bg-accent p-2 rounded">
-                        <img
-                          src={qrCodeDataUrl}
-                          alt="Connection QR Code"
-                          className="w-40 h-40"
-                        />
-                      </div>
-                      <div className="text-[9px] text-crt-white/30 mt-1 text-center">
-                        Scan with phone camera to connect
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* IP addresses */}
               {remoteStatus.addresses.length > 0 && !remoteStatus.connected && (
                 <div className="space-y-1">
-                  <div className="text-[10px] text-crt-white/50">Connect from your phone to:</div>
+                  <div className="text-[10px] text-crt-white/50">Open on your phone:</div>
                   {remoteStatus.addresses.map((ip) => (
                     <div key={ip} className="font-mono text-xs text-crt-white/80">
-                      ws://{ip}:{remoteStatus.port}
+                      http://{ip}:{remoteStatus.port}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Security Alerts */}
-              {securityAlerts.length > 0 && (
-                <div className="space-y-1 pt-2 border-t border-accent/50 bg-accent/5 -mx-3 px-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] text-accent font-mono uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-2 h-2 bg-accent rounded-full animate-pulse" />
-                      Security Alerts
-                    </div>
-                    <button
-                      onClick={() => setSecurityAlerts([])}
-                      className="text-[9px] text-crt-white/30 hover:text-crt-white/50"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                  <div className="space-y-1 max-h-24 overflow-y-auto">
-                    {securityAlerts.map((alert) => (
-                      <div key={alert.id} className="text-[9px] text-accent/80 font-mono">
-                        {new Date(alert.timestamp).toLocaleTimeString()}: {alert.message}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Static password for remote access */}
+              {/* Password for remote access */}
               <div className="space-y-2 pt-2 border-t border-void-300">
                 <div className="text-[10px] text-crt-white/50">
-                  Static password (for remote access outside your network):
-                </div>
-                <div className="text-[9px] text-crt-amber/70 mb-1">
-                  ⚠️ If using port forwarding or tunnel, use a strong password (12+ chars, mixed case, numbers)
+                  Password (optional):
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -1078,7 +933,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 )}
                 {remotePassword && !passwordError?.includes('must') && (
                   <div className="text-[9px] text-crt-green/70">
-                    Password set. Use this instead of pairing code for persistent access.
+                    Password set.
                   </div>
                 )}
               </div>
@@ -1103,14 +958,11 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               {/* Instructions */}
               <div className="text-[10px] text-crt-white/30 leading-relaxed pt-2">
                 {remoteStatus.connected
-                  ? 'Voice commands from your phone will execute in the terminal above.'
-                  : 'Open https://jamditis.github.io/audiobash/remote/ on your phone and enter the pairing code (or static password) to connect.'}
+                  ? 'Commands from your phone will execute in the terminal above.'
+                  : 'Open the URL above on your phone to connect. Use Tailscale for access outside your local network.'}
               </div>
             </div>
           </div>
-
-          {/* Tunnel Service (Public Access) */}
-          <TunnelStatus />
 
           {/* Custom Instructions Section */}
           <div className="space-y-3">

@@ -12,7 +12,7 @@
 
 A voice-controlled terminal for developers. Speak commands, execute them instantly.
 
-**Website:** [audiobash.app](https://audiobash.app) | **Remote control:** [remote.audiobash.app](https://remote.audiobash.app)
+**Website:** [audiobash.app](https://audiobash.app)
 
 ## Features
 

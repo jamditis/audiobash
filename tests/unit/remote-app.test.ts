@@ -406,66 +406,6 @@ describe('Device Name Detection', () => {
 });
 
 // ============================================
-// Tunnel Detection Tests
-// ============================================
-
-describe('Tunnel Detection', () => {
-  const isTunnelUrl = (address: string) => {
-    return address.includes('trycloudflare') ||
-           address.includes('ngrok') ||
-           address.startsWith('wss://') ||
-           address.startsWith('https://') ||
-           (address.includes('.') && !/^[\d.]+$/.test(address));
-  };
-
-  describe('Should detect as tunnel', () => {
-    it('Cloudflare tunnel', () => {
-      expect(isTunnelUrl('abc-def.trycloudflare.com')).toBe(true);
-    });
-
-    it('ngrok free app', () => {
-      expect(isTunnelUrl('abc123.ngrok-free.app')).toBe(true);
-    });
-
-    it('ngrok io', () => {
-      expect(isTunnelUrl('tunnel.ngrok.io')).toBe(true);
-    });
-
-    it('wss:// prefix', () => {
-      expect(isTunnelUrl('wss://example.com')).toBe(true);
-    });
-
-    it('https:// prefix', () => {
-      expect(isTunnelUrl('https://example.com')).toBe(true);
-    });
-
-    it('hostname with TLD', () => {
-      expect(isTunnelUrl('myserver.example.com')).toBe(true);
-    });
-  });
-
-  describe('Should detect as local IP', () => {
-    it('IPv4 address', () => {
-      expect(isTunnelUrl('192.168.1.100')).toBe(false);
-    });
-
-    it('localhost', () => {
-      // localhost contains a dot pattern check fails, so it's detected as tunnel
-      // This is intentional - localhost should work without port
-      expect(isTunnelUrl('localhost')).toBe(false);
-    });
-
-    it('loopback IP', () => {
-      expect(isTunnelUrl('127.0.0.1')).toBe(false);
-    });
-
-    it('private network IP', () => {
-      expect(isTunnelUrl('10.0.0.1')).toBe(false);
-    });
-  });
-});
-
-// ============================================
 // Character Insert Tests
 // ============================================
 
