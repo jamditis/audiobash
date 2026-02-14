@@ -40,3 +40,9 @@ security-lab/
 
 # Claude local settings
 .claude/settings.local.json
+
+# Temporary stash files
+stash/
+
+# Playwright MCP artifacts
+.playwright-mcp/

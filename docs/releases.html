@@ -158,17 +158,17 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v2.4.0 -->
+            <!-- v2.4.1 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.4.0</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.4.1</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
-                    <span class="text-gray-500 text-sm">February 13, 2026</span>
+                    <span class="text-gray-500 text-sm">February 14, 2026</span>
                 </div>
 
-                <h2 class="font-display text-2xl text-chrome mb-4">Electron 39 + Apple Silicon crash fix</h2>
+                <h2 class="font-display text-2xl text-chrome mb-4">Remote simplification + code signing infrastructure</h2>
 
-                <p class="text-gray-400 mb-6">Upgraded Electron from 35 to 39 (fixes macOS Tahoe GPU lag). Fixed the silent crash on Apple Silicon Macs caused by invalid code signatures on node-pty binaries. Added crash-proof startup with global error handlers. Confirmed working on M1 hardware.</p>
+                <p class="text-gray-400 mb-6">Stripped ~31K lines of tunnel services, React PWA, and voice bridge from the remote control system. Added macOS code signing infrastructure (entitlements, notarization hook, hardened runtime) in preparation for signed builds. Set up GitHub Sponsors.</p>
 
                 <!-- Downloads -->
                 <div class="bg-void border border-white/10 p-4 mb-6">
@@ -188,6 +188,37 @@
                         </a>
                     </div>
                 </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Changed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Remote simplification</strong> - Removed tunnel services, React PWA, and voice bridge (~31K lines)</li>
+                            <li>• <strong>Code signing infrastructure</strong> - Entitlements, notarization hook, hardened runtime config</li>
+                            <li>• <strong>GitHub Sponsors</strong> - Sponsor button and funding links added</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Added</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Entitlements plists</strong> - JIT, unsigned memory, library loading, microphone, networking</li>
+                            <li>• <strong>Notarization script</strong> - afterSign hook for Apple notarization service</li>
+                            <li>• <strong>afterPack improvements</strong> - Detects real vs ad-hoc signing identity</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.4.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v2.4.0</span>
+                    <span class="text-gray-500 text-sm">February 13, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Electron 39 + Apple Silicon crash fix</h2>
+
+                <p class="text-gray-400 mb-6">Upgraded Electron from 35 to 39 (fixes macOS Tahoe GPU lag). Fixed the silent crash on Apple Silicon Macs caused by invalid code signatures on node-pty binaries. Added crash-proof startup with global error handlers. Confirmed working on M1 hardware.</p>
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>

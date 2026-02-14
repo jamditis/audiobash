@@ -231,7 +231,7 @@
                 <!-- NEW: Version Badge -->
                 <a href="latest.html" class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6 hover:bg-accent/20 transition-colors">
                     <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                    <span data-version="v{version}">v2.4.1</span> — Remote simplification + cleanup
+                    <span data-version="v{version}">v2.4.1</span> — Remote simplification + code signing
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
 
@@ -317,23 +317,23 @@
             <div class="max-w-4xl mx-auto">
                 <div class="text-center mb-8">
                     <h3 class="font-display text-2xl text-accent mb-2" data-version="NEW IN v{version}">NEW IN v2.4.1</h3>
-                    <p class="text-gray-500 font-mono">Electron 39, Apple Silicon crash fix, macOS Tahoe GPU fix</p>
+                    <p class="text-gray-500 font-mono">Remote simplification, code signing infrastructure, GitHub Sponsors</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                     <div class="p-4">
-                        <div class="text-3xl mb-2">🍎</div>
-                        <h4 class="font-display text-chrome mb-1">Apple Silicon fix</h4>
-                        <p class="text-gray-500 text-sm">Fixed silent crash on M1/M2/M3 Macs caused by invalid code signatures on node-pty binaries</p>
+                        <div class="text-3xl mb-2">✂️</div>
+                        <h4 class="font-display text-chrome mb-1">31K lines removed</h4>
+                        <p class="text-gray-500 text-sm">Stripped tunnel services, React PWA, and voice bridge from remote control. Simpler and faster.</p>
                     </div>
                     <div class="p-4">
-                        <div class="text-3xl mb-2">⚡</div>
-                        <h4 class="font-display text-chrome mb-1">Electron 39</h4>
-                        <p class="text-gray-500 text-sm">Upgraded from Electron 35 to 39. Fixes macOS Tahoe GPU lag and improves stability</p>
+                        <div class="text-3xl mb-2">🔏</div>
+                        <h4 class="font-display text-chrome mb-1">Code signing ready</h4>
+                        <p class="text-gray-500 text-sm">Entitlements, hardened runtime, and notarization hook in place. Signed macOS builds coming soon.</p>
                     </div>
                     <div class="p-4">
-                        <div class="text-3xl mb-2">🛡️</div>
-                        <h4 class="font-display text-chrome mb-1">Crash-proof startup</h4>
-                        <p class="text-gray-500 text-sm">Added global error handlers and try-catch in startup path to prevent silent exits</p>
+                        <div class="text-3xl mb-2">❤️</div>
+                        <h4 class="font-display text-chrome mb-1">Sponsor support</h4>
+                        <p class="text-gray-500 text-sm">GitHub Sponsors and Venmo set up. Help cover the $99/year Apple Developer certificate.</p>
                     </div>
                 </div>
             </div>
