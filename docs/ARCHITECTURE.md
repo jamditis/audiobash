@@ -19,28 +19,28 @@
 │  │  │   Window    │ │    PTY      │ │   Global    │ │   System    │               │   │
 │  │  │  Manager    │ │  Manager    │ │  Shortcuts  │ │    Tray     │               │   │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘               │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │   │
-│  │  │   Remote    │ │   Tunnel    │ │   Whisper   │ │     AI      │               │   │
-│  │  │   Server    │ │  Services   │ │   Service   │ │   Clients   │               │   │
-│  │  │ (WebSocket) │ │(ngrok/CF)   │ │  (Local)    │ │(Gemini/OAI) │               │   │
-│  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘               │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                               │   │
+│  │  │   Remote    │ │   Whisper   │ │     AI      │                               │   │
+│  │  │   Server    │ │   Service   │ │   Clients   │                               │   │
+│  │  │(WS + HTTP)  │ │  (Local)    │ │(Gemini/OAI) │                               │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘                               │   │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                               │   │
 │  │  │    File     │ │  Persistent │ │   Logger    │                               │   │
 │  │  │   Watcher   │ │   Storage   │ │   Service   │                               │   │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘                               │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                         │                                               │
-│                                         │ IPC Bridge (38 channels)                      │
+│                                         │ IPC Bridge                                    │
 │                                         ▼                                               │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
 │  │                          PRELOAD SCRIPT (Context Bridge)                         │   │
 │  │                            (electron/preload.cjs)                                │   │
 │  │                                                                                  │   │
-│  │   94 APIs exposed via window.electron:                                          │   │
-│  │   • Window Control (3)    • Terminal I/O (7)      • Voice Events (9)            │   │
-│  │   • Shortcuts (3)         • API Keys (2)          • Transcription (4)           │   │
-│  │   • Directories (5)       • Preview (6)           • Whisper Local (10)          │   │
-│  │   • Remote Control (11)   • Tunnel Service (8)                                  │   │
+│  │   60 APIs exposed via window.electron:                                          │   │
+│  │   • Window Control (3)    • Terminal I/O (10)     • Voice Events (2)            │   │
+│  │   • Mode/Navigation (8)   • Shortcuts (3)         • API Keys (2)               │   │
+│  │   • Transcription (4)     • Directories (5)       • Preview (7)                │   │
+│  │   • Whisper Local (10)    • Remote Control (6)                                  │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                         │                                               │
 │                                         │ contextBridge.exposeInMainWorld              │
@@ -85,9 +85,9 @@
 │  │  │  └──────────────────────────────────────────────────────────────────┘   │    │   │
 │  │  │  ┌──────────────────────────────────────────────────────────────────┐   │    │   │
 │  │  │  │                    PREVIEW PANE                                   │   │    │   │
-│  │  │  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐     │   │    │   │
-│  │  │  │  │ PreviewControls│  │PreviewRenderer │  │  TunnelStatus  │     │   │    │   │
-│  │  │  │  └────────────────┘  └────────────────┘  └────────────────┘     │   │    │   │
+│  │  │  │  ┌────────────────┐  ┌────────────────┐                         │   │    │   │
+│  │  │  │  │ PreviewControls│  │PreviewRenderer │                         │   │    │   │
+│  │  │  │  └────────────────┘  └────────────────┘                         │   │    │   │
 │  │  │  └──────────────────────────────────────────────────────────────────┘   │    │   │
 │  │  └─────────────────────────────────────────────────────────────────────────┘    │   │
 │  │                                    │                                             │   │
@@ -146,14 +146,8 @@ flowchart TB
         end
 
         subgraph Remote["Remote Control"]
-            WSServer["WebSocket Server<br/>(port 8765)"]
-            PairingCode["Pairing Code Generator"]
+            WSServer["WebSocket + HTTP Server<br/>(port 8765)"]
             PasswordMgr["Password Manager"]
-        end
-
-        subgraph Tunnel["Tunnel Services"]
-            NgrokSvc["Ngrok Service"]
-            CFSvc["Cloudflare Service"]
         end
 
         subgraph Storage["Persistent Storage"]
@@ -170,13 +164,12 @@ flowchart TB
         direction LR
         CB["contextBridge<br/>exposeInMainWorld"]
 
-        subgraph IPCChannels["38 IPC Channels"]
-            TermIPC["terminal-*<br/>(7 channels)"]
+        subgraph IPCChannels["IPC Channels"]
+            TermIPC["terminal-*<br/>(10 channels)"]
             VoiceIPC["*-recording<br/>(2 channels)"]
             ShortcutIPC["*-shortcuts<br/>(3 channels)"]
-            RemoteIPC["remote-*<br/>(6 channels)"]
-            TunnelIPC["tunnel-*<br/>(8 channels)"]
-            WhisperIPC["whisper-*<br/>(9 channels)"]
+            RemoteIPC["remote-*<br/>(7 channels)"]
+            WhisperIPC["whisper-*<br/>(10 channels)"]
             WinIPC["minimize/maximize/close"]
         end
     end
@@ -240,7 +233,7 @@ flowchart TB
         OpenAIAPI["OpenAI API<br/>(Whisper + GPT-4)"]
         AnthropicAPI["Anthropic API<br/>(Claude)"]
         ElevenLabsAPI["ElevenLabs API<br/>(Scribe + Realtime)"]
-        MobileApp["Mobile Companion<br/>(WebSocket client)"]
+        MobileClient2["Mobile Browser<br/>(WebSocket client)"]
     end
 
     %% Main process connections
@@ -249,7 +242,6 @@ flowchart TB
     PTYPool --> OutputBuffer
     OutputBuffer --> CWDTracker
     GS --> ShortcutConfig
-    WSServer --> PairingCode
     WSServer --> PasswordMgr
 
     %% IPC connections
@@ -269,9 +261,7 @@ flowchart TB
     TranscriptionSvc --> AnthropicAPI
     TranscriptionSvc --> ElevenLabsAPI
     ElevenLabsSvc --> ElevenLabsAPI
-    WSServer --> MobileApp
-    NgrokSvc -.-> MobileApp
-    CFSvc -.-> MobileApp
+    WSServer --> MobileClient2
 ```
 
 ---
@@ -367,6 +357,7 @@ flowchart LR
         R_Win["Window Controls"]
         R_Term["Terminal Ops"]
         R_Voice["Voice Events"]
+        R_ModeNav["Mode/Navigation"]
         R_Short["Shortcuts"]
         R_API["API Keys"]
         R_Trans["Transcription"]
@@ -374,7 +365,6 @@ flowchart LR
         R_Prev["Preview"]
         R_Whisper["Local Whisper"]
         R_Remote["Remote Control"]
-        R_Tunnel["Tunnel"]
     end
 
     subgraph IPC["IPC Channels"]
@@ -386,19 +376,25 @@ flowchart LR
             close
         end
 
-        subgraph Terminal["Terminal (7)"]
+        subgraph Terminal["Terminal (10)"]
             create-terminal
             close-terminal
+            get-terminal-count
             terminal-write
             terminal-resize
+            send-to-terminal
+            insert-to-terminal
             terminal-data
             terminal-closed
             get-terminal-context
         end
 
-        subgraph Voice["Voice (9)"]
+        subgraph Voice["Voice (2)"]
             toggle-recording
             cancel-recording
+        end
+
+        subgraph ModeNav["Mode/Navigation (8)"]
             toggle-mode
             clear-terminal
             cycle-layout
@@ -406,6 +402,7 @@ flowchart LR
             focus-prev-terminal
             bookmark-directory
             resend-last
+            switch-tab
         end
 
         subgraph Shortcuts["Shortcuts (3)"]
@@ -434,13 +431,14 @@ flowchart LR
             browse-directory
         end
 
-        subgraph Prev["Preview (6)"]
+        subgraph Prev["Preview (7)"]
             capture-preview
             watch-file
             unwatch-file
             validate-file-path
             file-changed
             toggle-preview
+            capture-screenshot
         end
 
         subgraph Whisper["Whisper (10)"]
@@ -456,26 +454,14 @@ flowchart LR
             save-temp-audio
         end
 
-        subgraph Remote["Remote (8)"]
+        subgraph Remote["Remote (7)"]
             get-remote-status
-            regenerate-pairing-code
             set-remote-password
             get-remote-password
             set-keep-awake
+            get-keep-awake
             remote-status-changed
-            remote-transcription-request
             remote-switch-tab
-        end
-
-        subgraph Tunnel["Tunnel (8)"]
-            tunnel-start
-            tunnel-stop
-            tunnel-status
-            tunnel-check-binary
-            tunnel-set-provider
-            tunnel-get-provider
-            set-tunnel-enabled
-            tunnel-status-changed
         end
     end
 
@@ -489,12 +475,12 @@ flowchart LR
         M_Whisper["Whisper Service"]
         M_FS["File System"]
         M_WS["WebSocket Server"]
-        M_Tunnel["Tunnel Services"]
     end
 
     R_Win --> Window --> M_BW
     R_Term --> Terminal --> M_PTY
     R_Voice --> Voice --> M_GS
+    R_ModeNav --> ModeNav --> M_GS
     R_Short --> Shortcuts --> M_Store
     R_API --> API --> M_Store
     R_Trans --> Trans --> M_AI
@@ -502,7 +488,6 @@ flowchart LR
     R_Prev --> Prev --> M_FS
     R_Whisper --> Whisper --> M_Whisper
     R_Remote --> Remote --> M_WS
-    R_Tunnel --> Tunnel --> M_Tunnel
 ```
 
 ---
@@ -544,7 +529,6 @@ flowchart TB
                 PreviewPane["PreviewPane<br/>• url<br/>• position<br/>• autoRefresh"]
                 PreviewControls["PreviewControls<br/>• onRefresh()<br/>• onScreenshot()"]
                 PreviewRenderer["PreviewRenderer<br/>• html/image/markdown"]
-                TunnelStatus["TunnelStatus<br/>• provider<br/>• url"]
             end
         end
 
@@ -579,7 +563,6 @@ flowchart TB
     PreviewArea --> PreviewPane
     PreviewPane --> PreviewControls
     PreviewPane --> PreviewRenderer
-    Settings --> TunnelStatus
 ```
 
 ---
@@ -592,7 +575,6 @@ flowchart TB
         Manual["Manual Recording<br/>(MediaRecorder)"]
         VAD["VAD Recording<br/>(useVAD hook)"]
         Realtime["Realtime Streaming<br/>(useElevenLabsRealtime)"]
-        Remote["Remote Mobile<br/>(WebSocket)"]
     end
 
     subgraph TranscriptionService["TranscriptionService (Singleton)"]
@@ -641,7 +623,6 @@ flowchart TB
 
     Manual --> TranscriptionService
     VAD --> TranscriptionService
-    Remote --> TranscriptionService
     Realtime --> ElevenLabsRealtime
 
     Config --> Modes
@@ -658,17 +639,13 @@ flowchart TB
 
 ---
 
-## Remote Control & Tunnel Architecture
+## Remote control architecture
 
 ```mermaid
 flowchart TB
-    subgraph MobileClient["📱 Mobile Companion App"]
-        MobileUI["Voice Recording UI"]
+    subgraph MobileClient["📱 Mobile browser"]
+        MobileUI["Terminal UI +<br/>speech-to-text input"]
         MobileWS["WebSocket Client"]
-    end
-
-    subgraph Internet["🌐 Internet"]
-        PublicURL["Public URL<br/>(tunnel)"]
     end
 
     subgraph AudioBash["🖥️ AudioBash Desktop"]
@@ -676,41 +653,32 @@ flowchart TB
             direction TB
 
             subgraph RemoteServer["Remote Control Server"]
-                WSServer["WebSocket Server<br/>(port 8765)"]
-                PairingMgr["Pairing Manager<br/>• 6-digit codes<br/>• password auth"]
-                RateLimiter["Rate Limiter<br/>• per-IP tracking<br/>• global lockout"]
-            end
-
-            subgraph TunnelServices["Tunnel Services"]
-                NgrokSvc["Ngrok Service<br/>• checkBinary()<br/>• start(port)<br/>• stop()"]
-                CloudflareSvc["Cloudflare Service<br/>• cloudflared binary<br/>• start(port)<br/>• stop()"]
+                HTTPServer["HTTP Server<br/>(serves mobile page)"]
+                WSServer["WebSocket Server<br/>(port 8765, ws://)"]
+                PasswordAuth["Optional Password Auth"]
             end
 
             KeepAwake["Keep Awake<br/>(powerSaveBlocker)"]
         end
 
         subgraph Renderer["Renderer Process"]
-            VoiceOverlay2["VoiceOverlay"]
-            TransSvc["TranscriptionService"]
             Settings2["Settings<br/>(Remote Control tab)"]
         end
     end
 
-    MobileUI --> MobileWS
-    MobileWS <-->|"Direct (LAN)"| WSServer
-    MobileWS <-->|"Via Tunnel"| PublicURL
-    PublicURL <--> NgrokSvc
-    PublicURL <--> CloudflareSvc
-    NgrokSvc --> WSServer
-    CloudflareSvc --> WSServer
+    subgraph Network["Network"]
+        LAN["LAN / Tailscale"]
+    end
 
-    WSServer --> PairingMgr
-    WSServer --> RateLimiter
-    WSServer <-->|"IPC"| VoiceOverlay2
-    VoiceOverlay2 --> TransSvc
+    MobileUI --> MobileWS
+    MobileWS <-->|"ws://"| LAN
+    LAN <--> WSServer
+    MobileWS -->|"HTTP GET"| HTTPServer
+
+    WSServer --> PasswordAuth
+    WSServer <-->|"IPC"| Renderer
 
     Settings2 -->|"Configure"| RemoteServer
-    Settings2 -->|"Configure"| TunnelServices
     Settings2 -->|"Toggle"| KeepAwake
 ```
 
@@ -883,13 +851,11 @@ audiobash/
 │   │   ├── PTY management
 │   │   ├── IPC handlers (38+)
 │   │   ├── AI client initialization
-│   │   ├── Remote server setup
-│   │   └── Tunnel service setup
-│   ├── preload.cjs                   # IPC Bridge (94 APIs)
+│   │   └── Remote server setup
+│   ├── preload.cjs                   # IPC Bridge (60 APIs)
 │   ├── logger.cjs                    # Main process logging
-│   ├── websocket-server.cjs          # Remote control server
-│   ├── ngrokService.cjs              # Ngrok tunnel
-│   ├── cloudflareService.cjs         # Cloudflare tunnel
+│   ├── error-handler.cjs             # Global error handlers
+│   ├── websocket-server.cjs          # Remote control server (WS + HTTP)
 │   └── whisperService.cjs            # Local Whisper
 │
 ├── src/                               # Renderer Process
@@ -898,7 +864,7 @@ audiobash/
 │   ├── App.tsx                       # Main component (30KB)
 │   ├── types.ts                      # TypeScript interfaces
 │   │
-│   ├── components/                    # UI Components (18)
+│   ├── components/                    # UI Components (17)
 │   │   ├── TitleBar.tsx              # Window controls
 │   │   ├── TabBar.tsx                # Tab management
 │   │   ├── Terminal.tsx              # xterm.js wrapper
@@ -914,7 +880,6 @@ audiobash/
 │   │   ├── FocusIndicator.tsx        # Recording badge
 │   │   ├── StatusIndicator.tsx       # Status bar
 │   │   ├── ConsoleErrorViewer.tsx    # Error display
-│   │   ├── TunnelStatus.tsx          # Tunnel config
 │   │   ├── Onboarding.tsx            # Welcome wizard
 │   │   └── ErrorBoundary.tsx         # Error catch
 │   │
@@ -990,9 +955,8 @@ audiobash/
 
 | Category | Count |
 |----------|-------|
-| **IPC Channels** | 38 |
-| **Exposed APIs** | 94 |
-| **React Components** | 18 |
+| **Exposed APIs** | 60 |
+| **React Components** | 17 |
 | **Custom Hooks** | 6 |
 | **Transcription Models** | 12 |
 | **AI Providers** | 5 |
@@ -1002,4 +966,4 @@ audiobash/
 
 ---
 
-*Generated by comprehensive architecture analysis*
+*Generated by architecture analysis*

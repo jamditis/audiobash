@@ -24,32 +24,31 @@
           <div class="logo-icon"></div>
           <span>AudioBash Remote</span>
         </div>
-        <div class="subtitle">Voice control for your desktop terminal</div>
+        <div class="subtitle">Mobile terminal for AudioBash</div>
       </div>
 
       <div class="connect-form">
         <div class="input-group">
-          <label for="ip-input">Tunnel URL or local IP</label>
+          <label for="ip-input">IP address or hostname</label>
           <input
             type="text"
             id="ip-input"
-            placeholder="abc123.trycloudflare.com"
+            placeholder="192.168.1.70"
             inputmode="url"
             autocomplete="off"
           >
         </div>
 
         <div class="input-group">
-          <label for="code-input">Pairing code or password</label>
+          <label for="code-input">Password (if set)</label>
           <input
-            type="text"
+            type="password"
             id="code-input"
-            placeholder="A3F7X2 or MyPassword1"
-            maxlength="32"
+            placeholder="Optional"
+            maxlength="64"
             inputmode="text"
             autocapitalize="off"
             autocomplete="off"
-            style="letter-spacing: 0.1em; text-align: center; font-size: 1.25rem;"
           >
         </div>
 
@@ -62,8 +61,8 @@
       </div>
 
       <div class="connect-help">
-        <p>Open AudioBash → Settings → Remote Control to get your tunnel URL and pairing code</p>
-        <p style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">Requires Cloudflare or ngrok tunnel for remote access</p>
+        <p>Open AudioBash Settings &gt; Remote control to see your IP address</p>
+        <p style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">Use Tailscale for access outside your local network</p>
       </div>
     </div>
 
@@ -90,44 +89,6 @@
 
       <div id="terminal-container"></div>
 
-      <!-- File Browser -->
-      <div id="file-browser" class="hidden">
-        <div id="file-browser-header">
-          <button id="file-back-btn" class="btn-icon" title="Go back">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <div id="current-path">/</div>
-          <button id="file-new-btn" class="btn-icon" title="New file/folder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </button>
-        </div>
-        <div id="file-list"></div>
-      </div>
-
-      <!-- File Editor -->
-      <div id="file-editor" class="hidden">
-        <div id="file-editor-header">
-          <button id="editor-back-btn" class="btn-icon" title="Back to files">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-          </button>
-          <div id="editor-filename">file.txt</div>
-          <button id="editor-save-btn" class="btn-icon btn-save" title="Save file">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-              <polyline points="17,21 17,13 7,13 7,21"/>
-              <polyline points="7,3 7,8 15,8"/>
-            </svg>
-          </button>
-        </div>
-        <textarea id="file-content" spellcheck="false"></textarea>
-      </div>
-
       <!-- Terminal Auxiliary Keys -->
       <div id="aux-keys">
         <button class="aux-key" data-key="Tab" title="Tab (autocomplete)">tab</button>
@@ -140,8 +101,8 @@
         <button class="aux-key" data-char="|" title="Pipe">|</button>
         <button class="aux-key" data-char="~" title="Tilde">~</button>
         <button class="aux-key" data-char="`" title="Backtick">`</button>
-        <button class="aux-key" data-arrow="up" title="Up arrow">↑</button>
-        <button class="aux-key" data-arrow="down" title="Down arrow">↓</button>
+        <button class="aux-key" data-arrow="up" title="Up arrow">&#x2191;</button>
+        <button class="aux-key" data-arrow="down" title="Down arrow">&#x2193;</button>
       </div>
 
       <!-- Command Input -->
@@ -149,25 +110,12 @@
         <input
           type="text"
           id="command-input"
-          placeholder="Type command or use voice..."
+          placeholder="Type command..."
           autocomplete="off"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
         >
-        <input type="file" id="image-input" accept="image/*" capture="environment" hidden>
-        <button id="image-btn" title="Upload image">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
-        </button>
-        <button id="files-btn" title="File browser">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-          </svg>
-        </button>
         <button id="send-btn" title="Send command">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>

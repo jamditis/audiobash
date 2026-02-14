@@ -142,24 +142,22 @@ echo $env:SHELL   # Windows PowerShell
 #### Cannot Connect from Mobile
 
 **Symptoms:**
-- "Connection failed" on mobile app
+- "Connection failed" on mobile page
 - Timeout when connecting
-- "Invalid pairing code" error
 
 **Solutions:**
 
 1. **Verify IP address:**
-   - Check the IP shown in AudioBash Settings → Remote Control
+   - Check the IP shown in AudioBash Settings → Remote control
    - Ensure your phone is on the same WiFi network
-   - Try both the IP address and any tunnel URL if enabled
+   - Open `http://<your-ip>:8765` in your phone's browser
 
-2. **Check pairing code:**
-   - Codes are case-insensitive but must be exact
-   - Regenerate the code if in doubt
-   - If using static password, ensure it's entered correctly
+2. **Check password:**
+   - If you've set a password, ensure it's entered correctly on the mobile page
+   - If no password is set, the connection should succeed without one
 
 3. **Check firewall:**
-   - AudioBash uses ports 8765 (ws://) and 8766 (wss://)
+   - AudioBash uses port 8765
    - Add an exception for AudioBash in your firewall
 
 4. **Check if already connected:**
@@ -172,21 +170,11 @@ echo $env:SHELL   # Windows PowerShell
 
 1. **Check WiFi stability** - Move closer to your router
 2. **Disable power saving** - Keep your desktop awake during use
-3. **Use static password** - Prevents needing new codes after each reconnect
-4. **Check for IP changes** - Your desktop IP might change; verify it periodically
+3. **Check for IP changes** - Your desktop IP might change; verify it periodically
 
 #### Cannot Connect Outside Local Network
 
-**Solutions:**
-
-1. **Enable tunnelto:**
-   - Go to Settings → Remote Control → Public Access
-   - Enable the tunnel toggle
-   - Use the provided tunnel URL instead of IP
-
-2. **Install tunnelto:**
-   - If not installed, run: `cargo install tunnelto`
-   - Or download from: https://github.com/agrinman/tunnelto
+Use [Tailscale](https://tailscale.com/) to connect from outside your local network. Install Tailscale on both your desktop and phone, then use the Tailscale IP address instead of the local one.
 
 ---
 

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import { MockWebSocket, MockPtyProcess, sleep, generateRandomData } from '../stress/stress-utils';
+import { MockWebSocket, MockPtyProcess } from '../stress/stress-utils';
 
 // Mock the ws module before importing
 vi.mock('ws', () => ({
@@ -107,7 +107,6 @@ describe('E2E: Operating System Compatibility', () => {
         ptyProcesses: mockPtyProcesses,
         terminalOutputBuffers: mockOutputBuffers,
         terminalCwds: mockCwds,
-        transcribeAudio: async () => ({ success: true, text: 'test', executed: true }),
       });
     });
 
@@ -116,7 +115,7 @@ describe('E2E: Operating System Compatibility', () => {
       Object.defineProperty(process, 'platform', { value: originalPlatform, writable: true });
     });
 
-    it('should detect correct OS in context', async () => {
+    it('should detect correct OS in auth response', async () => {
       const startTime = Date.now();
       let passed = false;
       let error: string | undefined;
@@ -125,32 +124,24 @@ describe('E2E: Operating System Compatibility', () => {
         await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Device',
         });
 
-        mockClient.messages = [];
-        server.handleMessage(
-          mockClient,
-          JSON.stringify({ type: 'get_context', tabId: 'tab-1' }),
-          false
-        );
-
-        const contextMsg = mockClient.messages.find((m) => {
+        const authMsg = mockClient.messages.find((m) => {
           const parsed = JSON.parse(m);
-          return parsed.type === 'context';
+          return parsed.type === 'auth_result';
         });
 
-        const context = JSON.parse(contextMsg);
+        const authResult = JSON.parse(authMsg);
         const expectedOs =
           platform === 'win32' ? 'windows' : platform === 'darwin' ? 'mac' : 'linux';
-        expect(context.context.os).toBe(expectedOs);
+        expect(authResult.desktopInfo.os).toBe(expectedOs);
         passed = true;
       } catch (e) {
         error = e instanceof Error ? e.message : String(e);
         throw e;
       } finally {
-        recordResult(name, 'OS Detection', 'OS in context', passed, Date.now() - startTime, error);
+        recordResult(name, 'OS Detection', 'OS in auth response', passed, Date.now() - startTime, error);
       }
     });
 
@@ -169,24 +160,16 @@ describe('E2E: Operating System Compatibility', () => {
         await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Device',
         });
 
-        mockClient.messages = [];
-        server.handleMessage(
-          mockClient,
-          JSON.stringify({ type: 'get_context', tabId: 'tab-1' }),
-          false
-        );
-
-        const contextMsg = mockClient.messages.find((m) => {
+        const authMsg = mockClient.messages.find((m) => {
           const parsed = JSON.parse(m);
-          return parsed.type === 'context';
+          return parsed.type === 'auth_result';
         });
 
-        const context = JSON.parse(contextMsg);
-        expect(context.context.shell).toBeDefined();
+        const authResult = JSON.parse(authMsg);
+        expect(authResult.desktopInfo.shell).toBeDefined();
         passed = true;
 
         // Restore
@@ -210,7 +193,6 @@ describe('E2E: Operating System Compatibility', () => {
         await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: `${name} Device`,
         });
 
@@ -241,7 +223,6 @@ describe('E2E: Operating System Compatibility', () => {
         await server.start();
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Device',
         });
 
@@ -270,52 +251,6 @@ describe('E2E: Operating System Compatibility', () => {
       }
     });
 
-    it('should handle voice transcription', async () => {
-      const startTime = Date.now();
-      let passed = false;
-      let error: string | undefined;
-
-      try {
-        await server.start();
-        const mockClient = new MockWebSocket();
-        await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
-          deviceName: 'Test Device',
-        });
-
-        mockClient.messages = [];
-
-        server.handleMessage(
-          mockClient,
-          JSON.stringify({ type: 'audio_start', tabId: 'tab-1', mode: 'agent' }),
-          false
-        );
-        server.handleMessage(mockClient, generateRandomData(4096), true);
-        await server.handleAudioEnd({ tabId: 'tab-1' });
-
-        const transcriptionMsg = mockClient.messages.find((m) => {
-          const parsed = JSON.parse(m);
-          return parsed.type === 'transcription';
-        });
-
-        expect(transcriptionMsg).toBeDefined();
-        const result = JSON.parse(transcriptionMsg);
-        expect(result.success).toBe(true);
-        passed = true;
-      } catch (e) {
-        error = e instanceof Error ? e.message : String(e);
-        throw e;
-      } finally {
-        recordResult(
-          name,
-          'Voice',
-          'Transcription',
-          passed,
-          Date.now() - startTime,
-          error
-        );
-      }
-    });
   });
 });
 
@@ -377,14 +312,12 @@ describe('E2E: Node.js Version Compatibility', () => {
           ptyProcesses: mockPtyProcesses,
           terminalOutputBuffers: new Map([['tab-1', '']]),
           terminalCwds: new Map([['tab-1', '/home/user']]),
-          transcribeAudio: async () => ({ success: true, text: 'test', executed: true }),
         });
 
         await server.start();
 
         const mockClient = new MockWebSocket();
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Device',
         });
 
@@ -482,11 +415,9 @@ describe('E2E: Network Configuration Compatibility', () => {
     beforeEach(() => {
       server = new RemoteControlServer({
         port: 28795 + networkConfigs.findIndex((nc) => nc.name === name),
-        securePort: 28800 + networkConfigs.findIndex((nc) => nc.name === name),
         ptyProcesses: mockPtyProcesses,
         terminalOutputBuffers: mockOutputBuffers,
         terminalCwds: mockCwds,
-        transcribeAudio: async () => ({ success: true, text: 'test', executed: true }),
       });
     });
 
@@ -522,7 +453,6 @@ describe('E2E: Network Configuration Compatibility', () => {
         mockClient._socket = { remoteAddress: host };
 
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: `${name} Client`,
         });
 
@@ -547,7 +477,6 @@ describe('E2E: Network Configuration Compatibility', () => {
         mockClient._socket = { remoteAddress: host };
 
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Client',
         });
 
@@ -575,62 +504,6 @@ describe('E2E: Network Configuration Compatibility', () => {
       }
     });
 
-    if (secure) {
-      it('should indicate secure connection capability', async () => {
-        const startTime = Date.now();
-        let passed = false;
-        let error: string | undefined;
-
-        try {
-          await server.start();
-          const status = server.getStatus();
-
-          // Note: WSS availability depends on certificate generation
-          // We just verify the status reports secure port info
-          expect(status).toHaveProperty('securePort');
-          passed = true;
-        } catch (e) {
-          error = e instanceof Error ? e.message : String(e);
-          throw e;
-        } finally {
-          recordResult(name, 'Security', 'WSS status', passed, Date.now() - startTime, error);
-        }
-      });
-    }
-
-    it('should handle rate limiting', async () => {
-      const startTime = Date.now();
-      let passed = false;
-      let error: string | undefined;
-
-      try {
-        await server.start();
-
-        // Make several failed attempts
-        for (let i = 0; i < 3; i++) {
-          const mockClient = new MockWebSocket();
-          mockClient._socket = { remoteAddress: host };
-
-          await server.handleAuth(mockClient, {
-            pairingCode: 'WRONG1',
-            deviceName: 'Attacker',
-          });
-        }
-
-        const attempts = server.failedAttempts.get(host);
-        expect(attempts?.count).toBeGreaterThan(0);
-        passed = true;
-
-        // Clean up
-        server.failedAttempts.clear();
-      } catch (e) {
-        error = e instanceof Error ? e.message : String(e);
-        throw e;
-      } finally {
-        recordResult(name, 'Security', 'Rate limit', passed, Date.now() - startTime, error);
-      }
-    });
-
     it('should handle disconnection', async () => {
       const startTime = Date.now();
       let passed = false;
@@ -642,7 +515,6 @@ describe('E2E: Network Configuration Compatibility', () => {
         mockClient._socket = { remoteAddress: host };
 
         await server.handleAuth(mockClient, {
-          pairingCode: server.pairingCode,
           deviceName: 'Test Client',
         });
 
@@ -781,7 +653,6 @@ describe('E2E: Environment Edge Cases', () => {
 
   it('should handle concurrent connection attempts from different IPs', async () => {
     await server.start();
-    const pairingCode = server.pairingCode;
 
     const clients: MockWebSocket[] = [];
     const ips = ['10.0.0.1', '10.0.0.2', '10.0.0.3', '192.168.1.1', '172.16.0.1'];
@@ -790,7 +661,6 @@ describe('E2E: Environment Edge Cases', () => {
     const firstClient = new MockWebSocket();
     firstClient._socket = { remoteAddress: ips[0] };
     await server.handleAuth(firstClient, {
-      pairingCode,
       deviceName: 'First Device',
     });
     expect(server.connectedClient).toBe(firstClient);
@@ -800,12 +670,11 @@ describe('E2E: Environment Edge Cases', () => {
       const client = new MockWebSocket();
       client._socket = { remoteAddress: ips[i] };
       await server.handleAuth(client, {
-        pairingCode: server.pairingCode,
         deviceName: `Device ${i}`,
       });
 
       const response = JSON.parse(client.messages[0]);
-      expect(response.error).toBe('already_connected');
+      expect(response.error).toBe('Another device is already connected');
     }
 
     // First client should still be connected
@@ -816,7 +685,6 @@ describe('E2E: Environment Edge Cases', () => {
     await server.start();
     const mockClient = new MockWebSocket();
     await server.handleAuth(mockClient, {
-      pairingCode: server.pairingCode,
       deviceName: 'Long Session Device',
     });
 
@@ -848,7 +716,6 @@ describe('E2E: Environment Edge Cases', () => {
     mockClient._socket = { remoteAddress: '::1' }; // IPv6 localhost
 
     await server.handleAuth(mockClient, {
-      pairingCode: server.pairingCode,
       deviceName: 'IPv6 Device',
     });
 
@@ -874,11 +741,9 @@ describe('E2E: Environment Edge Cases', () => {
       if (server.connectedClient) {
         server.handleDisconnect(server.connectedClient);
       }
-      server.generatePairingCode();
 
       const client = new MockWebSocket();
       await server.handleAuth(client, {
-        pairingCode: server.pairingCode,
         deviceName: name,
       });
 

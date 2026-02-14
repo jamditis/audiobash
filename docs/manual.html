@@ -225,7 +225,7 @@
             <div class="mb-12">
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/30 text-accent text-xs font-mono mb-4">
                     <span class="w-2 h-2 bg-accent rounded-full"></span>
-                    <span data-version="v{version}">v2.3.5</span>
+                    <span data-version="v{version}">v2.4.1</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
                 <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows and macOS.</p>
@@ -693,14 +693,14 @@
                             <div class="flex gap-4 items-start">
                                 <img src="screenshots/settings-remote-web.png" alt="Mobile remote control settings" class="w-64 rounded-lg border border-white/10">
                                 <ul class="text-gray-400 space-y-1 text-sm">
-                                    <li>1. Open Settings and scroll to "Mobile Remote Control"</li>
-                                    <li>2. Set a password for secure remote access</li>
-                                    <li>3. On your phone, visit <a href="https://remote.audiobash.app" class="text-ice hover:underline">remote.audiobash.app</a></li>
-                                    <li>4. Enter your tunnel URL and password to connect</li>
-                                    <li>5. Use voice commands or type text directly</li>
+                                    <li>1. Open Settings and scroll to "Remote control"</li>
+                                    <li>2. Set an optional password for secure access</li>
+                                    <li>3. On your phone, open <code class="text-ice">http://&lt;your-ip&gt;:8765</code> in a browser</li>
+                                    <li>4. Enter the password (if set) to connect</li>
+                                    <li>5. Use your phone's keyboard and aux keys to control the terminal</li>
                                 </ul>
                             </div>
-                            <p class="text-gray-500 text-xs mt-3">For local network only: use the IP-based WebSocket URL shown in Settings (requires same WiFi network)</p>
+                            <p class="text-gray-500 text-xs mt-3">Your phone must be on the same WiFi network. For remote access outside your network, use <a href="https://tailscale.com" class="text-ice hover:underline">Tailscale</a>.</p>
                         </div>
                     </div>
                 </section>
@@ -814,7 +814,7 @@
             <!-- FOOTER -->
             <div class="mt-16 pt-8 border-t border-white/10">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v2.3.5 - Voice-controlled terminal for Claude Code</div>
+                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v2.4.1 - Voice-controlled terminal for Claude Code</div>
                     <div class="flex items-center gap-4">
                         <a href="about.html" class="hover:text-accent transition-colors">About</a>
                         <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>

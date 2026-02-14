@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -28,18 +28,14 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.21.0",
-    "@huggingface/transformers": "^3.8.1",
     "@remotion/install-whisper-cpp": "^4.0.405",
     "@ricky0123/vad-web": "^0.0.30",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "node-pty": "^1.1.0",
-    "nodejs-whisper": "^0.2.9",
     "openai": "^6.10.0",
-    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "selfsigned": "^5.4.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -47,7 +43,6 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.0.0",
-    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
@@ -73,8 +68,7 @@
       "dist/**/*",
       "electron/**/*",
       "node_modules/node-pty/**/*",
-      "node_modules/ws/**/*",
-      "node_modules/electron-store/**/*"
+      "node_modules/ws/**/*"
     ],
     "asarUnpack": [
       "node_modules/node-pty/**/*"
@@ -91,6 +85,10 @@
       {
         "from": "audiobash-logo.ico",
         "to": "audiobash-logo.ico"
+      },
+      {
+        "from": "docs/remote",
+        "to": "remote"
       }
     ],
     "win": {

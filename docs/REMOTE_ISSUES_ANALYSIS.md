@@ -1,5 +1,7 @@
 # Remote Access Issues Analysis
 
+> **SUPERSEDED** — This document analyzes the old remote architecture (ngrok/Cloudflare tunnels, pairing codes, WSS, voice bridge). That architecture was replaced in v2.5.0 with a simplified WebSocket server on port 8765 serving a mobile page directly. See `electron/websocket-server.cjs` for the current implementation.
+
 Analysis of why AudioBash remote access features may work on one PC but fail on other desktops and Mac systems.
 
 ---

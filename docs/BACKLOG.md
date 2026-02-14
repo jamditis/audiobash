@@ -309,56 +309,22 @@ Goal: Make agent mode smarter and more reliable.
 
 ## Phase 8: Remote Access Improvements (P2)
 
-Goal: Enable remote control from anywhere, not just local network.
+Goal: Improve remote control UX on local network; off-network access handled externally.
 
-### 8.1 Tunnel Integration (tunnelto)
-- **Status**: 🔴 Not Started
-- **Effort**: Medium (1-2 days)
-- **Dependencies**: None
+### 8.1 Remote access outside local network
+- **Status**: ✅ Resolved (no integration needed)
 
-**Problem**: Current remote control requires same WiFi network, manual IP entry.
+Remote access from outside the local network (different WiFi, cellular, etc.) is handled via [Tailscale](https://tailscale.com/). Tailscale creates a private mesh VPN between your devices, so the existing local WebSocket connection works as-is over a Tailscale IP. No tunnel integration (ngrok, cloudflared, tunnelto, etc.) is needed in AudioBash itself.
 
-**Solution**: Integrate [tunnelto](https://github.com/agrinman/tunnelto) for public URL access.
-
-**Tasks:**
-- [ ] Bundle tunnelto binary or use as optional download
-- [ ] Add "Enable Remote Access" toggle in Settings
-- [ ] Generate unique subdomain per user/session
-- [ ] Display QR code with tunnel URL for easy mobile scanning
-- [ ] Add tunnel status indicator
-- [ ] Handle tunnel reconnection on network changes
-- [ ] Optional: Self-hosted tunnel server for enterprise
-
-**Architecture:**
-```
-Mobile (anywhere) → wss://user123.tunnelto.dev → tunnelto client → localhost:8765
-```
-
-**Benefits:**
-- Works from any network (coffee shop, different WiFi, cellular)
-- Valid HTTPS (no certificate warnings)
-- Memorable URLs instead of IP addresses
-- QR code scanning for instant connection
-
-**Security Considerations:**
-- Tunnel URL should be ephemeral (regenerate on restart)
-- Keep pairing code requirement
-- Add optional tunnel password
-- Rate limiting on connection attempts
-
-**Alternatives Evaluated:**
-- ngrok - Commercial, rate limited free tier
-- cloudflared - Requires Cloudflare account
-- bore - Simpler but less features
-- tunnelto - MIT licensed, self-hostable, Rust-based
+**Setup:** Install Tailscale on both the desktop running AudioBash and the mobile device. Use the Tailscale IP instead of the local network IP when connecting from outside.
 
 ### 8.2 QR Code Connection
 - **Status**: 🔴 Not Started
 - **Effort**: Low (0.5 days)
-- **Dependencies**: 8.1
+- **Dependencies**: None
 
 **Tasks:**
-- [ ] Generate QR code containing tunnel URL + pairing code
+- [ ] Generate QR code containing WebSocket URL + pairing code
 - [ ] Display QR in Settings panel
 - [ ] Mobile app scans QR to auto-connect
 - [ ] Deep link support: `audiobash://connect?url=...&code=...`
@@ -366,10 +332,10 @@ Mobile (anywhere) → wss://user123.tunnelto.dev → tunnelto client → localho
 ### 8.3 Connection Persistence
 - **Status**: 🔴 Not Started
 - **Effort**: Low (0.5 days)
-- **Dependencies**: 8.1
+- **Dependencies**: None
 
 **Tasks:**
-- [ ] Save last tunnel URL for reconnection
+- [ ] Save last connection URL for reconnection
 - [ ] Auto-reconnect on app restart
 - [ ] Mobile remembers paired desktops
 - [ ] Multi-desktop support (home/work)
@@ -454,7 +420,7 @@ Mobile (anywhere) → wss://user123.tunnelto.dev → tunnelto client → localho
 - Vocabulary management UI (4.1)
 
 ### v1.6.0 - Remote Anywhere
-- Tunnel integration with tunnelto (8.1)
+- Remote access via Tailscale (no app integration needed) (8.1)
 - QR code connection (8.2)
 - Connection persistence (8.3)
 

@@ -1,5 +1,7 @@
 # AudioBash Remote Design
 
+> **SUPERSEDED** — This document describes the original remote control design (tunnels, pairing codes, voice bridge, file browser). That architecture was replaced in v2.5.0 with a lightweight mobile page served directly by the WebSocket server on port 8765. The new design uses the phone's built-in speech-to-text and Tailscale for remote access.
+
 > "I think I might never sleep again." - @bramk using Claude Code from his iPhone
 
 ## Vision

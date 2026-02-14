@@ -6,13 +6,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   runStressTest,
-  runConcurrentStressTest,
   MockWebSocket,
   MockPtyProcess,
-  generateRandomData,
   generateRandomString,
-  sleep,
-  printStressTestReport,
   StressTestResult,
 } from './stress-utils';
 
@@ -50,12 +46,10 @@ describe('WebSocket Server Stress Tests', () => {
 
     server = new RemoteControlServer({
       port: 18765,
-      securePort: 18766,
       ptyProcesses: mockPtyProcesses,
       terminalOutputBuffers: mockOutputBuffers,
       terminalCwds: mockCwds,
       mainWindow: null,
-      transcribeAudio: async () => ({ success: true, text: 'test transcription' }),
     });
   });
 
@@ -144,115 +138,20 @@ describe('WebSocket Server Stress Tests', () => {
     });
   });
 
-  describe('Audio Session Stress', () => {
-    it('should handle rapid audio start/end cycles', async () => {
-      const result = await runStressTest(
-        'Rapid Audio Start/End Cycles',
-        async (iteration) => {
-          const mockWs = new MockWebSocket();
-          server.connectedClient = mockWs;
-
-          // Start audio session
-          server.handleMessage(
-            mockWs,
-            JSON.stringify({
-              type: 'audio_start',
-              tabId: 'tab-1',
-              mode: iteration % 2 === 0 ? 'agent' : 'raw',
-              format: 'webm',
-            }),
-            false
-          );
-
-          // Send some audio chunks
-          for (let i = 0; i < 5; i++) {
-            const chunk = generateRandomData(1024);
-            server.handleAudioData(chunk);
-          }
-
-          // End audio session
-          await server.handleAudioEnd({ tabId: 'tab-1' });
-        },
-        { iterations: 50, cooldown: 50 }
-      );
-
-      results.push(result);
-      expect(result.errors.length).toBeLessThan(5);
-    });
-
-    it('should handle very large audio buffers', async () => {
-      const result = await runStressTest(
-        'Large Audio Buffers',
-        async (iteration) => {
-          const mockWs = new MockWebSocket();
-          server.connectedClient = mockWs;
-
-          server.handleMessage(
-            mockWs,
-            JSON.stringify({ type: 'audio_start', tabId: 'tab-1', mode: 'agent' }),
-            false
-          );
-
-          // Send large audio data (simulating long recording)
-          const chunkSize = 64 * 1024; // 64KB chunks
-          const numChunks = 10 + (iteration % 50); // 640KB to 3.2MB
-
-          for (let i = 0; i < numChunks; i++) {
-            server.handleAudioData(generateRandomData(chunkSize));
-          }
-
-          await server.handleAudioEnd({ tabId: 'tab-1' });
-
-          // Verify audio buffer was cleared
-          expect(server.audioChunks.length).toBe(0);
-        },
-        { iterations: 20, cooldown: 100, timeout: 120000 }
-      );
-
-      results.push(result);
-      expect(result.errors.length).toBeLessThan(3);
-    });
-
-    it('should handle audio end without audio start', async () => {
-      const result = await runStressTest(
-        'Audio End Without Start',
-        async () => {
-          const mockWs = new MockWebSocket();
-          server.connectedClient = mockWs;
-          server.currentAudioSession = null;
-          server.audioChunks = [];
-
-          // Should not crash
-          await server.handleAudioEnd({ tabId: 'tab-1' });
-
-          // Verify error response was sent
-          const lastMessage = mockWs.messages[mockWs.messages.length - 1];
-          if (lastMessage) {
-            const parsed = JSON.parse(lastMessage);
-            expect(parsed.success).toBe(false);
-          }
-        },
-        { iterations: 50, cooldown: 10 }
-      );
-
-      results.push(result);
-      expect(result.passed).toBe(true);
-    });
-  });
-
   describe('Authentication Stress', () => {
     it('should handle rapid authentication attempts', async () => {
+      server.setStaticPassword('testpass123');
+
       const result = await runStressTest(
         'Rapid Auth Attempts',
         async (iteration) => {
           const mockWs = new MockWebSocket();
-          server.pairingCode = 'ABC123';
 
-          // Alternate between valid and invalid codes
-          const code = iteration % 2 === 0 ? 'ABC123' : 'WRONG1';
+          // Alternate between valid and invalid passwords
+          const password = iteration % 2 === 0 ? 'testpass123' : 'wrongpass';
 
           server.handleAuth(mockWs, {
-            pairingCode: code,
+            password,
             deviceName: `Device ${iteration}`,
           });
 
@@ -268,22 +167,19 @@ describe('WebSocket Server Stress Tests', () => {
       expect(result.passed).toBe(true);
     });
 
-    it('should handle brute force pairing code attempts', async () => {
+    it('should handle brute force password attempts', async () => {
+      server.setStaticPassword('securepass99');
+
       const result = await runStressTest(
-        'Brute Force Pairing Attempts',
+        'Brute Force Password Attempts',
         async (iteration) => {
           const mockWs = new MockWebSocket();
-          server.pairingCode = 'XYZ789';
 
-          // Generate random codes
-          const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-          let randomCode = '';
-          for (let i = 0; i < 6; i++) {
-            randomCode += chars[Math.floor(Math.random() * chars.length)];
-          }
+          // Generate random passwords
+          const randomPassword = generateRandomString(12);
 
           server.handleAuth(mockWs, {
-            pairingCode: randomCode,
+            password: randomPassword,
             deviceName: 'Attacker',
           });
 
@@ -306,11 +202,9 @@ describe('WebSocket Server Stress Tests', () => {
         'Rapid Connect/Disconnect',
         async (iteration) => {
           const mockWs = new MockWebSocket();
-          server.pairingCode = 'TEST12';
 
-          // Connect
+          // Connect (no password set = open access)
           server.handleAuth(mockWs, {
-            pairingCode: 'TEST12',
             deviceName: `Device ${iteration}`,
           });
 
@@ -334,11 +228,9 @@ describe('WebSocket Server Stress Tests', () => {
         async () => {
           const mockWs1 = new MockWebSocket();
           const mockWs2 = new MockWebSocket();
-          server.pairingCode = 'TEST12';
 
           // First connection
           server.handleAuth(mockWs1, {
-            pairingCode: 'TEST12',
             deviceName: 'Device 1',
           });
 
@@ -346,7 +238,6 @@ describe('WebSocket Server Stress Tests', () => {
 
           // Second connection should be rejected
           server.handleAuth(mockWs2, {
-            pairingCode: 'TEST12',
             deviceName: 'Device 2',
           });
 
@@ -356,7 +247,7 @@ describe('WebSocket Server Stress Tests', () => {
           // Second client should receive error
           const response = JSON.parse(mockWs2.messages[0]);
           expect(response.success).toBe(false);
-          expect(response.error).toBe('already_connected');
+          expect(response.error).toBe('Another device is already connected');
 
           // Clean up
           server.handleDisconnect(mockWs1);
@@ -404,38 +295,6 @@ describe('WebSocket Server Stress Tests', () => {
       results.push(result);
       // Allow up to 100MB memory growth for this test
       expect(result.metrics.memoryUsed || 0).toBeLessThan(100 * 1024 * 1024);
-    });
-  });
-
-  describe('Binary Data Stress', () => {
-    it('should handle binary WebSocket frames correctly', async () => {
-      const result = await runStressTest(
-        'Binary Frame Handling',
-        async (iteration) => {
-          const mockWs = new MockWebSocket();
-          server.connectedClient = mockWs;
-
-          // Start audio session first
-          server.currentAudioSession = { tabId: 'tab-1', mode: 'agent', format: 'webm' };
-
-          // Send binary data of varying sizes
-          const sizes = [100, 1000, 10000, 100000];
-          const size = sizes[iteration % sizes.length];
-          const binaryData = generateRandomData(size);
-
-          server.handleMessage(mockWs, binaryData, true);
-
-          expect(server.audioChunks.length).toBeGreaterThan(0);
-
-          // Clean up
-          server.currentAudioSession = null;
-          server.audioChunks = [];
-        },
-        { iterations: 100, cooldown: 5 }
-      );
-
-      results.push(result);
-      expect(result.passed).toBe(true);
     });
   });
 
@@ -532,16 +391,11 @@ describe('WebSocket Server Edge Cases', () => {
     }
   });
 
-  it('should handle pairing code regeneration under load', async () => {
-    const codes = new Set<string>();
-
+  it('should handle repeated password changes under load', () => {
     for (let i = 0; i < 100; i++) {
-      const code = server.generatePairingCode();
-      expect(code).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
-      codes.add(code);
+      const password = `testpass${i.toString().padStart(3, '0')}`;
+      const result = server.setStaticPassword(password);
+      expect(result.success).toBe(true);
     }
-
-    // Codes should be mostly unique (allow some collisions due to randomness)
-    expect(codes.size).toBeGreaterThan(90);
   });
 });
