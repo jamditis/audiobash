@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, sa
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
+const crypto = require('crypto');
 
 // Centralized logger - must initialize after app ready
 const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
@@ -538,43 +539,51 @@ function spawnShell(tabId) {
 
     // Forward PTY output to renderer and track in buffer
     ptyProcess.onData((data) => {
-      // Append to output buffer (keep last MAX_OUTPUT_BUFFER chars)
-      let buffer = terminalOutputBuffers.get(tabId) || '';
-      buffer += data;
-      if (buffer.length > MAX_OUTPUT_BUFFER) {
-        buffer = buffer.slice(-MAX_OUTPUT_BUFFER);
-      }
-      terminalOutputBuffers.set(tabId, buffer);
-
-      // Try to detect CWD changes from common shell prompts
-      // This is a heuristic - works for PowerShell and most Unix shells
-      const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
-      if (cwdMatch && cwdMatch[1]) {
-        const newCwd = cwdMatch[1].trim();
-        if (newCwd && newCwd !== terminalCwds.get(tabId)) {
-          terminalCwds.set(tabId, newCwd);
-          // Track as recent directory
-          addRecentDirectory(newCwd);
+      try {
+        // Append to output buffer (keep last MAX_OUTPUT_BUFFER chars)
+        let buffer = terminalOutputBuffers.get(tabId) || '';
+        buffer += data;
+        if (buffer.length > MAX_OUTPUT_BUFFER) {
+          buffer = buffer.slice(-MAX_OUTPUT_BUFFER);
         }
-      }
+        terminalOutputBuffers.set(tabId, buffer);
 
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-data', { tabId, data });
-      }
+        // Try to detect CWD changes from common shell prompts
+        // This is a heuristic - works for PowerShell and most Unix shells
+        const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
+        if (cwdMatch && cwdMatch[1]) {
+          const newCwd = cwdMatch[1].trim();
+          if (newCwd && newCwd !== terminalCwds.get(tabId)) {
+            terminalCwds.set(tabId, newCwd);
+            // Track as recent directory
+            addRecentDirectory(newCwd);
+          }
+        }
 
-      // Forward to remote mobile client
-      if (remoteServer) {
-        remoteServer.sendTerminalData(tabId, data);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('terminal-data', { tabId, data });
+        }
+
+        // Forward to remote mobile client
+        if (remoteServer) {
+          remoteServer.sendTerminalData(tabId, data);
+        }
+      } catch (err) {
+        ptyLog.error('Error in PTY onData handler', err, { tabId });
       }
     });
 
     ptyProcess.onExit(({ exitCode, signal }) => {
-      ptyLog.info('Shell exited', { tabId, exitCode, signal });
-      ptyProcesses.delete(tabId);
-      terminalOutputBuffers.delete(tabId);
-      terminalCwds.delete(tabId);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
+      try {
+        ptyLog.info('Shell exited', { tabId, exitCode, signal });
+        ptyProcesses.delete(tabId);
+        terminalOutputBuffers.delete(tabId);
+        terminalCwds.delete(tabId);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
+        }
+      } catch (err) {
+        ptyLog.error('Error in PTY onExit handler', err, { tabId });
       }
     });
 
@@ -624,21 +633,43 @@ function setupIPC() {
     return { count: ptyProcesses.size, max: MAX_TABS };
   });
 
-  // Terminal I/O (with tabId)
+  // Terminal I/O (with tabId) - all inputs validated
+  const MAX_TERMINAL_INPUT = 100000; // 100KB max per write
+  const MIN_COLS = 10;
+  const MAX_COLS = 500;
+  const MIN_ROWS = 2;
+  const MAX_ROWS = 200;
+
   ipcMain.on('terminal-write', (_, { tabId, data }) => {
+    if (typeof data !== 'string' || data.length > MAX_TERMINAL_INPUT) {
+      ipcLog.warn('terminal-write: invalid input', { tabId, type: typeof data, length: data?.length });
+      return;
+    }
     const ptyProcess = ptyProcesses.get(tabId);
     ptyProcess?.write(data);
   });
 
   ipcMain.on('terminal-resize', (_, { tabId, cols, rows }) => {
+    const numCols = Number(cols);
+    const numRows = Number(rows);
+    if (!Number.isInteger(numCols) || !Number.isInteger(numRows) ||
+        numCols < MIN_COLS || numCols > MAX_COLS ||
+        numRows < MIN_ROWS || numRows > MAX_ROWS) {
+      ipcLog.warn('terminal-resize: invalid dimensions', { tabId, cols, rows });
+      return;
+    }
     const ptyProcess = ptyProcesses.get(tabId);
-    ptyProcess?.resize(cols, rows);
+    ptyProcess?.resize(numCols, numRows);
   });
 
   // Send text to terminal (from voice transcription)
   ipcMain.on('send-to-terminal', (_, { tabId, text }) => {
+    if (typeof text !== 'string' || text.length === 0 || text.length > MAX_TERMINAL_INPUT) {
+      ipcLog.warn('send-to-terminal: invalid input', { tabId, type: typeof text, length: text?.length });
+      return;
+    }
     const ptyProcess = ptyProcesses.get(tabId);
-    if (ptyProcess && text) {
+    if (ptyProcess) {
       // Write the text first
       ptyProcess.write(text);
       // Brief delay then send Enter - helps interactive programs process input correctly
@@ -650,8 +681,12 @@ function setupIPC() {
 
   // Insert text to terminal WITHOUT executing (for raw mode)
   ipcMain.on('insert-to-terminal', (_, { tabId, text }) => {
+    if (typeof text !== 'string' || text.length === 0 || text.length > MAX_TERMINAL_INPUT) {
+      ipcLog.warn('insert-to-terminal: invalid input', { tabId, type: typeof text, length: text?.length });
+      return;
+    }
     const ptyProcess = ptyProcesses.get(tabId);
-    if (ptyProcess && text) {
+    if (ptyProcess) {
       // Write the text WITHOUT \r - user can review and press Enter
       ptyProcess.write(text);
     }
@@ -758,14 +793,33 @@ function setupIPC() {
 
   ipcMain.handle('set-shortcuts', async (_, shortcuts) => {
     try {
-      currentShortcuts = { ...currentShortcuts, ...shortcuts };
+      // Validate shortcuts input is a plain object with string values
+      if (!shortcuts || typeof shortcuts !== 'object' || Array.isArray(shortcuts)) {
+        return { success: false, error: 'Invalid shortcuts object' };
+      }
+      const validKeys = Object.keys(currentShortcuts);
+      for (const [key, value] of Object.entries(shortcuts)) {
+        if (!validKeys.includes(key)) {
+          ipcLog.warn('set-shortcuts: unknown shortcut key', { key });
+          continue;
+        }
+        if (typeof value !== 'string' || value.length > 50) {
+          return { success: false, error: `Invalid shortcut value for ${key}` };
+        }
+      }
+      // Only apply known keys
+      for (const key of validKeys) {
+        if (key in shortcuts && typeof shortcuts[key] === 'string') {
+          currentShortcuts[key] = shortcuts[key];
+        }
+      }
       saveShortcuts();
       registerShortcuts();
       // Update tray menu with new shortcuts
       createTray();
       return { success: true };
     } catch (err) {
-      console.error('[AudioBash] Failed to set shortcuts:', err);
+      ipcLog.error('Failed to set shortcuts', err);
       return { success: false, error: err.message };
     }
   });
@@ -920,9 +974,77 @@ function setupIPC() {
   // AI TRANSCRIPTION HANDLERS (moved from renderer to eliminate dangerouslyAllowBrowser)
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // --- Transcription pipeline hardening utilities ---
+
+  // Rate limiter: sliding window, max requests per window
+  const transcriptionRateLimiter = {
+    timestamps: [],
+    maxRequests: 15,    // 15 requests per minute
+    windowMs: 60000,    // 1 minute window
+    check() {
+      const now = Date.now();
+      this.timestamps = this.timestamps.filter(t => now - t < this.windowMs);
+      if (this.timestamps.length >= this.maxRequests) {
+        return false;
+      }
+      this.timestamps.push(now);
+      return true;
+    }
+  };
+
+  // Audio blob validation
+  const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB max (base64 encoded)
+  function validateAudioInput(audioBase64) {
+    if (typeof audioBase64 !== 'string') {
+      return 'Audio data must be a string';
+    }
+    if (audioBase64.length === 0) {
+      return 'Audio data is empty';
+    }
+    if (audioBase64.length > MAX_AUDIO_SIZE) {
+      return `Audio data exceeds maximum size (${Math.round(audioBase64.length / 1024 / 1024)}MB > 25MB)`;
+    }
+    return null; // valid
+  }
+
+  // Retry with exponential backoff for transient API failures
+  async function withRetry(fn, { maxRetries = 2, baseDelayMs = 1000, label = 'API call' } = {}) {
+    let lastError;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        lastError = err;
+        const isRetryable = err.status === 429 || err.status === 503 || err.status === 502 ||
+          err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND' ||
+          (err.message && err.message.includes('RESOURCE_EXHAUSTED'));
+        if (!isRetryable || attempt === maxRetries) {
+          throw err;
+        }
+        const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
+        ipcLog.warn(`${label}: retrying after transient error (attempt ${attempt + 1}/${maxRetries})`, {
+          error: err.message, delay: Math.round(delay)
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  }
+
   // Gemini transcription
   ipcMain.handle('transcribe-with-gemini', async (_, { audioBase64, prompt, modelId }) => {
     try {
+      // Rate limit check
+      if (!transcriptionRateLimiter.check()) {
+        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
+      }
+
+      // Validate audio input
+      const audioError = validateAudioInput(audioBase64);
+      if (audioError) {
+        return { success: false, error: audioError };
+      }
+
       const apiKey = await getApiKeyInternal('gemini');
       if (!apiKey) {
         return { success: false, error: 'No Gemini API key configured' };
@@ -937,25 +1059,27 @@ function setupIPC() {
       const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
       const model = geminiClient.getGenerativeModel({ model: geminiModel });
 
-      console.log(`[AudioBash] Transcribing with Gemini (${geminiModel})`);
+      ipcLog.info(`Transcribing with Gemini (${geminiModel})`);
 
-      const result = await model.generateContent([
-        { text: prompt },
-        {
-          inlineData: {
-            mimeType: 'audio/webm',
-            data: audioBase64
+      const result = await withRetry(async () => {
+        return await model.generateContent([
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: 'audio/webm',
+              data: audioBase64
+            }
           }
-        }
-      ]);
+        ]);
+      }, { label: 'Gemini transcription' });
 
       const response = await result.response;
       const text = response.text()?.trim() || '';
 
-      console.log(`[AudioBash] Gemini transcription complete: ${text.length} chars`);
+      ipcLog.info(`Gemini transcription complete`, { textLength: text.length });
       return { success: true, text };
     } catch (err) {
-      console.error('[AudioBash] Gemini transcription error:', err);
+      ipcLog.error('Gemini transcription error', err);
       return { success: false, error: err.message || String(err) };
     }
   });
@@ -963,6 +1087,17 @@ function setupIPC() {
   // OpenAI Whisper transcription
   ipcMain.handle('transcribe-with-openai', async (_, { audioBase64, prompt, modelId }) => {
     try {
+      // Rate limit check
+      if (!transcriptionRateLimiter.check()) {
+        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
+      }
+
+      // Validate audio input
+      const audioError = validateAudioInput(audioBase64);
+      if (audioError) {
+        return { success: false, error: audioError };
+      }
+
       const apiKey = await getApiKeyInternal('openai');
       if (!apiKey) {
         return { success: false, error: 'No OpenAI API key configured' };
@@ -973,38 +1108,42 @@ function setupIPC() {
         openaiClient = new OpenAI({ apiKey });
       }
 
-      console.log('[AudioBash] Transcribing with OpenAI Whisper');
+      ipcLog.info('Transcribing with OpenAI Whisper');
 
       // Convert base64 to buffer and create a File-like object
       const buffer = Buffer.from(audioBase64, 'base64');
       const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
 
-      // Use Whisper for transcription
-      const transcription = await openaiClient.audio.transcriptions.create({
-        file: file,
-        model: 'whisper-1',
-      });
+      // Use Whisper for transcription with retry
+      const transcription = await withRetry(async () => {
+        return await openaiClient.audio.transcriptions.create({
+          file: file,
+          model: 'whisper-1',
+        });
+      }, { label: 'OpenAI Whisper' });
 
       let text = transcription.text?.trim() || '';
 
       // If agent mode (has prompt with context), use GPT-4 to process the transcription
       if (prompt && modelId === 'openai-gpt4' && text) {
-        console.log('[AudioBash] Processing transcription with GPT-4');
-        const completion = await openaiClient.chat.completions.create({
-          model: 'gpt-4-turbo-preview',
-          messages: [
-            { role: 'system', content: prompt },
-            { role: 'user', content: text }
-          ],
-          max_tokens: 200,
-        });
+        ipcLog.info('Processing transcription with GPT-4');
+        const completion = await withRetry(async () => {
+          return await openaiClient.chat.completions.create({
+            model: 'gpt-4-turbo-preview',
+            messages: [
+              { role: 'system', content: prompt },
+              { role: 'user', content: text }
+            ],
+            max_tokens: 200,
+          });
+        }, { label: 'OpenAI GPT-4' });
         text = completion.choices[0]?.message?.content?.trim() || text;
       }
 
-      console.log(`[AudioBash] OpenAI transcription complete: ${text.length} chars`);
+      ipcLog.info('OpenAI transcription complete', { textLength: text.length });
       return { success: true, text };
     } catch (err) {
-      console.error('[AudioBash] OpenAI transcription error:', err);
+      ipcLog.error('OpenAI transcription error', err);
       return { success: false, error: err.message || String(err) };
     }
   });
@@ -1012,6 +1151,17 @@ function setupIPC() {
   // Claude/Anthropic transcription (requires OpenAI for Whisper first)
   ipcMain.handle('transcribe-with-anthropic', async (_, { audioBase64, prompt, modelId }) => {
     try {
+      // Rate limit check
+      if (!transcriptionRateLimiter.check()) {
+        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
+      }
+
+      // Validate audio input
+      const audioError = validateAudioInput(audioBase64);
+      if (audioError) {
+        return { success: false, error: audioError };
+      }
+
       const openaiKey = await getApiKeyInternal('openai');
       const anthropicKey = await getApiKeyInternal('anthropic');
 
@@ -1030,33 +1180,37 @@ function setupIPC() {
         anthropicClient = new Anthropic({ apiKey: anthropicKey });
       }
 
-      console.log('[AudioBash] Transcribing with Whisper + Claude');
+      ipcLog.info('Transcribing with Whisper + Claude');
 
-      // First, use Whisper for transcription
+      // First, use Whisper for transcription with retry
       const buffer = Buffer.from(audioBase64, 'base64');
       const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
 
-      const transcription = await openaiClient.audio.transcriptions.create({
-        file: file,
-        model: 'whisper-1',
-      });
+      const transcription = await withRetry(async () => {
+        return await openaiClient.audio.transcriptions.create({
+          file: file,
+          model: 'whisper-1',
+        });
+      }, { label: 'Whisper (for Claude)' });
 
       let text = transcription.text?.trim() || '';
 
       // If agent mode (has prompt with context), use Claude to process the transcription
       if (prompt && text) {
-        console.log('[AudioBash] Processing transcription with Claude');
+        ipcLog.info('Processing transcription with Claude');
         const claudeModel = modelId === 'claude-haiku'
           ? 'claude-3-haiku-20240307'
           : 'claude-sonnet-4-20250514';
 
-        const message = await anthropicClient.messages.create({
-          model: claudeModel,
-          max_tokens: 200,
-          messages: [
-            { role: 'user', content: `${prompt}\n\n${text}` }
-          ],
-        });
+        const message = await withRetry(async () => {
+          return await anthropicClient.messages.create({
+            model: claudeModel,
+            max_tokens: 200,
+            messages: [
+              { role: 'user', content: `${prompt}\n\n${text}` }
+            ],
+          });
+        }, { label: 'Claude processing' });
 
         const content = message.content[0];
         if (content.type === 'text') {
@@ -1064,10 +1218,10 @@ function setupIPC() {
         }
       }
 
-      console.log(`[AudioBash] Claude transcription complete: ${text.length} chars`);
+      ipcLog.info('Claude transcription complete', { textLength: text.length });
       return { success: true, text };
     } catch (err) {
-      console.error('[AudioBash] Claude transcription error:', err);
+      ipcLog.error('Claude transcription error', err);
       return { success: false, error: err.message || String(err) };
     }
   });
@@ -1075,12 +1229,23 @@ function setupIPC() {
   // ElevenLabs transcription
   ipcMain.handle('transcribe-with-elevenlabs', async (_, { audioBase64 }) => {
     try {
+      // Rate limit check
+      if (!transcriptionRateLimiter.check()) {
+        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
+      }
+
+      // Validate audio input
+      const audioError = validateAudioInput(audioBase64);
+      if (audioError) {
+        return { success: false, error: audioError };
+      }
+
       const apiKey = await getApiKeyInternal('elevenlabs');
       if (!apiKey) {
         return { success: false, error: 'No ElevenLabs API key configured' };
       }
 
-      console.log('[AudioBash] Transcribing with ElevenLabs Scribe');
+      ipcLog.info('Transcribing with ElevenLabs Scribe');
 
       // Convert base64 to buffer and create FormData
       const buffer = Buffer.from(audioBase64, 'base64');
@@ -1089,27 +1254,32 @@ function setupIPC() {
       formData.append('audio', buffer, { filename: 'audio.webm', contentType: 'audio/webm' });
       formData.append('model_id', 'scribe_v1');
 
-      const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          ...formData.getHeaders(),
-        },
-        body: formData,
-      });
+      const data = await withRetry(async () => {
+        const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            ...formData.getHeaders(),
+          },
+          body: formData,
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
-      }
+        if (!response.ok) {
+          const errorText = await response.text();
+          const err = new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+          err.status = response.status;
+          throw err;
+        }
 
-      const data = await response.json();
+        return await response.json();
+      }, { label: 'ElevenLabs Scribe' });
+
       const text = data.text?.trim() || '';
 
-      console.log(`[AudioBash] ElevenLabs transcription complete: ${text.length} chars`);
+      ipcLog.info('ElevenLabs transcription complete', { textLength: text.length });
       return { success: true, text };
     } catch (err) {
-      console.error('[AudioBash] ElevenLabs transcription error:', err);
+      ipcLog.error('ElevenLabs transcription error', err);
       return { success: false, error: err.message || String(err) };
     }
   });
@@ -1891,7 +2061,7 @@ app.whenReady().then(async () => {
 async function handleRemoteTranscription(audioBuffer, tabId, mode) {
   return new Promise((resolve) => {
     // Send audio to renderer for transcription (reuses existing transcriptionService)
-    const requestId = `remote-${Date.now()}`;
+    const requestId = `remote-${crypto.randomUUID()}`;
 
     const handler = (event, result) => {
       if (result.requestId === requestId) {
@@ -1952,6 +2122,17 @@ app.on('will-quit', () => {
     remoteServer.stop();
     remoteServer = null;
   }
+
+  // Close all file watchers
+  for (const [watcherId, entry] of fileWatchers) {
+    try {
+      clearTimeout(entry.debounceTimer);
+      entry.watcher.close();
+    } catch (err) {
+      // Ignore cleanup errors during shutdown
+    }
+  }
+  fileWatchers.clear();
 
   // Kill all PTY processes
   for (const [tabId, ptyProcess] of ptyProcesses) {

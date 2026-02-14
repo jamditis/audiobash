@@ -1034,6 +1034,26 @@ contextBridge.exposeInMainWorld('electron', {
   getRemoteDiagnostics: () => ipcRenderer.invoke('get-remote-diagnostics'),
 
   /**
+   * Sets local-only mode for remote access (restricts to LAN connections).
+   * Requires server restart to take effect.
+   *
+   * @function setLocalOnly
+   * @memberof window.electron
+   * @param {boolean} enabled - Whether to restrict to local connections only
+   * @returns {Promise<{success: boolean, changed: boolean, requiresRestart: boolean}>}
+   */
+  setLocalOnly: (enabled) => ipcRenderer.invoke('set-local-only', enabled),
+
+  /**
+   * Gets the current local-only mode setting.
+   *
+   * @function getLocalOnly
+   * @memberof window.electron
+   * @returns {Promise<boolean>} Whether local-only mode is enabled
+   */
+  getLocalOnly: () => ipcRenderer.invoke('get-local-only'),
+
+  /**
    * Sets whether to prevent the system from sleeping.
    * Useful when waiting for remote voice commands.
    *
