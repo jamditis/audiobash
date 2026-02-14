@@ -440,7 +440,6 @@ const ipcLog = logger.category('IPC');
 const ptyLog = logger.category('PTY');
 const storeLog = logger.category('Store');
 const remoteLog = logger.category('RemoteControl');
-const tunnelLog = logger.category('Tunnel');
 const whisperLog = logger.category('Whisper');
 
 module.exports = {
@@ -450,7 +449,6 @@ module.exports = {
   ptyLog,
   storeLog,
   remoteLog,
-  tunnelLog,
   whisperLog,
   LOG_LEVELS,
 };

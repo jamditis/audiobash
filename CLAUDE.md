@@ -2,7 +2,7 @@
 
 ---
 
-## 📖 Documentation & websites (2026-01-16)
+## 📖 Documentation & websites (2026-02-14)
 
 AudioBash has a custom domain and web documentation:
 
@@ -62,7 +62,7 @@ All pages follow the app's void/brutalist design:
 cd audiobash
 git pull                           # Get latest with macOS support
 npm install                        # CRITICAL: Compiles node-pty for arm64
-npm test                           # Verify 70 tests pass
+npm test                           # Verify tests pass
 npm run electron:dev               # Run in dev mode
 # OR
 npm run electron:build:mac:arm64   # Build DMG for Apple Silicon
@@ -93,7 +93,7 @@ Or: `xattr -cr /Applications/AudioBash.app`
 ### Relevant files for macOS
 - `docs/MACOS_BUILD.md` - Full build guide
 - `.github/workflows/build.yml` - CI/CD for multi-platform builds
-- `tests/` - 70 tests for cross-platform compatibility
+- `tests/` - Test suite for cross-platform compatibility
 
 ---
 
@@ -112,14 +112,18 @@ AudioBash is an Electron app with an embedded terminal (xterm.js + node-pty) and
 ```
 audiobash/
 ├── electron/
-│   ├── main.cjs          # Electron main process, node-pty
-│   └── preload.cjs       # Context bridge for IPC
+│   ├── main.cjs              # Electron main process, node-pty
+│   ├── preload.cjs           # Context bridge for IPC
+│   ├── websocket-server.cjs  # Remote control server (HTTP + WebSocket)
+│   ├── logger.cjs            # Structured logging
+│   ├── error-handler.cjs     # Error categorization and recovery
+│   └── whisperService.cjs    # Local speech-to-text via whisper.cpp
 ├── src/
 │   ├── components/
 │   │   ├── Terminal.tsx  # xterm.js wrapper
-│   │   ├── VoicePanel.tsx # Voice input UI
+│   │   ├── VoiceOverlay.tsx # Voice input UI
 │   │   └── TitleBar.tsx  # Frameless window controls
-│   ├── services/         # Transcription service (port from Yap)
+│   ├── services/         # Transcription and speech services
 │   ├── utils/            # Audio utilities
 │   ├── App.tsx           # Main layout
 │   ├── index.tsx         # React entry

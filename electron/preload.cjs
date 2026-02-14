@@ -32,7 +32,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 /**
  * The electron API exposed to the renderer process.
  * Provides methods for window control, terminal management, voice input,
- * keyboard shortcuts, file operations, remote control, and tunnel services.
+ * keyboard shortcuts, file operations, and remote control.
  *
  * @namespace window.electron
  */
@@ -524,7 +524,7 @@ contextBridge.exposeInMainWorld('electron', {
 
   /**
    * Retrieves the API key for a specified provider.
-   * Keys are stored securely using electron-store.
+   * Keys are stored securely using safeStorage encryption.
    *
    * @function getApiKey
    * @memberof window.electron
@@ -538,7 +538,7 @@ contextBridge.exposeInMainWorld('electron', {
 
   /**
    * Stores an API key for a specified provider.
-   * Keys are stored securely using electron-store.
+   * Keys are stored securely using safeStorage encryption.
    *
    * @function setApiKey
    * @memberof window.electron
