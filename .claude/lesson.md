@@ -145,6 +145,41 @@ it('should have spawn-helper with execute permissions', () => {
 
 ---
 
+## 2026-02-13: ARM64 Code Signature Invalidation (#29)
+
+### Problem
+AudioBash crashed immediately on M1 Macs. The launchd logs showed
+`termination reported by launchd (0, 0, 256)` — exit code 1 (encoded as 256 in waitpid).
+
+### Root Cause
+Two issues compounded:
+
+1. **chmod invalidates ARM64 code signatures.** The afterPack.cjs script ran
+   `fs.chmodSync(spawnHelperPath, 0o755)` on node-pty's `spawn-helper` binary.
+   On Apple Silicon, ALL native executables must be at least ad-hoc signed.
+   The chmod broke the signature, and macOS killed the binary.
+
+2. **No error handling in startup.** The `app.whenReady()` handler had zero
+   try-catch wrapping. Any exception became an unhandled promise rejection,
+   which in Node.js 18+ calls `process.exit(1)` — the exact exit code seen.
+
+### Solution
+1. Re-sign binaries with `codesign --force --sign -` after chmod in afterPack.cjs
+2. Also re-sign pty.node (not just spawn-helper)
+3. Wrap the entire whenReady handler in try-catch
+4. Add global uncaughtException/unhandledRejection handlers
+5. Guard tray creation against empty icon (throws on macOS)
+
+### Takeaway
+- On ARM64 macOS, ANY modification to a binary (including chmod) invalidates
+  its code signature. Always re-sign with `codesign --force --sign -` after.
+- Never leave async Electron startup handlers without try-catch.
+- Exit code 256 in launchd = exit(1) in waitpid encoding = unhandled rejection.
+- x64 macOS doesn't enforce mandatory code signing, so these bugs only show
+  on Apple Silicon. Always test ARM64 builds specifically.
+
+---
+
 ## 2026-01-02: macOS Stress Testing
 
 ### Problem
