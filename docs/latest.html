@@ -185,7 +185,7 @@
         <div class="text-center mb-16">
             <div class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6">
                 <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                <span data-version="Currently at v{version}">Currently at v2.3.5</span>
+                <span data-version="Currently at v{version}">Currently at v2.4.0</span>
             </div>
             <h1 class="font-display text-5xl md:text-6xl text-chrome mb-4">What's new</h1>
             <p class="text-gray-400 text-lg max-w-2xl mx-auto">
@@ -196,6 +196,63 @@
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
 
+            <!-- v2.4.0 - Electron 39 + Apple Silicon Crash Fix -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #a3aaae;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-apple/10 border border-apple/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="cpu" class="w-6 h-6 text-apple"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.4.0</span>
+                            <span class="text-gray-500 text-sm">February 13, 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Apple Silicon works. Electron 39.</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            The app was crashing immediately on M1/M2/M3 Macs because our build process broke the code
+                            signatures on node-pty's native binaries. ARM64 macOS kills unsigned executables on sight.
+                            The fix re-signs everything after packaging. While we were at it, we jumped from Electron 35
+                            to 39, which fixes a GPU lag issue on macOS Tahoe where Electron apps were making
+                            WindowServer eat 50%+ GPU.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="cpu" class="w-5 h-5 text-apple"></i>
+                                    <span class="text-chrome font-display">M1 crash fix</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Re-sign binaries after chmod</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="zap" class="w-5 h-5 text-apple"></i>
+                                    <span class="text-chrome font-display">Electron 39</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Tahoe GPU lag fixed</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-apple"></i>
+                                    <span class="text-chrome font-display">Crash-proof startup</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Global error handlers added</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-apple/10 border border-apple/30 text-apple text-xs">Apple Silicon</span>
+                            <span class="px-3 py-1.5 bg-apple/10 border border-apple/30 text-apple text-xs">Electron 39</span>
+                            <span class="px-3 py-1.5 bg-apple/10 border border-apple/30 text-apple text-xs">Code signing</span>
+                            <span class="px-3 py-1.5 bg-apple/10 border border-apple/30 text-apple text-xs">#29</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
             <!-- v2.3.5 - Remote Connection Fixes, Password/Pairing, Whisper Path -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
                 <div class="flex items-start gap-6">
@@ -204,9 +261,8 @@
                     </div>
                     <div class="flex-1">
                         <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.3.5</span>
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.3.5</span>
                             <span class="text-gray-500 text-sm">January 15, 2026</span>
-                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">Remote reliability improvements</h2>
@@ -593,7 +649,7 @@
     <footer class="border-t border-white/10 py-8 px-6">
         <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-[10px] text-gray-600 font-mono">
-                <span data-version="AUDIOBASH v{version} // WHAT'S NEW // MIT LICENSE">AUDIOBASH v2.3.5 // WHAT'S NEW // MIT LICENSE</span>
+                <span data-version="AUDIOBASH v{version} // WHAT'S NEW // MIT LICENSE">AUDIOBASH v2.4.0 // WHAT'S NEW // MIT LICENSE</span>
             </div>
             <div class="flex items-center gap-4 text-gray-500">
                 <a href="about.html" class="hover:text-accent transition-colors text-xs font-mono">

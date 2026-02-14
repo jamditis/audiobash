@@ -158,11 +158,60 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v2.3.6 -->
+            <!-- v2.4.0 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.3.6</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v2.4.0</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                    <span class="text-gray-500 text-sm">February 13, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Electron 39 + Apple Silicon crash fix</h2>
+
+                <p class="text-gray-400 mb-6">Upgraded Electron from 35 to 39 (fixes macOS Tahoe GPU lag). Fixed the silent crash on Apple Silicon Macs caused by invalid code signatures on node-pty binaries. Added crash-proof startup with global error handlers. Confirmed working on M1 hardware.</p>
+
+                <!-- Downloads -->
+                <div class="bg-void border border-white/10 p-4 mb-6">
+                    <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <a href="#" data-download="windows" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                            Windows
+                        </a>
+                        <a href="#" data-download="mac-arm64" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            macOS (Apple Silicon)
+                        </a>
+                        <a href="#" data-download="mac-intel" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-ice text-sm mb-2">Changed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Electron 35 → 39</strong> - Fixes macOS Tahoe GPU lag (_cornerMask override)</li>
+                            <li>• <strong>electron-builder 25 → 26</strong> - Latest build tooling</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Fixed</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Apple Silicon crash (#29)</strong> - Re-sign node-pty binaries after chmod to preserve ARM64 code signatures</li>
+                            <li>• <strong>Silent startup exits</strong> - Global error handlers + try-catch in app.whenReady()</li>
+                            <li>• <strong>Tray icon crash</strong> - Skip tray creation if icon fails to load</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.3.6 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v2.3.6</span>
                     <span class="text-gray-500 text-sm">January 16, 2026</span>
                 </div>
 

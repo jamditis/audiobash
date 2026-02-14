@@ -87,7 +87,7 @@ Or: `xattr -cr /Applications/AudioBash.app`
 ### Known issues
 - Multi-tab/split-screen has stability issues (resize debouncing added but may need more work)
 - Test the voice recording on Mac (uses same MediaRecorder API, should work)
-- **Apple Silicon crash on launch (#29):** Fixed in v2.3.6. Two root causes: (1) `chmod` in afterPack.cjs invalidated ARM64 code signatures on node-pty binaries — fixed by re-signing with `codesign --force --sign -` after chmod. (2) No error handling in `app.whenReady()` handler — added try-catch, global error handlers, and tray icon guard. Awaiting user confirmation the fix works on real M1 hardware.
+- **Apple Silicon crash on launch (#29):** Fixed in v2.4.0 and confirmed on M1 hardware. Two root causes: (1) `chmod` in afterPack.cjs invalidated ARM64 code signatures on node-pty binaries — fixed by re-signing with `codesign --force --sign -` after chmod. (2) No error handling in `app.whenReady()` handler — added try-catch, global error handlers, and tray icon guard. v2.4.0 also upgrades to Electron 39.6.0 (fixes macOS Tahoe GPU lag).
 
 ### Relevant files for macOS
 - `docs/MACOS_BUILD.md` - Full build guide

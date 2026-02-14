@@ -136,20 +136,11 @@ Open Settings (gear icon in title bar) to configure:
 
 ### Apple Silicon (M1/M2/M3/M4) crash on launch
 
-**Status:** Fix applied in v2.3.6 — awaiting user confirmation ([#29](https://github.com/jamditis/audiobash/issues/29))
+**Status:** Fixed in v2.4.0 — confirmed working on M1 hardware ([#29](https://github.com/jamditis/audiobash/issues/29))
 
-Some Apple Silicon Macs may experience an immediate crash on launch. The root cause is twofold: ARM64 macOS requires all native binaries to be code-signed, and our build process was invalidating signatures on node-pty helper binaries. The fix re-signs binaries after packaging and adds error handling to prevent silent crashes.
+Earlier versions crashed on Apple Silicon because the build process invalidated ARM64 code signatures on node-pty helper binaries. Fixed in v2.4.0 by re-signing binaries after packaging. The v2.4.0 release also upgrades to Electron 39, which fixes a separate macOS Tahoe GPU lag issue.
 
-If you hit this issue, try building from source with the latest code:
-
-```bash
-git clone https://github.com/jamditis/audiobash.git
-cd audiobash
-npm install
-npm run electron:build:mac:arm64
-```
-
-See [troubleshooting guide](docs/TROUBLESHOOTING.md) for more details.
+Download v2.4.0 from [Releases](https://github.com/jamditis/audiobash/releases) or see [troubleshooting guide](docs/TROUBLESHOOTING.md) for details.
 
 ## Tech stack
 

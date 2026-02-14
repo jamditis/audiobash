@@ -254,7 +254,7 @@ npm install
 - Console.app may show `Code Signature Invalid` or `SIGKILL`
 
 **Root cause:**
-Two compounding issues (fixed in v2.3.6, [#29](https://github.com/jamditis/audiobash/issues/29)):
+Two compounding issues (fixed in v2.4.0, [#29](https://github.com/jamditis/audiobash/issues/29)):
 
 1. **Broken code signatures on node-pty binaries.** ARM64 macOS requires all executables to be at least ad-hoc signed. The build process ran `chmod` on node-pty's `spawn-helper` binary, which invalidated its code signature. macOS kernel killed the unsigned binary.
 
@@ -262,7 +262,7 @@ Two compounding issues (fixed in v2.3.6, [#29](https://github.com/jamditis/audio
 
 **Solutions:**
 
-1. **Update to v2.3.6 or later** — download from [Releases](https://github.com/jamditis/audiobash/releases) or build from source:
+1. **Update to v2.4.0 or later** — download from [Releases](https://github.com/jamditis/audiobash/releases) or build from source:
    ```bash
    git clone https://github.com/jamditis/audiobash.git
    cd audiobash
