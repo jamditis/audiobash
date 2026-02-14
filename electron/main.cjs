@@ -7,6 +7,17 @@ const crypto = require('crypto');
 // Centralized logger - must initialize after app ready
 const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
 
+// Global error handlers to prevent silent crashes (fixes #29)
+process.on('uncaughtException', (err) => {
+  console.error('[AudioBash] Uncaught exception:', err);
+  try { appLog.error('Uncaught exception', err); } catch (_) { /* logger may not be initialized */ }
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[AudioBash] Unhandled rejection:', reason);
+  try { appLog.error('Unhandled rejection', { reason: String(reason) }); } catch (_) { /* logger may not be initialized */ }
+});
+
 // node-pty will be loaded dynamically after app ready
 let pty = null;
 
@@ -196,7 +207,10 @@ function createTray() {
   if (!icon.isEmpty()) {
     icon = icon.resize({ width: 16, height: 16 });
   } else {
-    console.log('[AudioBash] WARNING: Could not load tray icon, using empty icon');
+    // Cannot create tray with empty icon on macOS (causes crash).
+    // Skip tray creation entirely — the app still works without it.
+    console.error('[AudioBash] Cannot create tray: all icon paths failed. Running without tray.');
+    return;
   }
   tray = new Tray(icon);
 
@@ -1931,6 +1945,7 @@ function setupIPC() {
 
 // App lifecycle
 app.whenReady().then(async () => {
+  try {
   // Initialize logger first
   logger.init();
   appLog.info('AudioBash starting', {
@@ -2050,6 +2065,16 @@ app.whenReady().then(async () => {
       ngrokService.start(8765);
     } else {
       cloudflareService.start(8765);
+    }
+  }
+
+  } catch (err) {
+    console.error('[AudioBash] Startup failed:', err);
+    try { appLog.error('Startup failed', err); } catch (_) { /* logger may not be initialized */ }
+
+    // Still try to show the window so the user sees something
+    if (!mainWindow) {
+      try { createWindow(); } catch (_) { /* last resort */ }
     }
   }
 });
