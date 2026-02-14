@@ -132,6 +132,25 @@ Open Settings (gear icon in title bar) to configure:
 - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)
 - **Anthropic**: [Anthropic Console](https://console.anthropic.com/settings/keys)
 
+## Known issues
+
+### Apple Silicon (M1/M2/M3/M4) crash on launch
+
+**Status:** Fix applied in v2.3.6 — awaiting user confirmation ([#29](https://github.com/jamditis/audiobash/issues/29))
+
+Some Apple Silicon Macs may experience an immediate crash on launch. The root cause is twofold: ARM64 macOS requires all native binaries to be code-signed, and our build process was invalidating signatures on node-pty helper binaries. The fix re-signs binaries after packaging and adds error handling to prevent silent crashes.
+
+If you hit this issue, try building from source with the latest code:
+
+```bash
+git clone https://github.com/jamditis/audiobash.git
+cd audiobash
+npm install
+npm run electron:build:mac:arm64
+```
+
+See [troubleshooting guide](docs/TROUBLESHOOTING.md) for more details.
+
 ## Tech stack
 
 - **Electron** - Desktop application framework

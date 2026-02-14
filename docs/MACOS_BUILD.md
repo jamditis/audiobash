@@ -197,6 +197,21 @@ macOS may require accessibility permissions for global shortcuts:
 2. Add AudioBash to the list
 3. Restart the app
 
+### App crashes immediately on Apple Silicon
+
+If the built app crashes on launch with no visible error, the most likely cause is broken code signatures on native binaries. ARM64 macOS requires all executables to be ad-hoc signed. The `afterPack.cjs` script handles this automatically, but if something goes wrong:
+
+```bash
+# Check spawn-helper signature
+codesign -v dist/mac-arm64/AudioBash.app/Contents/Resources/app.asar.unpacked/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper
+
+# If invalid, re-sign manually
+codesign --force --sign - <path-to-spawn-helper>
+codesign --force --sign - <path-to-pty.node>
+```
+
+Any file modification (including `chmod`) invalidates ARM64 code signatures. The build script re-signs after `chmod`, but verify this if you modify the build process. See [#29](https://github.com/jamditis/audiobash/issues/29) for full details.
+
 ## Architecture notes
 
 AudioBash uses these macOS-specific behaviors:

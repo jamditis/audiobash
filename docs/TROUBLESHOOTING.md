@@ -245,7 +245,50 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-#### App Won't Open (macOS)
+#### App crashes immediately on Apple Silicon (M1/M2/M3/M4)
+
+**Symptoms:**
+- App launches (visible in Activity Monitor) but window never appears
+- Immediate crash with no error dialog
+- launchd logs show `termination reported by launchd (0, 0, 256)` — exit code 1
+- Console.app may show `Code Signature Invalid` or `SIGKILL`
+
+**Root cause:**
+Two compounding issues (fixed in v2.3.6, [#29](https://github.com/jamditis/audiobash/issues/29)):
+
+1. **Broken code signatures on node-pty binaries.** ARM64 macOS requires all executables to be at least ad-hoc signed. The build process ran `chmod` on node-pty's `spawn-helper` binary, which invalidated its code signature. macOS kernel killed the unsigned binary.
+
+2. **No error handling in startup path.** The main process had no try-catch around its initialization, so any exception became an unhandled promise rejection and a silent `exit(1)`.
+
+**Solutions:**
+
+1. **Update to v2.3.6 or later** — download from [Releases](https://github.com/jamditis/audiobash/releases) or build from source:
+   ```bash
+   git clone https://github.com/jamditis/audiobash.git
+   cd audiobash
+   npm install
+   npm run electron:build:mac:arm64
+   ```
+
+2. **If building from source and it still crashes,** check spawn-helper permissions and signature:
+   ```bash
+   # Find spawn-helper in the built app
+   find dist/mac-arm64/AudioBash.app -name "spawn-helper"
+
+   # Verify it has execute permission and valid signature
+   ls -la <path-to-spawn-helper>
+   codesign -v <path-to-spawn-helper>
+
+   # If signature is invalid, re-sign it
+   codesign --force --sign - <path-to-spawn-helper>
+   ```
+
+3. **Check Console.app logs** for the specific error:
+   ```bash
+   log show --predicate 'process == "AudioBash"' --last 5m
+   ```
+
+#### App won't open (macOS)
 
 **Solutions:**
 
@@ -411,4 +454,4 @@ If this guide doesn't resolve your issue:
 
 ---
 
-*Last updated: January 2026*
+*Last updated: February 2026*
