@@ -146,6 +146,21 @@ If Gatekeeper still blocks: `xattr -cr /Applications/AudioBash.app`
 - **Test results** section with exact pass/skip/fail counts
 - **Full changelog** link at the bottom comparing to previous version tag
 
+### All platforms in every release
+
+Every release MUST include downloads for all three platforms (Windows, macOS Apple Silicon, macOS Intel), even if only one platform was rebuilt. If Mac builds weren't rebuilt for this release, download the `.dmg` files from the previous release and re-upload them to the new release. The download table always shows all three platforms — no dead links.
+
+```bash
+# Download previous Mac builds and re-upload to new release
+gh release download vPREVIOUS --pattern "*.dmg" --dir /tmp/mac-builds
+gh release upload vX.X.X /tmp/mac-builds/AudioBash-PREVIOUS-arm64.dmg#AudioBash-X.X.X-arm64.dmg /tmp/mac-builds/AudioBash-PREVIOUS.dmg#AudioBash-X.X.X.dmg
+```
+
+If re-uploading unchanged Mac builds, add a note in the release body under the download table:
+```markdown
+> macOS builds are unchanged from vPREVIOUS.
+```
+
 ### Command
 ```bash
 gh release create vX.X.X \
@@ -156,7 +171,7 @@ EOF
 )" "dist/AudioBash Setup X.X.X.exe"
 ```
 
-To add Mac builds later:
+To add Mac builds later (or re-upload from previous release):
 ```bash
 gh release upload vX.X.X "dist/AudioBash-X.X.X-arm64.dmg" "dist/AudioBash-X.X.X.dmg"
 ```
