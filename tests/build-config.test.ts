@@ -53,16 +53,19 @@ describe('macOS build configuration', () => {
     expect(zipTarget.arch).toContain('x64');
   });
 
-  it('has code signing disabled for unsigned distribution', () => {
-    // identity: null skips code signing
-    expect(macConfig.identity).toBeNull();
-    expect(macConfig.hardenedRuntime).toBe(false);
+  it('has hardened runtime enabled for code signing', () => {
+    expect(macConfig.identity).toBeUndefined();
+    expect(macConfig.hardenedRuntime).toBe(true);
     expect(macConfig.gatekeeperAssess).toBe(false);
   });
 
-  it('has no entitlements (not needed for unsigned apps)', () => {
-    expect(macConfig.entitlements).toBeNull();
-    expect(macConfig.entitlementsInherit).toBeNull();
+  it('has entitlements configured for node-pty and microphone', () => {
+    expect(macConfig.entitlements).toBe('build/entitlements.mac.plist');
+    expect(macConfig.entitlementsInherit).toBe('build/entitlements.mac.inherit.plist');
+
+    // Verify entitlements files exist
+    expect(existsSync(join(rootDir, macConfig.entitlements))).toBe(true);
+    expect(existsSync(join(rootDir, macConfig.entitlementsInherit))).toBe(true);
   });
 
   it('has valid category for Mac App Store', () => {

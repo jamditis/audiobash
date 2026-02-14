@@ -48,17 +48,17 @@ Download the latest `.exe` installer from [Releases](https://github.com/jamditis
 
 ### macOS
 
-Download the `.dmg` from [Releases](https://github.com/jamditis/audiobash/releases), or build locally:
+> **Signed builds coming soon.** The current DMG builds are unsigned and may not launch on Apple Silicon. Build from source for the most reliable experience. See [macOS code signing](#macos-code-signing-coming-soon).
 
 ```bash
 git clone https://github.com/jamditis/audiobash.git
 cd audiobash
 npm install
-npm run electron:build:mac:arm64   # Apple Silicon (M1/M2/M3/M4)
-npm run electron:build:mac:x64     # Intel Macs
+npm run electron:dev                  # Run in dev mode
+# OR
+npm run electron:build:mac:arm64      # Build DMG for Apple Silicon (M1/M2/M3/M4)
+npm run electron:build:mac:x64        # Build DMG for Intel Macs
 ```
-
-**Note:** The macOS build is unsigned. On first launch, right-click the app and select "Open" to bypass Gatekeeper. See [macOS build guide](docs/MACOS_BUILD.md) for details.
 
 ### Build from source (any platform)
 
@@ -132,15 +132,43 @@ Open Settings (gear icon in title bar) to configure:
 - **OpenAI**: [OpenAI Platform](https://platform.openai.com/api-keys)
 - **Anthropic**: [Anthropic Console](https://console.anthropic.com/settings/keys)
 
+## macOS code signing (coming soon)
+
+The macOS DMG builds are currently **unsigned**, which means Gatekeeper blocks them on Apple Silicon Macs and may cause crashes even after using `xattr -cr` or right-click → Open. We're aware this is a bad experience.
+
+**We've enrolled in the Apple Developer Program** and are waiting for activation (can take up to 48 hours). Once active, all macOS builds will be:
+
+- **Signed** with a Developer ID Application certificate
+- **Notarized** by Apple — Gatekeeper will trust the app on first launch
+- **No workarounds needed** — download, drag to Applications, double-click, done
+
+Until then, the most reliable way to run AudioBash on Mac is to **build from source**:
+
+```bash
+git clone https://github.com/jamditis/audiobash.git
+cd audiobash
+npm install
+npm run electron:dev
+```
+
+Follow [#29](https://github.com/jamditis/audiobash/issues/29) for updates.
+
+## Support the project
+
+AudioBash is free and open source. If it's useful to you, consider helping cover development costs like the $99/year Apple Developer certificate that makes macOS builds work without workarounds.
+
+[![Sponsor](https://img.shields.io/badge/sponsor-❤-ff3333)](https://github.com/sponsors/jamditis)
+[![Venmo](https://img.shields.io/badge/venmo-@jamditis-008CFF)](https://venmo.com/jamditis)
+
 ## Known issues
 
 ### Apple Silicon (M1/M2/M3/M4) crash on launch
 
-**Status:** Fixed in v2.4.0 — confirmed working on M1 hardware ([#29](https://github.com/jamditis/audiobash/issues/29))
+**Status:** Root cause fixed in v2.4.0. Signed + notarized builds coming soon — see [macOS code signing](#macos-code-signing-coming-soon) above.
 
-Earlier versions crashed on Apple Silicon because the build process invalidated ARM64 code signatures on node-pty helper binaries. Fixed in v2.4.0 by re-signing binaries after packaging. The v2.4.0 release also upgrades to Electron 39, which fixes a separate macOS Tahoe GPU lag issue.
+Earlier versions crashed on Apple Silicon because the build process invalidated ARM64 code signatures on node-pty helper binaries. Fixed in v2.4.0 by re-signing binaries after packaging. However, downloaded DMGs still require Gatekeeper workarounds that don't always work on ARM64. Proper code signing will eliminate this entirely.
 
-Download v2.4.0 from [Releases](https://github.com/jamditis/audiobash/releases) or see [troubleshooting guide](docs/TROUBLESHOOTING.md) for details.
+See [troubleshooting guide](docs/TROUBLESHOOTING.md) for current workarounds or build from source.
 
 ## Tech stack
 
