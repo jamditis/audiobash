@@ -1,5 +1,5 @@
-// Audio notification utilities using Web Audio API
-// Generates distinctive sounds for CLI input requests
+// Audio notification utilities for CLI input requests
+// Uses Web Audio API with HTMLAudioElement fallback
 
 let audioContext: AudioContext | null = null;
 let lastPlayTime = 0;
@@ -11,6 +11,63 @@ function getAudioContext(): AudioContext {
     audioContext = new AudioContext();
   }
   return audioContext;
+}
+
+// Play a two-tone notification chime via Web Audio API
+async function playChimeViaWebAudio(): Promise<void> {
+  const ctx = getAudioContext();
+
+  // Await resume so oscillators schedule against a running clock
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+
+  const currentTime = ctx.currentTime;
+
+  // Create two oscillators for a pleasant two-tone chime
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  const gain2 = ctx.createGain();
+
+  // First tone: higher frequency
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(880, currentTime); // A5
+
+  // Second tone: slightly lower, delayed
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(660, currentTime); // E5
+
+  // Volume envelope for first tone
+  gain1.gain.setValueAtTime(0, currentTime);
+  gain1.gain.linearRampToValueAtTime(0.15, currentTime + 0.02);
+  gain1.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
+
+  // Volume envelope for second tone (delayed)
+  gain2.gain.setValueAtTime(0, currentTime);
+  gain2.gain.setValueAtTime(0, currentTime + 0.1);
+  gain2.gain.linearRampToValueAtTime(0.12, currentTime + 0.12);
+  gain2.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.4);
+
+  // Connect and start
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+
+  osc1.start(currentTime);
+  osc1.stop(currentTime + 0.3);
+  osc2.start(currentTime + 0.1);
+  osc2.stop(currentTime + 0.4);
+}
+
+// Fallback: play success.mp3 via HTMLAudioElement
+function playChimeViaAudioElement(): void {
+  const audio = new Audio('./assets/success.mp3');
+  audio.volume = 0.5;
+  audio.play().catch(() => {
+    // Both Web Audio and HTMLAudioElement failed — nothing more we can do
+  });
 }
 
 // Play a two-tone notification sound (like a gentle chime)
@@ -26,134 +83,114 @@ export function playNotificationSound(): void {
 
   console.log('[AudioBash] Playing notification sound');
 
-  try {
-    const ctx = getAudioContext();
-
-    // Resume context if suspended (browser autoplay policy)
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
-
-    const currentTime = ctx.currentTime;
-
-    // Create two oscillators for a pleasant two-tone chime
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    const gain2 = ctx.createGain();
-
-    // First tone: higher frequency
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(880, currentTime); // A5
-
-    // Second tone: slightly lower, delayed
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(660, currentTime); // E5
-
-    // Volume envelope for first tone
-    gain1.gain.setValueAtTime(0, currentTime);
-    gain1.gain.linearRampToValueAtTime(0.15, currentTime + 0.02);
-    gain1.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.3);
-
-    // Volume envelope for second tone (delayed)
-    gain2.gain.setValueAtTime(0, currentTime);
-    gain2.gain.setValueAtTime(0, currentTime + 0.1);
-    gain2.gain.linearRampToValueAtTime(0.12, currentTime + 0.12);
-    gain2.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.4);
-
-    // Connect and start
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-
-    osc1.start(currentTime);
-    osc1.stop(currentTime + 0.3);
-    osc2.start(currentTime + 0.1);
-    osc2.stop(currentTime + 0.4);
-  } catch (err) {
-    console.warn('[AudioBash] Failed to play notification sound:', err);
-  }
+  playChimeViaWebAudio().catch(() => {
+    // Web Audio failed — fall back to HTMLAudioElement
+    playChimeViaAudioElement();
+  });
 }
 
 // Patterns that indicate CLI tools are waiting for input/approval
 // These patterns are designed to match ACTUAL prompts, not just mentions in text
-// Key insight: Real prompts appear near the END of output (last ~200 chars)
+// Key insight: Real prompts appear near the END of output (last ~300 chars)
 // We use looser anchoring because terminal output arrives in chunks and may have
 // trailing whitespace, ANSI codes, or partial data after the prompt
-const CLI_INPUT_PATTERNS = [
-  // Claude Code specific prompts - the [Y/n] format is key
-  // Allow anything (whitespace, ANSI remnants) after the bracket, near end of output
-  /\[Y\/n\]\s*$/im,  // Prompt ending with [Y/n] (multiline mode)
-  /\[y\/N\]\s*$/im,  // Prompt ending with [y/N]
-  /\(y\/n\)\s*$/im,  // Prompt ending with (y/n)
-  /\(yes\/no\)\s*$/im,  // Prompt ending with (yes/no)
+export const CLI_INPUT_PATTERNS: RegExp[] = [
+  // === Yes/No bracket and paren prompts ===
+  /\[Y\/n\]\s*$/im,       // [Y/n] at end of line
+  /\[y\/N\]\s*$/im,       // [y/N] at end of line
+  /\(y\/n\)\s*$/im,       // (y/n) at end of line
+  /\(yes\/no\)\s*$/im,    // (yes/no) at end of line
+  /\[Y\/n\]/i,            // [Y/n] anywhere in tail
+  /\[y\/N\]/i,            // [y/N] anywhere in tail
 
-  // Claude Code permission prompts - look for these anywhere in the tail
-  // because they may be followed by cursor positioning codes
+  // === Claude Code permission prompts ===
   /Allow .+\? \[Y\/n\]/i,
-  /Do you want to proceed\? \[Y\/n\]/i,
-  /Proceed\? \(Y\/n\)/i,  // Another Claude Code format
+  /Do you want to proceed\?\s/i,
+  /Proceed\?\s/i,
+  /Continue\?\s/i,
+  /Allow tool/i,
+  /Allow once/i,
+  /Approve\?/i,
 
-  // Tool approval patterns - Claude Code uses these for Bash, Edit, etc.
-  /\? \[Y\/n\]/,  // Any question ending in [Y/n] (case sensitive - the actual format)
-  /\? \(y\/n\)/i,  // Any question ending in (y/n)
+  // === Claude Code TUI selection menus ===
+  // Modern Claude Code renders selection prompts with arrow-key navigation
+  /Use arrow keys/i,
+  /❯\s*(Yes|Allow|Approve)/i,   // Inquirer-style selected option
+  />\s*(Yes|Allow|Approve)/i,    // ASCII arrow selection
 
-  // Generic prompts near end
+  // === Codex CLI prompts ===
+  /\(a\)pprove/i,               // Codex uses (a)pprove, (d)eny, (e)dit
+  /approve, deny/i,
+
+  // === Gemini CLI prompts ===
+  /Do you want to run/i,
+  /Execute this/i,
+
+  // === Generic prompts ===
   /Press Enter to continue/i,
   /Press any key to continue/i,
   /Press any key/i,
+  /\? \[Y\/n\]/,          // Any question ending in [Y/n]
+  /\? \(y\/n\)/i,         // Any question ending in (y/n)
+  /\? \(Y\)/i,            // Single-letter accept prompt
 
-  // npm/yarn prompts
+  // === npm/yarn prompts ===
   /Ok to proceed\? \(y\/n\)/i,
+  /Ok to proceed\?/i,
   /Is this OK\? \(yes\/no\)/i,
   /Is this OK\?/i,
 
-  // Git prompts
+  // === Git prompts ===
   /\(y\/n\)\?/i,
 
-  // Additional Claude Code patterns seen in practice
-  /Continue\? \[Y\/n\]/i,
-  /Proceed anyway\? \[Y\/n\]/i,
+  // === sudo / system prompts ===
+  /\[sudo\] password/i,
+  /Password:/i,
 ];
 
-// Buffer to accumulate terminal output for pattern matching
-let outputBuffer = '';
+// Per-terminal buffers to avoid cross-tab interference
+const terminalBuffers = new Map<string, string>();
+const terminalTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 const BUFFER_MAX_LENGTH = 2000;
 const BUFFER_CLEAR_DELAY = 5000;
 // Check a reasonable tail window - prompts appear at the end
 // but we need enough context to catch multi-line prompts
-const PROMPT_CHECK_LENGTH = 300;
-let bufferClearTimeout: ReturnType<typeof setTimeout> | null = null;
+const PROMPT_CHECK_LENGTH = 500;
 
 // Debug flag - set to true to see what's being checked
 const DEBUG_NOTIFICATIONS = false;
 
 // Strip ANSI escape codes for cleaner pattern matching
-function stripAnsi(str: string): string {
+export function stripAnsi(str: string): string {
   // eslint-disable-next-line no-control-regex
   return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 }
 
 // Check if terminal output contains a CLI input prompt
-export function checkForCliInputPrompt(data: string): boolean {
-  // Append to buffer
-  outputBuffer += data;
-  if (outputBuffer.length > BUFFER_MAX_LENGTH) {
-    outputBuffer = outputBuffer.slice(-BUFFER_MAX_LENGTH);
-  }
+export function checkForCliInputPrompt(data: string, tabId = '_default'): boolean {
+  // Get or create buffer for this terminal
+  let buffer = terminalBuffers.get(tabId) || '';
 
-  // Reset clear timeout
-  if (bufferClearTimeout) {
-    clearTimeout(bufferClearTimeout);
+  // Append to buffer
+  buffer += data;
+  if (buffer.length > BUFFER_MAX_LENGTH) {
+    buffer = buffer.slice(-BUFFER_MAX_LENGTH);
   }
-  bufferClearTimeout = setTimeout(() => {
-    outputBuffer = '';
-  }, BUFFER_CLEAR_DELAY);
+  terminalBuffers.set(tabId, buffer);
+
+  // Reset clear timeout for this terminal
+  const existingTimer = terminalTimers.get(tabId);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+  terminalTimers.set(tabId, setTimeout(() => {
+    terminalBuffers.set(tabId, '');
+  }, BUFFER_CLEAR_DELAY));
 
   // Only check the END of the buffer where prompts appear
   // This prevents matching mentions in the middle of explanatory text
-  const tail = outputBuffer.slice(-PROMPT_CHECK_LENGTH);
+  const tail = buffer.slice(-PROMPT_CHECK_LENGTH);
   const cleanTail = stripAnsi(tail);
 
   // Check for patterns
@@ -162,27 +199,29 @@ export function checkForCliInputPrompt(data: string): boolean {
   if (DEBUG_NOTIFICATIONS) {
     // Show what we're checking (last 100 chars for readability)
     const preview = cleanTail.slice(-100).replace(/\n/g, '\\n');
-    console.log(`[Notification] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`);
+    console.log(`[Notification] [${tabId}] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`);
   }
 
   // If we found a prompt, clear the buffer to prevent re-triggering
   // on the same prompt when more output arrives
   if (hasPrompt) {
-    outputBuffer = '';
-    if (bufferClearTimeout) {
-      clearTimeout(bufferClearTimeout);
-      bufferClearTimeout = null;
+    terminalBuffers.set(tabId, '');
+    const timer = terminalTimers.get(tabId);
+    if (timer) {
+      clearTimeout(timer);
+      terminalTimers.delete(tabId);
     }
   }
 
   return hasPrompt;
 }
 
-// Reset the output buffer (call when switching terminals, etc.)
-export function resetOutputBuffer(): void {
-  outputBuffer = '';
-  if (bufferClearTimeout) {
-    clearTimeout(bufferClearTimeout);
-    bufferClearTimeout = null;
+// Reset the output buffer for a specific terminal (call when switching terminals, etc.)
+export function resetOutputBuffer(tabId = '_default'): void {
+  terminalBuffers.set(tabId, '');
+  const timer = terminalTimers.get(tabId);
+  if (timer) {
+    clearTimeout(timer);
+    terminalTimers.delete(tabId);
   }
 }
