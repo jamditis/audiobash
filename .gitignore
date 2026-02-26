@@ -40,3 +40,7 @@ security-lab/
 
 # Claude local settings
 .claude/settings.local.json
+
+# Windows artifacts
+desktop.ini
+nul
