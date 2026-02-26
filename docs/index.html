@@ -1,4 +1,12 @@
 <!DOCTYPE html>
+<!--
+  audiobash — https://audiobash.app
+  a voice-controlled terminal for developers. speak commands, execute instantly.
+  because typing is just slow talking.
+
+  stack: static html, tailwind cdn, lucide icons, chakra petch + share tech mono (google fonts)
+  built by: joe amditis  —  jamditis@gmail.com
+-->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -231,7 +239,7 @@
                 <!-- NEW: Version Badge -->
                 <a href="latest.html" class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6 hover:bg-accent/20 transition-colors">
                     <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                    <span data-version="v{version}">v2.4.1</span> — Remote simplification + cleanup
+                    <span data-version="v{version}">v2.4.1</span> — Remote simplification + code signing
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
 
@@ -317,23 +325,23 @@
             <div class="max-w-4xl mx-auto">
                 <div class="text-center mb-8">
                     <h3 class="font-display text-2xl text-accent mb-2" data-version="NEW IN v{version}">NEW IN v2.4.1</h3>
-                    <p class="text-gray-500 font-mono">Electron 39, Apple Silicon crash fix, macOS Tahoe GPU fix</p>
+                    <p class="text-gray-500 font-mono">Remote simplification, code signing infrastructure, GitHub Sponsors</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                     <div class="p-4">
-                        <div class="text-3xl mb-2">🍎</div>
-                        <h4 class="font-display text-chrome mb-1">Apple Silicon fix</h4>
-                        <p class="text-gray-500 text-sm">Fixed silent crash on M1/M2/M3 Macs caused by invalid code signatures on node-pty binaries</p>
+                        <div class="text-3xl mb-2">✂️</div>
+                        <h4 class="font-display text-chrome mb-1">31K lines removed</h4>
+                        <p class="text-gray-500 text-sm">Stripped tunnel services, React PWA, and voice bridge from remote control. Simpler and faster.</p>
                     </div>
                     <div class="p-4">
-                        <div class="text-3xl mb-2">⚡</div>
-                        <h4 class="font-display text-chrome mb-1">Electron 39</h4>
-                        <p class="text-gray-500 text-sm">Upgraded from Electron 35 to 39. Fixes macOS Tahoe GPU lag and improves stability</p>
+                        <div class="text-3xl mb-2">🔏</div>
+                        <h4 class="font-display text-chrome mb-1">Code signing ready</h4>
+                        <p class="text-gray-500 text-sm">Entitlements, hardened runtime, and notarization hook in place. Signed macOS builds coming soon.</p>
                     </div>
                     <div class="p-4">
-                        <div class="text-3xl mb-2">🛡️</div>
-                        <h4 class="font-display text-chrome mb-1">Crash-proof startup</h4>
-                        <p class="text-gray-500 text-sm">Added global error handlers and try-catch in startup path to prevent silent exits</p>
+                        <div class="text-3xl mb-2">❤️</div>
+                        <h4 class="font-display text-chrome mb-1">Sponsor support</h4>
+                        <p class="text-gray-500 text-sm">GitHub Sponsors and Venmo set up. Help cover the $99/year Apple Developer certificate.</p>
                     </div>
                 </div>
             </div>
@@ -561,13 +569,45 @@
                     </a>
                 </div>
             </div>
-        </footer>
+                    <!-- Support -->
+            <div style="text-align:center;padding:1.5rem 1rem;">
+              <style>
+                .support-strip{display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+                .support-strip a{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border-radius:2rem;font-size:.8rem;font-weight:600;text-decoration:none;color:#fff;transition:transform .15s,box-shadow .15s}
+                .support-strip a:hover{transform:translateY(-1px)}
+                .support-strip .s-venmo{background:#008CFF}.support-strip .s-venmo:hover{box-shadow:0 4px 14px rgba(0,140,255,.4)}
+                .support-strip .s-paypal{background:#003087}.support-strip .s-paypal:hover{box-shadow:0 4px 14px rgba(0,48,135,.4)}
+                .support-strip .s-github{background:#333}.support-strip .s-github:hover{box-shadow:0 4px 14px rgba(51,51,51,.4)}
+                .support-strip svg{width:16px;height:16px;fill:currentColor}
+              </style>
+              <div class="support-strip">
+                <a href="https://venmo.com/jamditis" class="s-venmo" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24"><path d="M19.5 1.5c.9 1.5 1.3 3 1.3 4.9 0 6.1-5.2 14-9.4 19.6H4.4L1.5 2.1l6.2-.6 1.7 13.4c1.5-2.5 3.4-6.4 3.4-9.1 0-1.8-.3-3-.8-4z"/></svg>
+                  Venmo
+                </a>
+                <a href="https://paypal.me/jamditis" class="s-paypal" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 24 24"><path d="M7.02 21.5L7.8 17h-2L8.6 2.5h5.4c2.6 0 4.4 1.8 4 4.4-.6 3.4-3.2 5.1-6.2 5.1H9.7l-1 5.5H6.6zm10-15.1c.3-2-1-3.4-3.4-3.4h-1L11.4 10h1.2c2.2 0 4-1.2 4.4-3.6zm-1.6 8.1c.3-2-1-3.4-3.4-3.4h-1L9.8 18h1.2c2.2 0 4-1.2 4.4-3.5z"/></svg>
+                  PayPal
+                </a>
+                <a href="https://github.com/sponsors/jamditis" class="s-github" target="_blank" rel="noopener">
+                  <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                  Sponsor
+                </a>
+              </div>
+            </div>
+</footer>
 
     </main>
 
     <script src="js/version.js"></script>
     <script>
         lucide.createIcons();
+    </script>
+    <script>
+      console.log('%c AUDIOBASH ', 'background: #ff3333; color: #050505; font-weight: bold; font-size: 16px; padding: 4px 8px; border-radius: 4px;')
+      console.log('%c speak commands. execute instantly. hands stay on the keys. ', 'color: #00f0ff; font-style: italic; font-size: 13px;')
+      console.log('%c stack: static html + tailwind cdn + lucide icons', 'color: #999; font-size: 11px;')
+      console.log('%c built by joe amditis  —  jamditis@gmail.com', 'color: #999; font-size: 11px;')
     </script>
 </body>
 </html>

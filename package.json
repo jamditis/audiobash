@@ -39,6 +39,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -107,6 +108,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "AudioBash"
     },
+    "afterSign": "./scripts/notarize.cjs",
     "mac": {
       "target": [
         {
@@ -126,11 +128,10 @@
       ],
       "icon": "audiobash-logo.png",
       "category": "public.app-category.developer-tools",
-      "identity": null,
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "entitlements": null,
-      "entitlementsInherit": null
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
     "dmg": {
       "sign": false,

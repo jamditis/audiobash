@@ -62,7 +62,7 @@ All pages follow the app's void/brutalist design:
 cd audiobash
 git pull                           # Get latest with macOS support
 npm install                        # CRITICAL: Compiles node-pty for arm64
-npm test                           # Verify tests pass
+npm test                           # Verify 721 tests pass
 npm run electron:dev               # Run in dev mode
 # OR
 npm run electron:build:mac:arm64   # Build DMG for Apple Silicon
@@ -82,18 +82,33 @@ npm install
 ```
 
 ### Running the unsigned app
-Right-click → Open → Click "Open" in Gatekeeper dialog (first launch only)
+> **Note:** Unsigned DMGs crash on Apple Silicon even with Gatekeeper workarounds. Build from source until signed builds ship. See [macOS code signing](#macos-code-signing) below.
+
+For Intel Macs: Right-click → Open → Click "Open" in Gatekeeper dialog (first launch only)
 Or: `xattr -cr /Applications/AudioBash.app`
 
 ### Known issues
+- **Apple Silicon DMG crash:** Downloaded (quarantined) unsigned DMGs crash on ARM64. Root cause: macOS enforces code signing at the kernel level for quarantined apps. Building from source works because locally built apps aren't quarantined. Signed + notarized builds will fix this.
 - Multi-tab/split-screen has stability issues (resize debouncing added but may need more work)
-- Test the voice recording on Mac (uses same MediaRecorder API, should work)
 - **Apple Silicon crash on launch (#29):** Fixed in v2.4.0 and confirmed on M1 hardware. Two root causes: (1) `chmod` in afterPack.cjs invalidated ARM64 code signatures on node-pty binaries — fixed by re-signing with `codesign --force --sign -` after chmod. (2) No error handling in `app.whenReady()` handler — added try-catch, global error handlers, and tray icon guard. v2.4.0 also upgrades to Electron 39.6.0 (fixes macOS Tahoe GPU lag).
+
+### macOS code signing
+Code signing infrastructure is in place, pending Apple Developer Program activation:
+- `build/entitlements.mac.plist` — Parent app entitlements (JIT, unsigned memory, library loading, microphone, networking)
+- `build/entitlements.mac.inherit.plist` — Child process entitlements (inherited by node-pty shells)
+- `scripts/notarize.cjs` — afterSign hook for Apple notarization
+- `scripts/afterPack.cjs` — Fixes node-pty binary permissions, ad-hoc signs for dev builds
+
+**Required env vars for signed builds:**
+- `APPLE_ID` — Apple ID email
+- `APPLE_ID_PASSWORD` — App-specific password (not Apple ID password)
+- `APPLE_TEAM_ID` — 10-char team ID from developer.apple.com
+- `SKIP_NOTARIZE=true` — Skip notarization for local dev builds
 
 ### Relevant files for macOS
 - `docs/MACOS_BUILD.md` - Full build guide
 - `.github/workflows/build.yml` - CI/CD for multi-platform builds
-- `tests/` - Test suite for cross-platform compatibility
+- `tests/` - 721 tests for cross-platform compatibility
 
 ---
 
@@ -120,16 +135,24 @@ audiobash/
 │   └── whisperService.cjs    # Local speech-to-text via whisper.cpp
 ├── src/
 │   ├── components/
-│   │   ├── Terminal.tsx  # xterm.js wrapper
-│   │   ├── VoiceOverlay.tsx # Voice input UI
-│   │   └── TitleBar.tsx  # Frameless window controls
-│   ├── services/         # Transcription and speech services
-│   ├── utils/            # Audio utilities
-│   ├── App.tsx           # Main layout
-│   ├── index.tsx         # React entry
-│   ├── index.css         # Tailwind entry
-│   └── types.ts          # TypeScript interfaces
-├── assets/               # Icons
+│   │   ├── Terminal.tsx       # xterm.js wrapper
+│   │   ├── VoiceOverlay.tsx   # Voice input UI
+│   │   └── TitleBar.tsx       # Frameless window controls
+│   ├── services/              # Transcription and speech services
+│   ├── utils/                 # Audio utilities
+│   ├── App.tsx                # Main layout
+│   ├── index.tsx              # React entry
+│   ├── index.css              # Tailwind entry
+│   └── types.ts               # TypeScript interfaces
+├── build/
+│   ├── entitlements.mac.plist         # macOS hardened runtime entitlements
+│   └── entitlements.mac.inherit.plist # Child process entitlements
+├── scripts/
+│   ├── afterPack.cjs          # Fix node-pty permissions + ad-hoc signing
+│   └── notarize.cjs           # Apple notarization afterSign hook
+├── assets/                    # Audio files and icons
+├── .github/
+│   └── FUNDING.yml            # GitHub Sponsors + Venmo links
 ├── package.json
 ├── vite.config.ts
 ├── tailwind.config.js
@@ -199,6 +222,14 @@ npm rebuild node-pty
 ### Global shortcuts not working
 - Check for conflicts with other apps
 - Run as administrator if needed
+
+---
+
+## Funding and sponsors
+
+- **GitHub Sponsors:** https://github.com/sponsors/jamditis
+- **Venmo:** @jamditis
+- **FUNDING.yml:** `.github/FUNDING.yml` enables the Sponsor button on the repo
 
 ---
 

@@ -121,7 +121,7 @@ const Terminal: React.FC<TerminalProps> = ({
             xterm.write(data);
 
             // Check for CLI input prompts and play notification
-            if (cliNotificationsRef.current && checkForCliInputPrompt(data)) {
+            if (cliNotificationsRef.current && checkForCliInputPrompt(data, tabId)) {
               playNotificationSound();
             }
           }
@@ -162,7 +162,7 @@ const Terminal: React.FC<TerminalProps> = ({
         window.removeEventListener('resize', resizeHandler);
       }
       dataCleanup?.();
-      resetOutputBuffer(); // Clear CLI prompt detection buffer
+      resetOutputBuffer(tabId); // Clear CLI prompt detection buffer
       if (xterm) {
         xterm.dispose();
       }

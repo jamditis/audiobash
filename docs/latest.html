@@ -196,6 +196,63 @@
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
 
+            <!-- v2.4.1 - Remote Simplification + Code Signing -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="scissors" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.4.1</span>
+                            <span class="text-gray-500 text-sm">February 14, 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">31K lines deleted. Signed builds incoming.</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            The remote control system had accumulated tunnel services, a full React PWA, and a voice bridge
+                            that nobody was using. We stripped all of it — 31,000 lines gone. The remote now works via a
+                            simple HTTP + WebSocket server that serves static files directly. Meanwhile, we laid the groundwork
+                            for proper macOS code signing: entitlements plists, a notarization hook, and hardened runtime config.
+                            Once Apple activates the Developer ID certificate, macOS DMGs will just work.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="trash-2" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">-31K lines</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Tunnel, PWA, voice bridge removed</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Code signing</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Entitlements + notarization ready</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="heart" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Sponsors</span>
+                                </div>
+                                <div class="text-xs text-gray-500">GitHub Sponsors + Venmo set up</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Remote simplification</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Code signing</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Notarization</span>
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">GitHub Sponsors</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
             <!-- v2.4.0 - Electron 39 + Apple Silicon Crash Fix -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #a3aaae;">
                 <div class="flex items-start gap-6">
@@ -204,9 +261,8 @@
                     </div>
                     <div class="flex-1">
                         <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.4.0</span>
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.4.0</span>
                             <span class="text-gray-500 text-sm">February 13, 2026</span>
-                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">Apple Silicon works. Electron 39.</h2>

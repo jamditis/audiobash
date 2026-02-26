@@ -44,3 +44,8 @@ security-lab/
 # Windows artifacts
 desktop.ini
 nul
+# Temporary stash files
+stash/
+
+# Playwright MCP artifacts
+.playwright-mcp/
