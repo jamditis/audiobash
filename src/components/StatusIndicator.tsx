@@ -10,6 +10,7 @@ interface StatusIndicatorProps {
   onOpenVoicePanel: () => void;
   onOpenDirectoryPicker: () => void;
   onOpenConsoleErrors: () => void;
+  ccVoiceActive?: boolean;
 }
 
 const FolderIcon = () => (
@@ -32,6 +33,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
   onOpenVoicePanel,
   onOpenDirectoryPicker,
   onOpenConsoleErrors,
+  ccVoiceActive,
 }) => {
   const { errors, hasUnreadErrors } = useConsoleErrors();
   const errorCount = errors.filter((e) => e.type === 'error').length;
@@ -103,6 +105,12 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({
         `}>
           {statusText}
         </span>
+        {ccVoiceActive && (
+          <div className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono text-acid border border-acid/30">
+            <span className="w-1.5 h-1.5 bg-acid rounded-full animate-pulse" />
+            CC /voice
+          </div>
+        )}
       </div>
 
       {/* Right: Model & API Status */}

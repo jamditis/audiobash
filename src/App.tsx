@@ -14,6 +14,7 @@ import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
 import { transcriptionService, ModelId } from './services/transcriptionService';
 import { appLog } from './utils/logger';
 import { preWarmAudioContext } from './utils/notificationSound';
+import { VoiceModeDetector } from './utils/voiceModeDetector';
 
 const MAX_TABS = 4;
 
@@ -68,6 +69,9 @@ const App: React.FC = () => {
 
   // Last transcript for resend feature
   const [lastTranscript, setLastTranscript] = useState<{ text: string; mode: 'agent' | 'raw' } | null>(null);
+  // CC /voice mode detection
+  const voiceDetectorRef = useRef<VoiceModeDetector | null>(null);
+  const [ccVoiceActiveTerminals, setCcVoiceActiveTerminals] = useState<Set<string>>(new Set());
 
   // Preview pane state
   const [previewVisible, setPreviewVisible] = useState(() => {
@@ -87,6 +91,37 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('audiobash-font-size');
     return saved ? parseInt(saved, 10) : 14;
   });
+
+  // Initialize VoiceModeDetector
+  useEffect(() => {
+    const detector = new VoiceModeDetector();
+    voiceDetectorRef.current = detector;
+
+    const unsub = detector.onStateChange((state) => {
+      setCcVoiceActiveTerminals(prev => {
+        const next = new Set(prev);
+        if (state.active) {
+          next.add(state.terminalId);
+        } else {
+          next.delete(state.terminalId);
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      unsub();
+      voiceDetectorRef.current = null;
+    };
+  }, []);
+
+  // Feed terminal output to VoiceModeDetector
+  useEffect(() => {
+    const cleanup = window.electron?.onTerminalData((tabId: string, data: string) => {
+      voiceDetectorRef.current?.processOutput(tabId, data);
+    });
+    return () => cleanup?.();
+  }, []);
 
   // Load settings and check onboarding
   useEffect(() => {
@@ -281,13 +316,28 @@ const App: React.FC = () => {
     setLastTranscript({ text, mode });
 
     if (autoSend) {
+      // Smart handoff: if focused terminal has CC /voice active, route to another pane
+      let targetTabId = activeTabId;
+      if (ccVoiceActiveTerminals.has(activeTabId)) {
+        const allTabIds = tabs.map(t => t.id);
+        const freeTab = allTabIds.find(id => !ccVoiceActiveTerminals.has(id));
+        if (freeTab) {
+          targetTabId = freeTab;
+          appLog.info('CC /voice active on focused terminal, routing to', { targetTabId });
+        } else {
+          // All panes have CC /voice active - skip sending
+          appLog.warn('All terminals have CC /voice active, cannot send AudioBash voice input');
+          return;
+        }
+      }
+
       if (previewBeforeExecute) {
-        window.electron?.insertToTerminal(activeTabId, text);
+        window.electron?.insertToTerminal(targetTabId, text);
       } else {
-        window.electron?.sendToTerminal(activeTabId, text);
+        window.electron?.sendToTerminal(targetTabId, text);
       }
     }
-  }, [autoSend, previewBeforeExecute, activeTabId]);
+  }, [autoSend, previewBeforeExecute, activeTabId, ccVoiceActiveTerminals, tabs]);
 
   const handleCloseOverlay = useCallback(() => {
     if (!isPinned) {
@@ -603,6 +653,7 @@ const App: React.FC = () => {
           onOpenVoicePanel={handleOpenVoicePanel}
           onOpenDirectoryPicker={handleOpenDirectoryPicker}
           onOpenConsoleErrors={() => setConsoleErrorViewerOpen(true)}
+          ccVoiceActive={ccVoiceActiveTerminals.size > 0}
         />
 
         {/* Directory picker overlay */}
