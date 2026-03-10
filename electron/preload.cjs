@@ -1098,4 +1098,10 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('zoom-pane', handler);
   },
 
+  onResizePane: (callback) => {
+    const handler = (_, direction) => callback(direction);
+    ipcRenderer.on('resize-pane', handler);
+    return () => ipcRenderer.removeListener('resize-pane', handler);
+  },
+
 });

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, forwardRef, useImperativeHandl
 import PaneNodeComponent from './PaneNode';
 import PaneToolbar from './PaneToolbar';
 import {
-  PaneNode, createLeaf, splitPane, closePane, flattenLeaves, applyPreset, findPane,
+  PaneNode, PaneSplit, createLeaf, splitPane, closePane, flattenLeaves, applyPreset, findPane,
   type PresetName,
 } from '../utils/paneTree';
 
@@ -15,6 +15,7 @@ export interface PaneManagerHandle {
   focusNext: () => void;
   focusPrev: () => void;
   focusByIndex: (index: number) => void;
+  resizeByDirection: (direction: string) => void;
 }
 
 interface PaneManagerProps {
@@ -141,6 +142,56 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     await handlePreset(PRESET_CYCLE[next]);
   }, [presetIndex, handlePreset]);
 
+
+  const resizeByDirection = useCallback((direction: string) => {
+    if (!focusedPaneId) return;
+    setPaneRoot(prev => {
+      function findParentSplit(node: PaneNode, targetId: string): PaneSplit | null {
+        if (node.type !== 'split') return null;
+        if (findPane(node.children[0], targetId) || findPane(node.children[1], targetId)) {
+          if (node.children[0].type === 'split') {
+            const deeper = findParentSplit(node.children[0], targetId);
+            if (deeper) return deeper;
+          }
+          if (node.children[1].type === 'split') {
+            const deeper = findParentSplit(node.children[1], targetId);
+            if (deeper) return deeper;
+          }
+          return node;
+        }
+        return null;
+      }
+
+      const parent = findParentSplit(prev, focusedPaneId);
+      if (!parent) return prev;
+
+      const step = 0.05;
+      let delta = 0;
+
+      const isInFirst = !!findPane(parent.children[0], focusedPaneId);
+
+      if (parent.direction === 'horizontal') {
+        if (direction === 'up') delta = isInFirst ? -step : -step;
+        else if (direction === 'down') delta = isInFirst ? step : step;
+      } else {
+        if (direction === 'left') delta = isInFirst ? -step : -step;
+        else if (direction === 'right') delta = isInFirst ? step : step;
+      }
+
+      if (delta === 0) return prev;
+
+      function walk(node: PaneNode): PaneNode {
+        if (node.type !== 'split') return node;
+        if (node.id === parent!.id) {
+          const newRatio = Math.max(0.1, Math.min(0.9, node.ratio + delta));
+          return { ...node, ratio: newRatio };
+        }
+        return { ...node, children: [walk(node.children[0]), walk(node.children[1])] };
+      }
+      return walk(prev);
+    });
+  }, [focusedPaneId]);
+
   // Expose imperative handle for keyboard shortcuts
   useImperativeHandle(ref, () => ({
     splitHorizontal: () => handleSplit('horizontal'),
@@ -151,7 +202,8 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     focusNext,
     focusPrev,
     focusByIndex,
-  }), [handleSplit, handleClose, focusedPaneId, toggleZoom, cyclePreset, focusNext, focusPrev, focusByIndex]);
+    resizeByDirection,
+  }), [handleSplit, handleClose, focusedPaneId, toggleZoom, cyclePreset, focusNext, focusPrev, focusByIndex, resizeByDirection]);
 
   // Render zoomed pane or full tree
   const renderNode = zoomedPaneId

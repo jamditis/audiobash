@@ -219,6 +219,22 @@ function createWindow() {
         mainWindow.webContents.send('zoom-reset');
       }
     }
+    // Alt+Shift+Arrow for pane resize
+    if (input.alt && input.shift && !input.control) {
+      if (input.key === 'ArrowLeft') {
+        event.preventDefault();
+        mainWindow.webContents.send('resize-pane', 'left');
+      } else if (input.key === 'ArrowRight') {
+        event.preventDefault();
+        mainWindow.webContents.send('resize-pane', 'right');
+      } else if (input.key === 'ArrowUp') {
+        event.preventDefault();
+        mainWindow.webContents.send('resize-pane', 'up');
+      } else if (input.key === 'ArrowDown') {
+        event.preventDefault();
+        mainWindow.webContents.send('resize-pane', 'down');
+      }
+    }
   });
 
 

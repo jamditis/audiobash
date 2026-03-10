@@ -266,6 +266,7 @@ const App: React.FC = () => {
       window.electron?.onSplitVertical(() => paneManagerRef.current?.splitVertical()),
       window.electron?.onClosePane(() => paneManagerRef.current?.closeCurrentPane()),
       window.electron?.onZoomPane(() => paneManagerRef.current?.toggleZoom()),
+      window.electron?.onResizePane((direction) => paneManagerRef.current?.resizeByDirection(direction)),
     ];
     return () => cleanups.forEach(c => c?.());
   }, []);

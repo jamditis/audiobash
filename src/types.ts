@@ -175,6 +175,7 @@ export interface ElectronAPI {
   onSplitVertical: (callback: () => void) => (() => void);
   onClosePane: (callback: () => void) => (() => void);
   onZoomPane: (callback: () => void) => (() => void);
+  onResizePane: (callback: (direction: string) => void) => (() => void);
 }
 
 declare global {
