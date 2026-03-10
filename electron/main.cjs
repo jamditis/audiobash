@@ -96,6 +96,10 @@ let currentShortcuts = {
   switchTab4: 'Alt+4',
   togglePreview: 'Alt+P',
   captureScreenshot: 'Alt+Shift+P',
+  splitHorizontal: 'Alt+-',
+  splitVertical: 'Alt+\',
+  closePane: 'Alt+W',
+  zoomPane: 'Alt+Z',
 };
 
 // File watchers for preview auto-refresh
@@ -580,6 +584,66 @@ function registerShortcuts() {
       }
     }
   });
+
+  // Split horizontal
+  if (currentShortcuts.splitHorizontal) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.splitHorizontal, () => {
+        console.log('[AudioBash] Split horizontal triggered');
+        mainWindow?.webContents.send('split-horizontal');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered splitHorizontal: ${currentShortcuts.splitHorizontal}`);
+      }
+    } catch (err) {
+      console.error('[AudioBash] Failed to register splitHorizontal:', err);
+    }
+  }
+
+  // Split vertical
+  if (currentShortcuts.splitVertical) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.splitVertical, () => {
+        console.log('[AudioBash] Split vertical triggered');
+        mainWindow?.webContents.send('split-vertical');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered splitVertical: ${currentShortcuts.splitVertical}`);
+      }
+    } catch (err) {
+      console.error('[AudioBash] Failed to register splitVertical:', err);
+    }
+  }
+
+  // Close pane
+  if (currentShortcuts.closePane) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.closePane, () => {
+        console.log('[AudioBash] Close pane triggered');
+        mainWindow?.webContents.send('close-pane');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered closePane: ${currentShortcuts.closePane}`);
+      }
+    } catch (err) {
+      console.error('[AudioBash] Failed to register closePane:', err);
+    }
+  }
+
+  // Zoom pane
+  if (currentShortcuts.zoomPane) {
+    try {
+      const success = globalShortcut.register(currentShortcuts.zoomPane, () => {
+        console.log('[AudioBash] Zoom pane triggered');
+        mainWindow?.webContents.send('zoom-pane');
+      });
+      if (success) {
+        console.log(`[AudioBash] Registered zoomPane: ${currentShortcuts.zoomPane}`);
+      }
+    } catch (err) {
+      console.error('[AudioBash] Failed to register zoomPane:', err);
+    }
+  }
 }
 
 function spawnShell(tabId) {

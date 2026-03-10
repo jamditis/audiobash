@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import Terminal from './components/Terminal';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import TabBar from './components/TabBar';
 import VoiceOverlay from './components/VoiceOverlay';
 import StatusIndicator from './components/StatusIndicator';
@@ -9,9 +8,8 @@ import TitleBar from './components/TitleBar';
 import Settings from './components/Settings';
 import Onboarding from './components/Onboarding';
 import PreviewPane from './components/PreviewPane';
-import ResizeDivider from './components/ResizeDivider';
-import SplitContainer, { SplitLayoutState, PaneConfig } from './components/SplitContainer';
-import { LayoutMode } from './components/LayoutSelector';
+import PaneDivider from './components/PaneDivider';
+import PaneManager, { PaneManagerHandle } from './components/PaneManager';
 import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
 import { transcriptionService, ModelId } from './services/transcriptionService';
 import { appLog } from './utils/logger';
@@ -62,12 +60,8 @@ const App: React.FC = () => {
   // Console error viewer state
   const [consoleErrorViewerOpen, setConsoleErrorViewerOpen] = useState(false);
 
-  // Split view layout state
-  const [layoutState, setLayoutState] = useState<SplitLayoutState>({
-    mode: 'single',
-    panes: [{ terminalId: 'tab-1', size: 100 }],
-    focusedTerminalId: 'tab-1',
-  });
+  // PaneManager ref for imperative control
+  const paneManagerRef = useRef<PaneManagerHandle>(null);
 
   // Voice mode state (shared with VoiceOverlay)
   const [voiceMode, setVoiceMode] = useState<'agent' | 'raw'>('agent');
@@ -257,16 +251,24 @@ const App: React.FC = () => {
   // Listen for Alt+C to clear terminal
   useEffect(() => {
     const handleClearTerminal = async () => {
-      const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
-      // Get terminal context to determine OS, then send appropriate clear command
-      const context = await window.electron?.getTerminalContext(targetId);
+      const context = await window.electron?.getTerminalContext(activeTabId);
       const clearCmd = context?.os === 'windows' ? 'cls' : 'clear';
-      window.electron?.sendToTerminal(targetId, clearCmd);
+      window.electron?.sendToTerminal(activeTabId, clearCmd);
     };
     const cleanup = window.electron?.onClearTerminal(handleClearTerminal);
     return () => cleanup?.();
-  }, [activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+  }, [activeTabId]);
 
+  // Pane management shortcut listeners
+  useEffect(() => {
+    const cleanups = [
+      window.electron?.onSplitHorizontal(() => paneManagerRef.current?.splitHorizontal()),
+      window.electron?.onSplitVertical(() => paneManagerRef.current?.splitVertical()),
+      window.electron?.onClosePane(() => paneManagerRef.current?.closeCurrentPane()),
+      window.electron?.onZoomPane(() => paneManagerRef.current?.toggleZoom()),
+    ];
+    return () => cleanups.forEach(c => c?.());
+  }, []);
 
   const handleTranscript = useCallback((text: string, mode: 'agent' | 'raw') => {
     setTranscript(text);
@@ -277,24 +279,14 @@ const App: React.FC = () => {
     // Save for resend feature
     setLastTranscript({ text, mode });
 
-    // Both modes: send text to terminal with Enter when autoSend is enabled
-    // Agent mode: text is a converted CLI command
-    // Raw mode: text is verbatim transcription (for talking to Claude Code, etc.)
-    // Send to focused terminal in split view, or active tab in single view
     if (autoSend) {
-      const targetTerminalId = layoutState.mode !== 'single'
-        ? layoutState.focusedTerminalId
-        : activeTabId;
-
       if (previewBeforeExecute) {
-        // Insert without executing - user must press Enter
-        window.electron?.insertToTerminal(targetTerminalId, text);
+        window.electron?.insertToTerminal(activeTabId, text);
       } else {
-        // Execute immediately
-        window.electron?.sendToTerminal(targetTerminalId, text);
+        window.electron?.sendToTerminal(activeTabId, text);
       }
     }
-  }, [autoSend, previewBeforeExecute, activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+  }, [autoSend, previewBeforeExecute, activeTabId]);
 
   const handleCloseOverlay = useCallback(() => {
     if (!isPinned) {
@@ -355,126 +347,57 @@ const App: React.FC = () => {
     ));
   }, []);
 
-  // Layout management functions
-  const handleSelectLayout = useCallback((mode: LayoutMode) => {
-    // Build panes array based on available tabs and layout mode
-    const requiredPanes = mode === 'single' ? 1
-      : mode === 'split-horizontal' || mode === 'split-vertical' ? 2
-      : mode === 'grid-2x2' ? 4
-      : 3; // grid-3
+  // PaneManager terminal lifecycle callbacks
+  const handleCreateTerminal = useCallback(async (): Promise<string> => {
+    const newTabId = `tab-${tabCounter + 1}`;
+    setTabCounter(c => c + 1);
 
-    const panes: PaneConfig[] = tabs.slice(0, requiredPanes).map((tab, index) => ({
-      terminalId: tab.id,
-      size: mode === 'grid-3' && index === 0 ? 60 : 100 / requiredPanes,
-    }));
+    const result = await window.electron?.createTerminal(newTabId);
+    if (result?.success) {
+      setTabs(prev => [
+        ...prev.map(t => ({ ...t, isActive: false })),
+        { id: newTabId, title: getDefaultShellName(), isActive: true }
+      ]);
+      setActiveTabId(newTabId);
+    }
+    return newTabId;
+  }, [tabCounter]);
 
-    // Ensure focused terminal is in the visible panes
-    const focusedId = panes.some(p => p.terminalId === layoutState.focusedTerminalId)
-      ? layoutState.focusedTerminalId
-      : panes[0]?.terminalId || tabs[0]?.id;
-
-    setLayoutState({
-      mode,
-      panes,
-      focusedTerminalId: focusedId,
+  const handleCloseTerminal = useCallback((tabId: string) => {
+    window.electron?.closeTerminal(tabId);
+    setTabs(prev => {
+      const remaining = prev.filter(t => t.id !== tabId);
+      if (remaining.length === 0) return prev;
+      if (activeTabId === tabId) {
+        const newActive = remaining[remaining.length - 1];
+        setActiveTabId(newActive.id);
+        return remaining.map(t => ({ ...t, isActive: t.id === newActive.id }));
+      }
+      return remaining;
     });
-  }, [tabs, layoutState.focusedTerminalId]);
+  }, [activeTabId]);
 
-  const handleFocusTerminal = useCallback((terminalId: string) => {
-    setLayoutState(prev => ({
-      ...prev,
-      focusedTerminalId: terminalId,
-    }));
+  // Listen for Alt+L to cycle layout (delegates to PaneManager)
+  useEffect(() => {
+    const cleanup = window.electron?.onCycleLayout(() => paneManagerRef.current?.cyclePreset());
+    return () => cleanup?.();
   }, []);
 
-  const handlePaneResize = useCallback((paneIndex: number, delta: number) => {
-    setLayoutState(prev => {
-      const newPanes = [...prev.panes];
-      const containerSize = prev.mode === 'split-horizontal' || prev.mode === 'grid-3'
-        ? window.innerWidth
-        : window.innerHeight;
-
-      const deltaPercent = (delta / containerSize) * 100;
-      const minSize = 15; // Minimum 15%
-
-      if (paneIndex < newPanes.length - 1) {
-        const newSize0 = newPanes[paneIndex].size + deltaPercent;
-        const newSize1 = newPanes[paneIndex + 1].size - deltaPercent;
-
-        if (newSize0 >= minSize && newSize1 >= minSize) {
-          newPanes[paneIndex] = { ...newPanes[paneIndex], size: newSize0 };
-          newPanes[paneIndex + 1] = { ...newPanes[paneIndex + 1], size: newSize1 };
-        }
-      }
-
-      return { ...prev, panes: newPanes };
-    });
+  // Listen for Alt+Right/Left to focus next/prev terminal (delegates to PaneManager)
+  useEffect(() => {
+    const cleanup = window.electron?.onFocusNextTerminal(() => paneManagerRef.current?.focusNext());
+    return () => cleanup?.();
   }, []);
 
-  // Listen for Alt+L to cycle layout
   useEffect(() => {
-    const layouts: LayoutMode[] = ['single', 'split-horizontal', 'split-vertical', 'grid-2x2', 'grid-3'];
-    const handleCycleLayout = () => {
-      const currentIndex = layouts.indexOf(layoutState.mode);
-      const nextIndex = (currentIndex + 1) % layouts.length;
-      const nextMode = layouts[nextIndex];
-
-      // Only switch if we have enough tabs
-      const requiredTabs = nextMode === 'single' ? 1
-        : nextMode === 'split-horizontal' || nextMode === 'split-vertical' ? 2
-        : nextMode === 'grid-2x2' ? 4 : 3;
-
-      if (tabs.length >= requiredTabs) {
-        handleSelectLayout(nextMode);
-      } else {
-        // Skip to next valid layout
-        for (let i = 1; i < layouts.length; i++) {
-          const tryIndex = (nextIndex + i) % layouts.length;
-          const tryMode = layouts[tryIndex];
-          const tryRequired = tryMode === 'single' ? 1
-            : tryMode === 'split-horizontal' || tryMode === 'split-vertical' ? 2
-            : tryMode === 'grid-2x2' ? 4 : 3;
-          if (tabs.length >= tryRequired) {
-            handleSelectLayout(tryMode);
-            break;
-          }
-        }
-      }
-    };
-    const cleanup = window.electron?.onCycleLayout(handleCycleLayout);
+    const cleanup = window.electron?.onFocusPrevTerminal(() => paneManagerRef.current?.focusPrev());
     return () => cleanup?.();
-  }, [layoutState.mode, tabs.length, handleSelectLayout]);
-
-  // Listen for Alt+Right/Left to focus next/prev terminal
-  useEffect(() => {
-    const handleFocusNext = () => {
-      if (layoutState.mode === 'single') return;
-      const paneIds = layoutState.panes.map(p => p.terminalId);
-      const currentIndex = paneIds.indexOf(layoutState.focusedTerminalId);
-      const nextIndex = (currentIndex + 1) % paneIds.length;
-      handleFocusTerminal(paneIds[nextIndex]);
-    };
-    const cleanup = window.electron?.onFocusNextTerminal(handleFocusNext);
-    return () => cleanup?.();
-  }, [layoutState, handleFocusTerminal]);
-
-  useEffect(() => {
-    const handleFocusPrev = () => {
-      if (layoutState.mode === 'single') return;
-      const paneIds = layoutState.panes.map(p => p.terminalId);
-      const currentIndex = paneIds.indexOf(layoutState.focusedTerminalId);
-      const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
-      handleFocusTerminal(paneIds[prevIndex]);
-    };
-    const cleanup = window.electron?.onFocusPrevTerminal(handleFocusPrev);
-    return () => cleanup?.();
-  }, [layoutState, handleFocusTerminal]);
+  }, []);
 
   // Listen for Alt+B to bookmark current directory
   useEffect(() => {
     const handleBookmark = async () => {
-      const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
-      const context = await window.electron?.getTerminalContext(targetId);
+      const context = await window.electron?.getTerminalContext(activeTabId);
       if (context?.cwd) {
         const result = await window.electron?.addFavoriteDirectory(context.cwd);
         if (result?.success) {
@@ -485,26 +408,25 @@ const App: React.FC = () => {
     };
     const cleanup = window.electron?.onBookmarkDirectory(handleBookmark);
     return () => cleanup?.();
-  }, [activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+  }, [activeTabId]);
 
   // Listen for Alt+R to resend last transcription
   useEffect(() => {
     const handleResend = () => {
       if (lastTranscript) {
-        const targetId = layoutState.mode !== 'single' ? layoutState.focusedTerminalId : activeTabId;
-        window.electron?.sendToTerminal(targetId, lastTranscript.text);
+        window.electron?.sendToTerminal(activeTabId, lastTranscript.text);
       }
     };
     const cleanup = window.electron?.onResendLast(handleResend);
     return () => cleanup?.();
-  }, [lastTranscript, activeTabId, layoutState.mode, layoutState.focusedTerminalId]);
+  }, [lastTranscript, activeTabId]);
 
   // Listen for Alt+1-4 to switch tabs
   useEffect(() => {
     const handleSwitchTab = (index: number) => {
       if (index < tabs.length) {
-        const tab = tabs[index];
-        handleSelectTab(tab.id);
+        handleSelectTab(tabs[index].id);
+        paneManagerRef.current?.focusByIndex(index);
       }
     };
     const cleanup = window.electron?.onSwitchTab(handleSwitchTab);
@@ -562,14 +484,6 @@ const App: React.FC = () => {
     setPreviewHeight(prev => Math.max(15, Math.min(50, prev - deltaPercent)));
   }, []);
 
-  // Compute visible terminals based on layout mode
-  const visibleTerminalIds = useMemo(() => {
-    if (layoutState.mode === 'single') {
-      return new Set([activeTabId]);
-    }
-    return new Set(layoutState.panes.map(p => p.terminalId));
-  }, [layoutState.mode, layoutState.panes, activeTabId]);
-
   return (
     <div className="h-screen flex flex-col bg-void overflow-hidden">
       {/* Custom title bar */}
@@ -584,8 +498,6 @@ const App: React.FC = () => {
         onCloseTab={handleCloseTab}
         onRenameTab={handleRenameTab}
         canAddTab={tabs.length < MAX_TABS}
-        layoutMode={layoutState.mode}
-        onSelectLayout={handleSelectLayout}
       />
 
       {/* Main content - Terminal + Preview layout */}
@@ -603,46 +515,24 @@ const App: React.FC = () => {
                 : '1 1 auto',
             }}
           >
-            {layoutState.mode === 'single' ? (
-              // Single mode: render all terminals but only show active
-              tabs.map(tab => (
-                <Terminal
-                  key={tab.id}
-                  tabId={tab.id}
-                  isActive={tab.id === activeTabId}
-                  cliNotificationsEnabled={cliNotificationsEnabled}
-                  fontSize={fontSize}
-                />
-              ))
-            ) : (
-              // Split/grid mode: use SplitContainer
-              <SplitContainer
-                layoutState={layoutState}
-                onPaneResize={handlePaneResize}
-              >
-                {layoutState.panes.map(pane => (
-                  <Terminal
-                    key={pane.terminalId}
-                    tabId={pane.terminalId}
-                    isActive={true}
-                    isVisible={true}
-                    isFocused={pane.terminalId === layoutState.focusedTerminalId}
-                    isRecording={isRecording}
-                    onFocus={() => handleFocusTerminal(pane.terminalId)}
-                    cliNotificationsEnabled={cliNotificationsEnabled}
-                    fontSize={fontSize}
-                  />
-                ))}
-              </SplitContainer>
-            )}
+            <PaneManager
+              ref={paneManagerRef}
+              initialTerminalId={tabs[0]?.id || 'tab-1'}
+              isRecording={isRecording}
+              cliNotificationsEnabled={cliNotificationsEnabled}
+              fontSize={fontSize}
+              onCreateTerminal={handleCreateTerminal}
+              onCloseTerminal={handleCloseTerminal}
+            />
           </div>
 
           {/* Preview pane - right sidebar */}
           {previewVisible && previewPosition === 'right' && (
             <>
-              <ResizeDivider
-                orientation="horizontal"
+              <PaneDivider
+                direction="vertical"
                 onResize={handlePreviewResizeHorizontal}
+                onEqualize={() => setPreviewWidth(40)}
               />
               <div style={{ flex: `0 0 ${previewWidth}%` }} className="min-w-0">
                 <PreviewPane
@@ -661,9 +551,10 @@ const App: React.FC = () => {
           {/* Preview pane - bottom panel */}
           {previewVisible && previewPosition === 'bottom' && (
             <>
-              <ResizeDivider
-                orientation="vertical"
+              <PaneDivider
+                direction="horizontal"
                 onResize={handlePreviewResizeVertical}
+                onEqualize={() => setPreviewHeight(35)}
               />
               <div style={{ flex: `0 0 ${previewHeight}%` }} className="min-h-0">
                 <PreviewPane
@@ -682,9 +573,10 @@ const App: React.FC = () => {
           {/* Preview pane - as a "pane" (right sidebar style for now) */}
           {previewVisible && previewPosition === 'pane' && (
             <>
-              <ResizeDivider
-                orientation="horizontal"
+              <PaneDivider
+                direction="vertical"
                 onResize={handlePreviewResizeHorizontal}
+                onEqualize={() => setPreviewWidth(40)}
               />
               <div style={{ flex: `0 0 ${previewWidth}%` }} className="min-w-0">
                 <PreviewPane

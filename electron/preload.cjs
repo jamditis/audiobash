@@ -1069,4 +1069,33 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('zoom-reset', handler);
   },
 
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PANE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  onSplitHorizontal: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('split-horizontal', handler);
+    return () => ipcRenderer.removeListener('split-horizontal', handler);
+  },
+
+  onSplitVertical: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('split-vertical', handler);
+    return () => ipcRenderer.removeListener('split-vertical', handler);
+  },
+
+  onClosePane: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('close-pane', handler);
+    return () => ipcRenderer.removeListener('close-pane', handler);
+  },
+
+  onZoomPane: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('zoom-pane', handler);
+    return () => ipcRenderer.removeListener('zoom-pane', handler);
+  },
+
 });

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
-import FocusIndicator from './FocusIndicator';
 import { playNotificationSound, checkForCliInputPrompt, resetOutputBuffer } from '../utils/notificationSound';
 import { terminalLog as log } from '../utils/logger';
 import '@xterm/xterm/css/xterm.css';
@@ -279,8 +278,6 @@ const Terminal: React.FC<TerminalProps> = ({
       style={{ display: shouldShow ? 'block' : 'none' }}
       onClick={handleClick}
     >
-      {/* Focus indicator badge for voice command target */}
-      {isFocused && <FocusIndicator isRecording={isRecording} />}
       <div ref={terminalRef} className="h-full w-full" tabIndex={0} />
       {/* Subtle CRT scanline effect overlay (toggleable) */}
       {scanlines && (

@@ -29,6 +29,10 @@ export interface Shortcuts {
   switchTab4: string;
   togglePreview: string;
   captureScreenshot: string;
+  splitHorizontal: string;
+  splitVertical: string;
+  closePane: string;
+  zoomPane: string;
 }
 
 export interface TerminalTab {
@@ -165,6 +169,12 @@ export interface ElectronAPI {
   onZoomIn: (callback: () => void) => (() => void);
   onZoomOut: (callback: () => void) => (() => void);
   onZoomReset: (callback: () => void) => (() => void);
+
+  // Pane management
+  onSplitHorizontal: (callback: () => void) => (() => void);
+  onSplitVertical: (callback: () => void) => (() => void);
+  onClosePane: (callback: () => void) => (() => void);
+  onZoomPane: (callback: () => void) => (() => void);
 }
 
 declare global {

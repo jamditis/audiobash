@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TerminalTab } from '../types';
-import LayoutSelector, { LayoutMode } from './LayoutSelector';
 
 interface TabBarProps {
   tabs: TerminalTab[];
@@ -10,8 +9,6 @@ interface TabBarProps {
   onCloseTab: (tabId: string) => void;
   onRenameTab: (tabId: string, newTitle: string) => void;
   canAddTab: boolean;
-  layoutMode: LayoutMode;
-  onSelectLayout: (mode: LayoutMode) => void;
 }
 
 const PlusIcon = () => (
@@ -40,8 +37,6 @@ const TabBar: React.FC<TabBarProps> = ({
   onCloseTab,
   onRenameTab,
   canAddTab,
-  layoutMode,
-  onSelectLayout,
 }) => {
   // Edit mode state
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -163,15 +158,6 @@ const TabBar: React.FC<TabBarProps> = ({
         <PlusIcon />
       </button>
 
-      {/* Separator */}
-      <div className="w-px h-4 bg-void-300 mx-1" />
-
-      {/* Layout Selector */}
-      <LayoutSelector
-        currentMode={layoutMode}
-        availablePanes={tabs.length}
-        onSelectLayout={onSelectLayout}
-      />
     </div>
   );
 };
