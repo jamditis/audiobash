@@ -1799,6 +1799,48 @@ function setupIPC() {
       return { success: false, error: err.message };
     }
   });
+
+  // Pane session management
+  ipcMain.handle('save-pane-session', async (event, name, tree) => {
+    try {
+      const sessions = store.get('paneSessions') || {};
+      sessions[name] = { name, tree, timestamp: Date.now() };
+      store.set('paneSessions', sessions);
+      return { success: true };
+    } catch (err) {
+      return { success: false };
+    }
+  });
+
+  ipcMain.handle('load-pane-session', async (event, name) => {
+    try {
+      const sessions = store.get('paneSessions') || {};
+      const session = sessions[name];
+      return session ? { success: true, tree: session.tree } : { success: false };
+    } catch (err) {
+      return { success: false };
+    }
+  });
+
+  ipcMain.handle('list-pane-sessions', async () => {
+    try {
+      const sessions = store.get('paneSessions') || {};
+      return { sessions: Object.values(sessions) };
+    } catch (err) {
+      return { sessions: [] };
+    }
+  });
+
+  ipcMain.handle('delete-pane-session', async (event, name) => {
+    try {
+      const sessions = store.get('paneSessions') || {};
+      delete sessions[name];
+      store.set('paneSessions', sessions);
+      return { success: true };
+    } catch (err) {
+      return { success: false };
+    }
+  });
 }
 
 // App lifecycle

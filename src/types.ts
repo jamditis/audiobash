@@ -86,6 +86,12 @@ export interface SetShortcutsResult {
   error?: string;
 }
 
+export interface PaneSession {
+  name: string;
+  tree: string; // serialized PaneNode JSON
+  timestamp: number;
+}
+
 export interface ElectronAPI {
   // Window controls
   minimize: () => void;
@@ -176,6 +182,12 @@ export interface ElectronAPI {
   onClosePane: (callback: () => void) => (() => void);
   onZoomPane: (callback: () => void) => (() => void);
   onResizePane: (callback: (direction: string) => void) => (() => void);
+
+  // Pane sessions
+  savePaneSession: (name: string, tree: string) => Promise<{ success: boolean }>;
+  loadPaneSession: (name: string) => Promise<{ success: boolean; tree?: string }>;
+  listPaneSessions: () => Promise<{ sessions: PaneSession[] }>;
+  deletePaneSession: (name: string) => Promise<{ success: boolean }>;
 }
 
 declare global {

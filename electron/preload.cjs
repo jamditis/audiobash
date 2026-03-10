@@ -1104,4 +1104,10 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('resize-pane', handler);
   },
 
+  // Pane sessions
+  savePaneSession: (name, tree) => ipcRenderer.invoke('save-pane-session', name, tree),
+  loadPaneSession: (name) => ipcRenderer.invoke('load-pane-session', name),
+  listPaneSessions: () => ipcRenderer.invoke('list-pane-sessions'),
+  deletePaneSession: (name) => ipcRenderer.invoke('delete-pane-session', name),
+
 });
