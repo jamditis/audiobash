@@ -13,6 +13,8 @@ import {
   resetOutputBuffer,
   CLI_INPUT_PATTERNS,
   stripAnsi,
+  preWarmAudioContext,
+  playNotificationSound,
 } from '../../src/utils/notificationSound';
 
 describe('notificationSound', () => {
@@ -250,6 +252,131 @@ describe('notificationSound', () => {
       for (const pattern of CLI_INPUT_PATTERNS) {
         expect(pattern).toBeInstanceOf(RegExp);
       }
+    });
+  });
+
+  describe('preWarmAudioContext', () => {
+    let mockResume: ReturnType<typeof vi.fn>;
+    let constructorCalls: number;
+
+    beforeEach(async () => {
+      // Re-import the module fresh so the cached audioContext is null
+      vi.resetModules();
+      constructorCalls = 0;
+      mockResume = vi.fn().mockResolvedValue(undefined);
+
+      class MockAudioContext {
+        state = 'suspended';
+        resume = mockResume;
+        currentTime = 0;
+        destination = {};
+        constructor() { constructorCalls++; }
+        createOscillator() {
+          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+        }
+        createGain() {
+          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+        }
+      }
+      vi.stubGlobal('AudioContext', MockAudioContext);
+    });
+
+    it('creates and resumes AudioContext', async () => {
+      const mod = await import('../../src/utils/notificationSound');
+      await mod.preWarmAudioContext();
+      expect(constructorCalls).toBe(1);
+      expect(mockResume).toHaveBeenCalled();
+    });
+
+    it('is idempotent - does not create a second context', async () => {
+      const mod = await import('../../src/utils/notificationSound');
+      await mod.preWarmAudioContext();
+      await mod.preWarmAudioContext();
+      expect(constructorCalls).toBe(1);
+    });
+
+    it('skips resume when context is already running', async () => {
+      class RunningAudioContext {
+        state = 'running';
+        resume = mockResume;
+        currentTime = 0;
+        destination = {};
+        createOscillator() {
+          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+        }
+        createGain() {
+          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+        }
+      }
+      vi.stubGlobal('AudioContext', RunningAudioContext);
+      const mod = await import('../../src/utils/notificationSound');
+      await mod.preWarmAudioContext();
+      expect(mockResume).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('playNotificationSound fallback', () => {
+    beforeEach(async () => {
+      vi.resetModules();
+
+      class MockAudioContext {
+        state = 'running';
+        resume = vi.fn().mockResolvedValue(undefined);
+        currentTime = 0;
+        destination = {};
+        createOscillator() {
+          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+        }
+        createGain() {
+          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+        }
+      }
+      vi.stubGlobal('AudioContext', MockAudioContext);
+    });
+
+    it('uses oscillator fallback, not Audio element', async () => {
+      const audioSpy = vi.fn();
+      vi.stubGlobal('Audio', audioSpy);
+
+      const mod = await import('../../src/utils/notificationSound');
+      mod.playNotificationSound();
+
+      // The fallback should NOT create an Audio element
+      expect(audioSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('debug flag', () => {
+    it('reads from localStorage', () => {
+      localStorage.setItem('audiobash-debug-notifications', 'true');
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      resetOutputBuffer('debug-test');
+      checkForCliInputPrompt('Allow? [Y/n]', 'debug-test');
+
+      // When debug is enabled, we should see debug output
+      const debugCalls = consoleSpy.mock.calls.filter(
+        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]')
+      );
+      expect(debugCalls.length).toBeGreaterThan(0);
+
+      consoleSpy.mockRestore();
+      localStorage.removeItem('audiobash-debug-notifications');
+    });
+
+    it('does not log when debug is disabled', () => {
+      localStorage.removeItem('audiobash-debug-notifications');
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      resetOutputBuffer('debug-test-off');
+      checkForCliInputPrompt('Allow? [Y/n]', 'debug-test-off');
+
+      const debugCalls = consoleSpy.mock.calls.filter(
+        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]')
+      );
+      expect(debugCalls.length).toBe(0);
+
+      consoleSpy.mockRestore();
     });
   });
 });

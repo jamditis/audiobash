@@ -1,9 +1,18 @@
 // Audio notification utilities for CLI input requests
-// Uses Web Audio API with HTMLAudioElement fallback
+// Uses Web Audio API with oscillator fallback
 
 let audioContext: AudioContext | null = null;
 let lastPlayTime = 0;
 const MIN_INTERVAL = 3000; // Minimum 3 seconds between notification sounds
+
+// Check whether debug logging is enabled via localStorage
+function isDebugEnabled(): boolean {
+  try {
+    return localStorage.getItem('audiobash-debug-notifications') === 'true';
+  } catch {
+    return false;
+  }
+}
 
 // Initialize audio context (must be called after user interaction)
 function getAudioContext(): AudioContext {
@@ -11,6 +20,16 @@ function getAudioContext(): AudioContext {
     audioContext = new AudioContext();
   }
   return audioContext;
+}
+
+// Pre-warm the AudioContext so chimes can fire immediately.
+// Chromium suspends AudioContexts created before a user gesture,
+// so call this once from a click or keydown handler.
+export async function preWarmAudioContext(): Promise<void> {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
 }
 
 // Play a two-tone notification chime via Web Audio API
@@ -61,20 +80,37 @@ async function playChimeViaWebAudio(): Promise<void> {
   osc2.stop(currentTime + 0.4);
 }
 
-// Fallback: play success.mp3 via HTMLAudioElement
-function playChimeViaAudioElement(): void {
-  const audio = new Audio('./assets/success.mp3');
-  audio.volume = 0.5;
-  audio.play().catch(() => {
-    // Both Web Audio and HTMLAudioElement failed — nothing more we can do
-  });
+// Fallback: play a simple single-tone oscillator (no file dependency)
+function playFallbackChime(): void {
+  try {
+    const ctx = getAudioContext();
+    const currentTime = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, currentTime); // E5
+
+    gain.gain.setValueAtTime(0, currentTime);
+    gain.gain.linearRampToValueAtTime(0.15, currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.2);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(currentTime);
+    osc.stop(currentTime + 0.2);
+  } catch {
+    // Both Web Audio paths failed — nothing more we can do
+  }
 }
 
 // Play a two-tone notification sound (like a gentle chime)
 export function playNotificationSound(): void {
   const now = Date.now();
   if (now - lastPlayTime < MIN_INTERVAL) {
-    if (DEBUG_NOTIFICATIONS) {
+    if (isDebugEnabled()) {
       console.log('[Notification] Skipped - rate limited');
     }
     return; // Rate limit to avoid spam
@@ -84,8 +120,8 @@ export function playNotificationSound(): void {
   console.log('[AudioBash] Playing notification sound');
 
   playChimeViaWebAudio().catch(() => {
-    // Web Audio failed — fall back to HTMLAudioElement
-    playChimeViaAudioElement();
+    // Web Audio two-tone failed — fall back to single-tone oscillator
+    playFallbackChime();
   });
 }
 
@@ -158,9 +194,6 @@ const BUFFER_CLEAR_DELAY = 5000;
 // but we need enough context to catch multi-line prompts
 const PROMPT_CHECK_LENGTH = 500;
 
-// Debug flag - set to true to see what's being checked
-const DEBUG_NOTIFICATIONS = false;
-
 // Strip ANSI escape codes for cleaner pattern matching
 export function stripAnsi(str: string): string {
   // eslint-disable-next-line no-control-regex
@@ -196,7 +229,7 @@ export function checkForCliInputPrompt(data: string, tabId = '_default'): boolea
   // Check for patterns
   const hasPrompt = CLI_INPUT_PATTERNS.some(pattern => pattern.test(cleanTail));
 
-  if (DEBUG_NOTIFICATIONS) {
+  if (isDebugEnabled()) {
     // Show what we're checking (last 100 chars for readability)
     const preview = cleanTail.slice(-100).replace(/\n/g, '\\n');
     console.log(`[Notification] [${tabId}] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`);

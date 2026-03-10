@@ -79,6 +79,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
   // CLI notification settings
   const [cliNotificationsEnabled, setCliNotificationsEnabled] = useState(true);
+  const [debugNotifications, setDebugNotifications] = useState(false);
 
   // Local Whisper models state
   const [localModels, setLocalModels] = useState<{
@@ -163,6 +164,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
       }
     }
     if (savedCliNotifications !== null) setCliNotificationsEnabled(savedCliNotifications === 'true');
+    const savedDebugNotifications = localStorage.getItem('audiobash-debug-notifications');
+    if (savedDebugNotifications !== null) setDebugNotifications(savedDebugNotifications === 'true');
 
     // Load local Whisper status and models
     window.electron?.whisperGetStatus().then((result) => {
@@ -345,6 +348,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     localStorage.setItem('audiobash-agent-instructions', agentModeInstructions);
     localStorage.setItem('audiobash-vocabulary', JSON.stringify(vocabulary));
     localStorage.setItem('audiobash-cli-notifications', String(cliNotificationsEnabled));
+    localStorage.setItem('audiobash-debug-notifications', String(debugNotifications));
 
     // Update transcription service with custom instructions
     transcriptionService.setCustomInstructions({
@@ -833,6 +837,30 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 <div
                   className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
                     cliNotificationsEnabled ? 'left-7' : 'left-1'
+                  }`}
+                />
+              </button>
+            </label>
+          </div>
+
+          {/* Debug CLI notifications toggle */}
+          <div>
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <div className="text-xs font-mono">Debug CLI notifications</div>
+                <div className="text-[10px] text-crt-white/30">
+                  Log prompt detection to DevTools console
+                </div>
+              </div>
+              <button
+                onClick={() => setDebugNotifications(!debugNotifications)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${
+                  debugNotifications ? 'bg-accent' : 'bg-void-300'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    debugNotifications ? 'left-7' : 'left-1'
                   }`}
                 />
               </button>

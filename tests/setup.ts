@@ -472,6 +472,7 @@ vi.mock('../src/utils/notificationSound', () => ({
   playNotificationSound: vi.fn(),
   checkForCliInputPrompt: vi.fn(() => false),
   resetOutputBuffer: vi.fn(),
+  preWarmAudioContext: vi.fn().mockResolvedValue(undefined),
 }));
 
 // =============================================================================

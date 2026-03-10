@@ -15,6 +15,7 @@ import { LayoutMode } from './components/LayoutSelector';
 import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
 import { transcriptionService, ModelId } from './services/transcriptionService';
 import { appLog } from './utils/logger';
+import { preWarmAudioContext } from './utils/notificationSound';
 
 const MAX_TABS = 4;
 
@@ -86,6 +87,12 @@ const App: React.FC = () => {
   });
   const [previewWidth, setPreviewWidth] = useState(40); // percentage for right sidebar
   const [previewHeight, setPreviewHeight] = useState(35); // percentage for bottom panel
+
+  // Font zoom state (persisted in localStorage)
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('audiobash-font-size');
+    return saved ? parseInt(saved, 10) : 14;
+  });
 
   // Load settings and check onboarding
   useEffect(() => {
@@ -162,6 +169,36 @@ const App: React.FC = () => {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  // Pre-warm AudioContext on first user gesture so notification chimes can fire
+  useEffect(() => {
+    const handler = () => {
+      preWarmAudioContext();
+      window.removeEventListener('click', handler);
+      window.removeEventListener('keydown', handler);
+    };
+    window.addEventListener('click', handler);
+    window.addEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('click', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, []);
+
+  // Font zoom IPC wiring (Ctrl+Plus / Ctrl+Minus / Ctrl+0)
+  useEffect(() => {
+    const cleanups = [
+      window.electron?.onZoomIn(() => setFontSize(s => Math.min(s + 2, 32))),
+      window.electron?.onZoomOut(() => setFontSize(s => Math.max(s - 2, 8))),
+      window.electron?.onZoomReset(() => setFontSize(14)),
+    ];
+    return () => cleanups.forEach(c => c?.());
+  }, []);
+
+  // Persist font size to localStorage
+  useEffect(() => {
+    localStorage.setItem('audiobash-font-size', fontSize.toString());
+  }, [fontSize]);
 
   // Listen for terminal closed events
   useEffect(() => {
@@ -574,6 +611,7 @@ const App: React.FC = () => {
                   tabId={tab.id}
                   isActive={tab.id === activeTabId}
                   cliNotificationsEnabled={cliNotificationsEnabled}
+                  fontSize={fontSize}
                 />
               ))
             ) : (
@@ -592,6 +630,7 @@ const App: React.FC = () => {
                     isRecording={isRecording}
                     onFocus={() => handleFocusTerminal(pane.terminalId)}
                     cliNotificationsEnabled={cliNotificationsEnabled}
+                    fontSize={fontSize}
                   />
                 ))}
               </SplitContainer>
