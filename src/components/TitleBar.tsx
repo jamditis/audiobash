@@ -25,9 +25,15 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
   };
 
   return (
-    <div className="h-8 bg-void-100 border-b border-void-300 flex items-center justify-between px-2 drag-region">
+    <div
+      className="h-8 bg-void-100 border-b border-void-300 flex items-center justify-between px-2"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
       {/* Logo/Title */}
-      <div className="flex items-center gap-2 no-drag">
+      <div
+        className="flex items-center gap-2"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         <div className="w-3 h-3 bg-accent rounded-sm"></div>
         <span className="font-display font-bold text-xs uppercase tracking-widest text-crt-white/70">
           AudioBash
@@ -38,20 +44,24 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
       <div className="flex-1 flex justify-center">
         <span className="text-[10px] text-crt-white/30 font-mono uppercase tracking-wider">
           {(() => {
-            const platform = navigator.platform?.toLowerCase() || '';
-            if (platform.includes('mac')) return 'Terminal';
-            if (platform.includes('linux')) return 'Terminal';
+            const ua = navigator.userAgent?.toLowerCase() || '';
+            if (ua.includes('macintosh') || ua.includes('mac os')) return 'Terminal';
+            if (ua.includes('linux')) return 'Terminal';
             return 'PowerShell';
           })()}
         </span>
       </div>
 
       {/* Window controls */}
-      <div className="flex items-center gap-1 no-drag">
+      <div
+        className="flex items-center gap-1"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         <button
           onClick={onSettingsClick}
           className="w-6 h-6 flex items-center justify-center hover:bg-void-300 text-crt-white/50 hover:text-crt-white transition-colors"
           title="Settings"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <SettingsIcon />
         </button>
@@ -60,6 +70,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
           onClick={handleMinimize}
           className="w-6 h-6 flex items-center justify-center hover:bg-void-300 transition-colors"
           title="Minimize"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 10 10">
             <rect y="4" width="10" height="1" />
@@ -69,6 +80,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
           onClick={handleMaximize}
           className="w-6 h-6 flex items-center justify-center hover:bg-void-300 transition-colors"
           title="Maximize"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 10 10">
             <rect x="1" y="1" width="8" height="8" />
@@ -78,6 +90,7 @@ const TitleBar: React.FC<TitleBarProps> = ({ onSettingsClick }) => {
           onClick={handleClose}
           className="w-6 h-6 flex items-center justify-center hover:bg-accent hover:text-void transition-colors"
           title="Close"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 10 10">
             <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" />

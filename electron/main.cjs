@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage, screen } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -118,10 +118,56 @@ app.on('second-instance', () => {
   }
 });
 
+// Window bounds persistence defaults
+const DEFAULT_WINDOW_BOUNDS = { width: 1200, height: 800 };
+let boundsDebounceTimer = null;
+
+/**
+ * Returns saved window bounds if they fall on a connected display,
+ * otherwise returns default size (centered by Electron).
+ */
+function getWindowBounds() {
+  const saved = store.get('windowBounds');
+  if (!saved || typeof saved.width !== 'number' || typeof saved.height !== 'number') {
+    appLog.debug('No saved window bounds, using defaults');
+    return { ...DEFAULT_WINDOW_BOUNDS };
+  }
+
+  // Validate that the saved position is on a connected display
+  if (typeof saved.x === 'number' && typeof saved.y === 'number') {
+    try {
+      const displays = screen.getAllDisplays();
+      const onScreen = displays.some((display) => {
+        const { x, y, width, height } = display.bounds;
+        // Check if at least 100px of the window is visible on this display
+        return (
+          saved.x + saved.width > x + 100 &&
+          saved.x < x + width - 100 &&
+          saved.y > y - 50 &&
+          saved.y < y + height - 100
+        );
+      });
+
+      if (onScreen) {
+        appLog.debug('Restoring saved window bounds', saved);
+        return { x: saved.x, y: saved.y, width: saved.width, height: saved.height };
+      }
+
+      appLog.info('Saved window position is off-screen, using default size');
+    } catch (err) {
+      appLog.warn('Failed to validate window bounds against displays', { error: err.message });
+    }
+  }
+
+  // Position invalid or missing — return size only so Electron centers the window
+  return { width: saved.width, height: saved.height };
+}
+
 function createWindow() {
+  const bounds = getWindowBounds();
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    ...bounds,
     minWidth: 800,
     minHeight: 600,
     frame: false, // Frameless for custom title bar
@@ -141,6 +187,20 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Debounced save of window bounds on resize and move (skip when maximized)
+  const saveWindowBounds = () => {
+    if (boundsDebounceTimer) clearTimeout(boundsDebounceTimer);
+    boundsDebounceTimer = setTimeout(() => {
+      if (!mainWindow || mainWindow.isMaximized() || mainWindow.isMinimized()) return;
+      const currentBounds = mainWindow.getBounds();
+      store.set('windowBounds', currentBounds);
+      appLog.debug('Window bounds saved', currentBounds);
+    }, 500);
+  };
+
+  mainWindow.on('resize', saveWindowBounds);
+  mainWindow.on('move', saveWindowBounds);
 
   // Hide instead of close (tray mode)
   mainWindow.on('close', (event) => {
