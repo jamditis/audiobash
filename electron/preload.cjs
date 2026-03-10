@@ -1023,4 +1023,50 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('remote-status-changed', handler);
   },
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FONT ZOOM
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Subscribes to font zoom-in events (Ctrl+Plus).
+   *
+   * @function onZoomIn
+   * @memberof window.electron
+   * @param {Function} callback - Handler called when zoom-in is triggered
+   * @returns {Function} Cleanup function to remove the listener
+   */
+  onZoomIn: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('zoom-in', handler);
+    return () => ipcRenderer.removeListener('zoom-in', handler);
+  },
+
+  /**
+   * Subscribes to font zoom-out events (Ctrl+Minus).
+   *
+   * @function onZoomOut
+   * @memberof window.electron
+   * @param {Function} callback - Handler called when zoom-out is triggered
+   * @returns {Function} Cleanup function to remove the listener
+   */
+  onZoomOut: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('zoom-out', handler);
+    return () => ipcRenderer.removeListener('zoom-out', handler);
+  },
+
+  /**
+   * Subscribes to font zoom-reset events (Ctrl+0).
+   *
+   * @function onZoomReset
+   * @memberof window.electron
+   * @param {Function} callback - Handler called when zoom-reset is triggered
+   * @returns {Function} Cleanup function to remove the listener
+   */
+  onZoomReset: (callback) => {
+    const handler = () => callback();
+    ipcRenderer.on('zoom-reset', handler);
+    return () => ipcRenderer.removeListener('zoom-reset', handler);
+  },
+
 });

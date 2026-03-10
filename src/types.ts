@@ -160,6 +160,11 @@ export interface ElectronAPI {
   setKeepAwake: (enabled: boolean) => Promise<boolean>;
   getKeepAwake: () => Promise<boolean>;
   onRemoteStatusChanged: (callback: (status: RemoteStatus) => void) => (() => void);
+
+  // Font zoom
+  onZoomIn: (callback: () => void) => (() => void);
+  onZoomOut: (callback: () => void) => (() => void);
+  onZoomReset: (callback: () => void) => (() => void);
 }
 
 declare global {

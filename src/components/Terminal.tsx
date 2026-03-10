@@ -15,6 +15,7 @@ interface TerminalProps {
   isRecording?: boolean; // For focus indicator animation
   onFocus?: () => void;  // Click callback for split view
   cliNotificationsEnabled?: boolean; // Play sound when CLI requests input
+  fontSize?: number;     // Terminal font size (controlled by Ctrl+/-/0)
 }
 
 const Terminal: React.FC<TerminalProps> = ({
@@ -25,6 +26,7 @@ const Terminal: React.FC<TerminalProps> = ({
   isRecording = false,
   onFocus,
   cliNotificationsEnabled = true,
+  fontSize = 14,
 }) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -70,7 +72,7 @@ const Terminal: React.FC<TerminalProps> = ({
         xterm = new XTerm({
           theme: themeToXtermTheme(theme),
           fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
-          fontSize: 14,
+          fontSize,
           lineHeight: 1.2,
           cursorBlink: true,
           cursorStyle: 'block',
@@ -209,6 +211,21 @@ const Terminal: React.FC<TerminalProps> = ({
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Update terminal font size when fontSize prop changes
+  useEffect(() => {
+    if (xtermRef.current && fontSize) {
+      xtermRef.current.options.fontSize = fontSize;
+      try {
+        fitAddonRef.current?.fit();
+        if (xtermRef.current) {
+          window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
+        }
+      } catch (err) {
+        // ignore fit errors during font size change
+      }
+    }
+  }, [fontSize, tabId]);
+
   // ResizeObserver for split view pane resizing
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -224,7 +241,7 @@ const Terminal: React.FC<TerminalProps> = ({
             if (!container) return;
             const rect = container.getBoundingClientRect();
             // Only fit if container has valid dimensions
-            if (rect.width > 0 && rect.height > 0) {
+            if (rect.width > 50 && rect.height > 50) {
               fitAddonRef.current.fit();
               window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
             }
@@ -232,7 +249,7 @@ const Terminal: React.FC<TerminalProps> = ({
             log.warn('Terminal fit failed during resize', { tabId }, err);
           }
         }
-      }, 100); // Increased debounce for stability
+      }, 150); // Increased debounce for stability
     });
 
     resizeObserver.observe(terminalRef.current);

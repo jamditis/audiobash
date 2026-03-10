@@ -201,6 +201,22 @@ function createWindow() {
 
   mainWindow.on('resize', saveWindowBounds);
   mainWindow.on('move', saveWindowBounds);
+  // Intercept Ctrl+Plus/Minus/0 for font zoom (before Chromium handles them)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control && !input.alt && !input.shift) {
+      if (input.key === '=' || input.key === '+') {
+        event.preventDefault();
+        mainWindow.webContents.send('zoom-in');
+      } else if (input.key === '-') {
+        event.preventDefault();
+        mainWindow.webContents.send('zoom-out');
+      } else if (input.key === '0') {
+        event.preventDefault();
+        mainWindow.webContents.send('zoom-reset');
+      }
+    }
+  });
+
 
   // Hide instead of close (tray mode)
   mainWindow.on('close', (event) => {
