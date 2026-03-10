@@ -65,7 +65,7 @@ const App: React.FC = () => {
   const paneManagerRef = useRef<PaneManagerHandle>(null);
 
   // Voice mode state (shared with VoiceOverlay)
-  const [voiceMode, setVoiceMode] = useState<'agent' | 'raw'>('agent');
+  const [voiceMode, setVoiceMode] = useState<'agent' | 'raw'>('raw');
 
   // Last transcript for resend feature
   const [lastTranscript, setLastTranscript] = useState<{ text: string; mode: 'agent' | 'raw' } | null>(null);
@@ -682,6 +682,7 @@ const App: React.FC = () => {
           activeTabId={activeTabId}
           mode={voiceMode}
           setMode={setVoiceMode}
+          ccVoiceActive={ccVoiceActiveTerminals.has(activeTabId)}
         />
       </div>
 

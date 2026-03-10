@@ -18,6 +18,7 @@ interface VoiceOverlayProps {
   activeTabId: string;
   mode: 'agent' | 'raw';
   setMode: (mode: 'agent' | 'raw') => void;
+  ccVoiceActive?: boolean;
 }
 
 const MicIcon = () => (
@@ -56,6 +57,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   activeTabId,
   mode,
   setMode,
+  ccVoiceActive = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | undefined>(undefined);
@@ -610,6 +612,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     return () => cleanup?.();
   }, [cancelRecording]);
 
+  // Smart handoff: cancel recording when CC /voice becomes active (discard partial audio)
+  useEffect(() => {
+    if (ccVoiceActive && isRecording) {
+      cancelRecording();
+    }
+  }, [ccVoiceActive, isRecording, cancelRecording]);
+
   if (!isOpen) return null;
 
   return (
@@ -619,6 +628,9 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         <div className="flex items-center justify-between px-3 py-2 border-b border-void-300 bg-void-200/50">
           <span className="text-[10px] font-mono uppercase tracking-widest text-crt-white/50">
             Voice Input
+            {ccVoiceActive && (
+              <span className="ml-2 text-crt-amber font-mono text-[9px]">[CC /voice]</span>
+            )}
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -698,16 +710,18 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         <div className="flex items-center justify-center gap-4 pb-3">
           <button
             onClick={toggleRecording}
-            disabled={!hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local'}
+            disabled={ccVoiceActive || (!hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local')}
             className={`
               w-14 h-14 rounded-full border-2
               flex items-center justify-center
               transition-all duration-200
               ${isRecording
                 ? 'bg-accent/20 border-accent text-accent glow-recording'
-                : !hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local'
-                  ? 'bg-void-200 border-void-400 text-crt-white/20 cursor-not-allowed'
-                  : 'bg-void-200 border-void-300 text-crt-white/50 hover:border-accent hover:text-accent'
+                : ccVoiceActive
+                  ? 'bg-void-200 border-crt-amber text-crt-amber cursor-not-allowed'
+                  : !hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local'
+                    ? 'bg-void-200 border-void-400 text-crt-white/20 cursor-not-allowed'
+                    : 'bg-void-200 border-void-300 text-crt-white/50 hover:border-accent hover:text-accent'
               }
             `}
           >
@@ -729,6 +743,9 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
                 ? (recordingMode === 'manual' ? 'Alt+S send · Alt+A cancel' : 'Speak now · Alt+A cancel')
                 : 'Alt+S to start'}
             </div>
+            {ccVoiceActive && (
+              <div className="text-crt-amber text-[9px] mt-0.5">CC /voice active</div>
+            )}
           </div>
         </div>
 

@@ -20,7 +20,7 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **Tmux-style pane system** - Binary tree pane architecture with split horizontal (Alt+-) and vertical (Alt+\), drag dividers, double-click to equalize, 5 preset layouts
 - **Pane keyboard navigation** - Alt+Arrow to move focus, Alt+1-4 for direct focus, Alt+Shift+Arrow to resize, Alt+Z to zoom/unzoom
 - **Named pane sessions** - Save and load pane layouts by name
-- **Claude Code /voice integration** - Detects Claude Code /voice mode, shows [CC /voice] indicator, smart voice handoff between AudioBash and Claude Code
+- **Claude Code /voice integration** - Detects Claude Code /voice mode, shows [CC /voice] badge in voice panel, disables mic button during CC /voice, smart handoff (cancels any active recording without sending partial audio)
 - **Multi-terminal voice routing** - Voice commands directed to the correct terminal automatically
 - **Context-aware agent mode** - AI understands your environment: current directory, recent output, errors
 - **Custom instructions** - Add personal instructions for transcription and agent modes
