@@ -17,14 +17,17 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 ## Features
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
+- **Tmux-style pane system** - Binary tree pane architecture with split horizontal (Alt+-) and vertical (Alt+\), drag dividers, double-click to equalize, 5 preset layouts
+- **Pane keyboard navigation** - Alt+Arrow to move focus, Alt+1-4 for direct focus, Alt+Shift+Arrow to resize, Alt+Z to zoom/unzoom
+- **Named pane sessions** - Save and load pane layouts by name
+- **Claude Code /voice integration** - Detects Claude Code /voice mode, shows [CC /voice] indicator, smart voice handoff between AudioBash and Claude Code
+- **Multi-terminal voice routing** - Voice commands directed to the correct terminal automatically
 - **Context-aware agent mode** - AI understands your environment: current directory, recent output, errors
 - **Custom instructions** - Add personal instructions for transcription and agent modes
 - **Custom vocabulary** - Map spoken words to correct spellings (e.g., "next js" → "Next.js")
 - **CLI notifications** - Audio chime when CLI tools request input/approval
-- **Split view** - View up to 4 terminals simultaneously with 5 layout modes (single, horizontal, vertical, 2x2 grid, 1+2)
-- **Resizable panes** - Drag dividers to resize terminal panes in split view
-- **Focus indicator** - Voice badge shows which terminal receives voice commands in split mode
-- **Tab rename** - Double-click tab names to customize them
+- **Font zoom** - Ctrl+Plus/Minus/0 to adjust terminal font size
+- **Window persistence** - Window position and size saved across sessions
 - **Multi-tab support** - Run up to 4 terminal sessions simultaneously
 - **Quick directory navigation** - Jump to recent or favorite folders with one click
 - **Multiple AI providers** - Gemini 2.0/2.5 Flash, OpenAI Whisper, Claude, or ElevenLabs
