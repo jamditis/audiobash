@@ -48,6 +48,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     switchTab4: 'Alt+4',
     togglePreview: 'Alt+P',
     captureScreenshot: 'Alt+Shift+P',
+    splitHorizontal: 'Alt+-',
+    splitVertical: 'Alt+\\',
+    closePane: 'Alt+W',
+    zoomPane: 'Alt+Z',
   });
   const [shortcutsInput, setShortcutsInput] = useState<Shortcuts>({
     toggleRecording: 'Alt+S',
@@ -66,6 +70,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     switchTab4: 'Alt+4',
     togglePreview: 'Alt+P',
     captureScreenshot: 'Alt+Shift+P',
+    splitHorizontal: 'Alt+-',
+    splitVertical: 'Alt+\\',
+    closePane: 'Alt+W',
+    zoomPane: 'Alt+Z',
   });
   const [recordingShortcut, setRecordingShortcut] = useState<keyof Shortcuts | null>(null);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
