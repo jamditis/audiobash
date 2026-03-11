@@ -158,11 +158,61 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v3.0.3 -->
+            <!-- v3.1.0 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v3.0.3</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v3.1.0</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                    <span class="text-gray-500 text-sm">March 11, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Developer ID code signing for macOS</h2>
+
+                <p class="text-gray-400 mb-6">macOS builds are now signed with a Developer ID Application certificate, the same type Apple requires for distribution outside the Mac App Store. Right-click → Open now works reliably on first launch. Roadmap redesigned with milestone-based planning.</p>
+
+                <!-- Downloads -->
+                <div class="bg-void border border-white/10 p-4 mb-6">
+                    <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <a href="#" data-download="windows" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                            Windows
+                        </a>
+                        <a href="#" data-download="mac-arm64" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            macOS (Apple Silicon)
+                        </a>
+                        <a href="#" data-download="mac-intel" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-signal text-sm mb-2">Code signing</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Developer ID Application cert</strong> - Signed by Joe Amditis (5624SD289G), verified by Apple's full certificate chain</li>
+                            <li>• <strong>Hardened runtime</strong> - Required for future notarization, now enabled on all macOS builds</li>
+                            <li>• <strong>Gatekeeper compatible</strong> - Right-click → Open works reliably on first launch</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Other changes</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>• <strong>Roadmap redesign</strong> - Milestone-based layout with v3.1, v3.5, v4.0, and exploratory tiers</li>
+                            <li>• <strong>Blog posts</strong> - Origin story, first user testing, Anthropic /voice mode</li>
+                            <li>• <strong>Doc cleanup</strong> - Removed stale provider references, updated latest.html</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v3.0.3 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v3.0.3</span>
                     <span class="text-gray-500 text-sm">March 11, 2026</span>
                 </div>
 

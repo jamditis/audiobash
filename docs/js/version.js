@@ -3,7 +3,7 @@
  * Single source of truth for version numbers across all docs pages
  */
 
-const AUDIOBASH_VERSION = '3.0.3';
+const AUDIOBASH_VERSION = '3.1.0';
 
 // Auto-populate version strings on page load
 document.addEventListener('DOMContentLoaded', () => {
