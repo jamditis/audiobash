@@ -196,7 +196,64 @@
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
 
-            <!-- v2.4.1 - Remote Simplification + Code Signing -->
+            <!-- v3.0.x - Pane System Overhaul -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-volt/10 border border-volt/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="layout-grid" class="w-6 h-6 text-volt"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-volt text-black font-display font-bold text-xs">v3.0</span>
+                            <span class="text-gray-500 text-sm">March 2026</span>
+                            <span class="px-2 py-0.5 bg-volt/20 text-volt text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Split panes that actually work.</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            The terminal layout system was rebuilt from scratch. A binary tree data model replaces the
+                            old fixed grid, letting you split any pane horizontally or vertically, zoom into a single
+                            pane, or snap to presets. A terminal pool keeps your shells alive across layout changes —
+                            custom tab names and scrollback survive preset cycling. The remote control feature is gone;
+                            Claude Code's native <code class="text-volt">/voice</code> mode handles that now.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="layout-grid" class="w-5 h-5 text-volt"></i>
+                                    <span class="text-chrome font-display">Binary tree panes</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Split, zoom, resize any pane freely</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="layers" class="w-5 h-5 text-volt"></i>
+                                    <span class="text-chrome font-display">Terminal pool</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Shells persist across layout changes</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="signal" class="w-5 h-5 text-volt"></i>
+                                    <span class="text-chrome font-display">Ready handshake</span>
+                                </div>
+                                <div class="text-xs text-gray-500">No more empty panes on preset switch</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Pane system</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">SVG toolbar</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Remote removed</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Focus highlight</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v2.4.1 - Code Signing Infrastructure -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
                 <div class="flex items-start gap-6">
                     <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
@@ -204,19 +261,16 @@
                     </div>
                     <div class="flex-1">
                         <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v2.4.1</span>
+                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.4.1</span>
                             <span class="text-gray-500 text-sm">February 14, 2026</span>
-                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">31K lines deleted. Signed builds incoming.</h2>
 
                         <p class="text-gray-400 mb-6 leading-relaxed">
-                            The remote control system had accumulated tunnel services, a full React PWA, and a voice bridge
-                            that nobody was using. We stripped all of it — 31,000 lines gone. The remote now works via a
-                            simple HTTP + WebSocket server that serves static files directly. Meanwhile, we laid the groundwork
-                            for proper macOS code signing: entitlements plists, a notarization hook, and hardened runtime config.
-                            Once Apple activates the Developer ID certificate, macOS DMGs will just work.
+                            Stripped 31,000 lines of tunnel services, React PWA, and voice bridge from the remote
+                            control system. Laid the groundwork for macOS code signing: entitlements plists,
+                            a notarization hook, and hardened runtime config. Set up GitHub Sponsors.
                         </p>
 
                         <div class="grid sm:grid-cols-3 gap-4 mb-6">
@@ -244,7 +298,6 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Remote simplification</span>
                             <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Code signing</span>
                             <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Notarization</span>
                             <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">GitHub Sponsors</span>
@@ -309,67 +362,6 @@
                 </div>
             </article>
 
-            <!-- v2.3.5 - Remote Connection Fixes, Password/Pairing, Whisper Path -->
-            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
-                <div class="flex items-start gap-6">
-                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
-                        <i data-lucide="wifi" class="w-6 h-6 text-accent"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.3.5</span>
-                            <span class="text-gray-500 text-sm">January 15, 2026</span>
-                        </div>
-
-                        <h2 class="font-display text-2xl text-chrome mb-3">Remote reliability improvements</h2>
-
-                        <p class="text-gray-400 mb-6 leading-relaxed">
-                            This release focuses on making remote connections more reliable. WebSocket proxy compatibility
-                            for Cloudflare tunnels is fixed, password inputs are now properly case-sensitive, and the
-                            local Whisper model path resolution works correctly on all platforms.
-                        </p>
-
-                        <div class="grid sm:grid-cols-2 gap-4 mb-6">
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="cloud" class="w-5 h-5 text-accent"></i>
-                                    <span class="text-chrome font-display">Cloudflare tunnel fix</span>
-                                </div>
-                                <div class="text-xs text-gray-500">WebSocket proxy compatibility restored</div>
-                            </div>
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="key" class="w-5 h-5 text-accent"></i>
-                                    <span class="text-chrome font-display">Case-sensitive passwords</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Auto-capitalize disabled on pairing input</div>
-                            </div>
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="shield-alert" class="w-5 h-5 text-accent"></i>
-                                    <span class="text-chrome font-display">Simpler passwords</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Complexity requirements now warn instead of block</div>
-                            </div>
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="file-audio" class="w-5 h-5 text-accent"></i>
-                                    <span class="text-chrome font-display">Whisper path fix</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Local model binaries resolve correctly</div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-3">
-                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">WebSocket proxy</span>
-                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Cloudflare tunnels</span>
-                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Whisper.cpp</span>
-                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Remote pairing</span>
-                        </div>
-                    </div>
-                </div>
-            </article>
-
             <!-- v2.3.0 - Local Whisper Models, Console Errors, Model Cycling -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #00f0ff;">
                 <div class="flex items-start gap-6">
@@ -419,61 +411,6 @@
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Whisper.cpp</span>
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">ElevenLabs WebSocket fix</span>
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Resizable directory picker</span>
-                        </div>
-                    </div>
-                </div>
-            </article>
-
-            <!-- v2.3.2 - File Browser, Domain & Audio Fixes -->
-            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
-                <div class="flex items-start gap-6">
-                    <div class="feature-icon bg-volt/10 border border-volt/30 shrink-0 hidden sm:flex">
-                        <i data-lucide="folder-open" class="w-6 h-6 text-volt"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.3.2</span>
-                            <span class="text-gray-500 text-sm">January 12, 2026</span>
-                        </div>
-
-                        <h2 class="font-display text-2xl text-chrome mb-3">Browse files from your phone</h2>
-
-                        <p class="text-gray-400 mb-6 leading-relaxed">
-                            The remote client now includes a full file browser. Navigate your project, read files, edit code,
-                            create new files — all from your phone. Combined with the new
-                            <a href="https://audiobash.app" class="text-volt hover:text-chrome transition-colors">audiobash.app</a>
-                            domain and fixed audio notifications, this release turns the remote client into a proper mobile IDE companion.
-                        </p>
-
-                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="folder-tree" class="w-5 h-5 text-volt"></i>
-                                    <span class="text-chrome font-display">File browser</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Navigate, read, edit, create, delete</div>
-                            </div>
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="globe" class="w-5 h-5 text-volt"></i>
-                                    <span class="text-chrome font-display">audiobash.app</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Custom domain on Cloudflare Pages</div>
-                            </div>
-                            <div class="bg-void border border-white/10 p-4">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <i data-lucide="volume-2" class="w-5 h-5 text-volt"></i>
-                                    <span class="text-chrome font-display">Audio restored</span>
-                                </div>
-                                <div class="text-xs text-gray-500">Vite build fix for sound files</div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-3">
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Remote file browser</span>
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Code editor</span>
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Custom domain</span>
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Audio notifications</span>
                         </div>
                     </div>
                 </div>
@@ -550,55 +487,6 @@
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">WebSocket</span>
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">PCM 16kHz</span>
                             <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Voice Activity Detection</span>
-                        </div>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Remote Access -->
-            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
-                <div class="flex items-start gap-6">
-                    <div class="feature-icon bg-volt/10 border border-volt/30 shrink-0 hidden sm:flex">
-                        <i data-lucide="smartphone" class="w-6 h-6 text-volt"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-center gap-3 mb-3">
-                            <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-xs">v2.1.x</span>
-                            <span class="text-gray-500 text-sm">January 2026</span>
-                            <span class="px-2 py-0.5 bg-volt/20 text-volt text-xs font-mono">EXPERIMENTAL</span>
-                        </div>
-
-                        <h2 class="font-display text-2xl text-chrome mb-3">Control from your phone</h2>
-
-                        <p class="text-gray-400 mb-6 leading-relaxed">
-                            Your couch is 20 feet from your desk. AudioBash now includes a browser-based remote client.
-                            Scan a QR code, type on your phone's keyboard, and watch commands execute on your desktop.
-                            The phone's native voice keyboard means you can dictate without even touching the screen.
-                        </p>
-
-                        <div class="bg-void border border-white/10 p-4 mb-6">
-                            <div class="flex items-center gap-4">
-                                <div class="text-center">
-                                    <i data-lucide="qr-code" class="w-8 h-8 text-volt mx-auto mb-2"></i>
-                                    <div class="text-xs text-gray-500">Scan QR</div>
-                                </div>
-                                <i data-lucide="arrow-right" class="w-4 h-4 text-gray-600"></i>
-                                <div class="text-center">
-                                    <i data-lucide="key-round" class="w-8 h-8 text-volt mx-auto mb-2"></i>
-                                    <div class="text-xs text-gray-500">Enter code</div>
-                                </div>
-                                <i data-lucide="arrow-right" class="w-4 h-4 text-gray-600"></i>
-                                <div class="text-center">
-                                    <i data-lucide="terminal" class="w-8 h-8 text-volt mx-auto mb-2"></i>
-                                    <div class="text-xs text-gray-500">Type anywhere</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-3">
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">WebSocket</span>
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Cloudflare Tunnel</span>
-                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Pairing codes</span>
                         </div>
                     </div>
                 </div>
