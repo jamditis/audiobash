@@ -126,7 +126,7 @@ echo $env:SHELL   # Windows PowerShell
 
 4. **Try a different model:**
    - Some models work better for different accents/languages
-   - Try switching between providers (Gemini, OpenAI, etc.)
+   - Try switching between providers (Gemini, ElevenLabs, local Whisper)
 
 #### "No Speech Detected" Error
 

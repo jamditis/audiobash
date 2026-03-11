@@ -257,7 +257,7 @@
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <i data-lucide="layers" class="w-4 h-4 text-ice mt-1 shrink-0"></i>
-                                    <span><strong class="text-chrome">Multi-provider transcription</strong> - Gemini, OpenAI Whisper, ElevenLabs, Claude, or local Whisper</span>
+                                    <span><strong class="text-chrome">Multi-provider transcription</strong> - Gemini, ElevenLabs, or local Whisper</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <i data-lucide="terminal" class="w-4 h-4 text-signal mt-1 shrink-0"></i>
@@ -430,16 +430,6 @@
                                         <td class="text-ice">ElevenLabs Scribe v2</td>
                                         <td>Real-time (~150ms), VAD auto-commit</td>
                                         <td><a href="https://elevenlabs.io/app/settings/api-keys" class="text-ice hover:underline">elevenlabs.io</a></td>
-                                    </tr>
-                                    <tr>
-                                        <td>OpenAI Whisper</td>
-                                        <td>High accuracy</td>
-                                        <td><a href="https://platform.openai.com/api-keys" class="text-ice hover:underline">platform.openai.com</a></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Claude</td>
-                                        <td>Anthropic ecosystem</td>
-                                        <td><a href="https://console.anthropic.com/" class="text-ice hover:underline">console.anthropic.com</a></td>
                                     </tr>
                                     <tr>
                                         <td>Local Whisper</td>
@@ -662,11 +652,7 @@
                                 <tbody>
                                     <tr>
                                         <td>Transcription API key</td>
-                                        <td>Speech-to-text (Gemini, OpenAI, etc.)</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Claude API key</td>
-                                        <td>Agent mode intelligence</td>
+                                        <td>Speech-to-text (Gemini)</td>
                                     </tr>
                                     <tr>
                                         <td>ElevenLabs API key</td>
@@ -681,8 +667,6 @@
                             <ul class="text-gray-400 space-y-1 text-sm">
                                 <li><strong class="text-accent">Gemini 2.0 Flash</strong> - Google's fast, accurate model (recommended, free tier)</li>
                                 <li><strong class="text-ice">ElevenLabs Scribe v2</strong> - Real-time WebSocket streaming (~150ms latency)</li>
-                                <li><strong>OpenAI Whisper</strong> - Industry-standard accuracy</li>
-                                <li><strong>Claude</strong> - Anthropic's model</li>
                                 <li><strong>Local Whisper</strong> - Offline transcription, no API key required</li>
                             </ul>
                             <p class="text-gray-500 text-sm mt-3">Click the model name in the voice overlay to cycle between providers without opening settings.</p>
@@ -767,7 +751,7 @@
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">Does AudioBash work offline?</h4>
-                            <p class="text-gray-400 text-sm">Partially. Local Whisper provides offline transcription with no internet required. Cloud providers (Gemini, OpenAI, ElevenLabs, Claude) require internet connectivity.</p>
+                            <p class="text-gray-400 text-sm">Partially. Local Whisper provides offline transcription with no internet required. Cloud providers (Gemini, ElevenLabs) require internet connectivity.</p>
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">Can I use AudioBash with any shell?</h4>

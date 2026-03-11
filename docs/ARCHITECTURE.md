@@ -140,8 +140,6 @@ flowchart TB
 
         subgraph AI["AI Integration"]
             GeminiClient["Gemini Client<br/>(GoogleGenerativeAI)"]
-            OpenAIClient["OpenAI Client"]
-            AnthropicClient["Anthropic Client"]
             WhisperSvc["Whisper Service<br/>(Local)"]
         end
 
@@ -224,8 +222,6 @@ flowchart TB
 
     subgraph EXTERNAL["🌐 EXTERNAL SERVICES"]
         GeminiAPI["Google Gemini API"]
-        OpenAIAPI["OpenAI API<br/>(Whisper + GPT-4)"]
-        AnthropicAPI["Anthropic API<br/>(Claude)"]
         ElevenLabsAPI["ElevenLabs API<br/>(Scribe + Realtime)"]
     end
 
@@ -249,8 +245,6 @@ flowchart TB
 
     %% External API connections
     TranscriptionSvc --> GeminiAPI
-    TranscriptionSvc --> OpenAIAPI
-    TranscriptionSvc --> AnthropicAPI
     TranscriptionSvc --> ElevenLabsAPI
     ElevenLabsSvc --> ElevenLabsAPI
 ```
@@ -291,16 +285,6 @@ sequenceDiagram
     alt Gemini Model
         TranscriptionService->>TranscriptionService: Blob → Base64
         TranscriptionService->>AIProvider: Gemini API (audio + prompt)
-    else OpenAI Model
-        TranscriptionService->>AIProvider: Whisper API (FormData)
-        AIProvider-->>TranscriptionService: Raw text
-        opt Agent Mode
-            TranscriptionService->>AIProvider: GPT-4 (text + context)
-        end
-    else Anthropic Model
-        TranscriptionService->>AIProvider: Whisper API first
-        AIProvider-->>TranscriptionService: Raw text
-        TranscriptionService->>AIProvider: Claude API (text + context)
     else Local Whisper
         TranscriptionService->>IPC: saveTempAudio(base64)
         IPC->>MainProcess: Save to temp file
@@ -406,10 +390,8 @@ flowchart LR
             set-api-key
         end
 
-        subgraph Trans["Transcription (4)"]
+        subgraph Trans["Transcription (2)"]
             transcribe-with-gemini
-            transcribe-with-openai
-            transcribe-with-anthropic
             transcribe-with-elevenlabs
         end
 
@@ -575,8 +557,6 @@ flowchart TB
             direction TB
 
             GeminiAdapter["Gemini Adapter<br/>• gemini-2.0-flash<br/>• gemini-2.5-flash"]
-            OpenAIAdapter["OpenAI Adapter<br/>• whisper-1<br/>• gpt-4-turbo (agent)"]
-            AnthropicAdapter["Anthropic Adapter<br/>• claude-3-haiku<br/>• claude-sonnet-4"]
             ElevenLabsAdapter["ElevenLabs Adapter<br/>• scribe_v1 (batch)"]
             LocalAdapter["Local Adapter<br/>• whisper-local-tiny<br/>• whisper-local-base<br/>• whisper-local-small<br/>• parakeet-local"]
         end
@@ -590,8 +570,6 @@ flowchart TB
 
     subgraph ExternalAPIs["External APIs"]
         GeminiAPI["Google Gemini API"]
-        OpenAIAPI["OpenAI API"]
-        AnthropicAPI["Anthropic Claude API"]
         ElevenLabsAPI["ElevenLabs API"]
     end
 
@@ -608,8 +586,6 @@ flowchart TB
     Modes --> Providers
 
     GeminiAdapter --> GeminiAPI
-    OpenAIAdapter --> OpenAIAPI
-    AnthropicAdapter --> AnthropicAPI
     ElevenLabsAdapter --> ElevenLabsAPI
     LocalAdapter --> LocalServices
 
@@ -859,9 +835,6 @@ audiobash/
 | Provider | Model | Latency | Notes |
 |----------|-------|---------|-------|
 | Gemini | 2.0/2.5 Flash | 2-3s | Native audio support |
-| OpenAI | Whisper | 3-5s | Batch transcription |
-| OpenAI | GPT-4 (agent) | +1-2s | Additional API call |
-| Anthropic | Claude | 4-6s | Whisper + Claude |
 | ElevenLabs | Scribe (batch) | 2-3s | High quality |
 | ElevenLabs | Scribe (realtime) | ~150ms | WebSocket streaming |
 | Local | Whisper tiny | 5-10s | CPU dependent |
@@ -874,10 +847,6 @@ audiobash/
 | Provider | Cost | Notes |
 |----------|------|-------|
 | Gemini | ~$0.0003 | Most cost-effective |
-| OpenAI Whisper | $0.006 | Industry standard |
-| OpenAI + GPT-4 | +$0.02 | Agent mode |
-| Claude Haiku | +$0.001 | Fast agent mode |
-| Claude Sonnet | +$0.01 | Quality agent mode |
 | ElevenLabs | $0.0067 | Same for batch/realtime |
 | Local | $0.00 | One-time setup cost |
 
@@ -890,8 +859,8 @@ audiobash/
 | **Exposed APIs** | 53 |
 | **React Components** | 17 |
 | **Custom Hooks** | 6 |
-| **Transcription Models** | 12 |
-| **AI Providers** | 5 |
+| **Transcription Models** | 7 |
+| **AI Providers** | 3 |
 | **Keyboard Shortcuts** | 15 |
 | **Layout Modes** | 5 |
 | **Max Terminal Tabs** | 4 |

@@ -38,12 +38,11 @@ AudioBash is a voice-controlled terminal application designed to work with Claud
 ### Key features
 
 - **Push-to-talk voice input** — Hold a hotkey to record, release to transcribe and execute
-- **Multi-provider transcription** — Gemini, OpenAI Whisper, ElevenLabs, Claude, or local Whisper
+- **Multi-provider transcription** — Gemini, ElevenLabs, or local Whisper
 - **Local Whisper** — Offline transcription with no API key required
 - **ElevenLabs real-time streaming** — WebSocket-based transcription at ~150ms latency
 - **Voice activity detection** — Auto-commit on silence with ElevenLabs Scribe v2
 - **Real terminal environment** — Full PTY (pseudo-terminal) with shell access
-- **Agent mode** — AI-powered command generation for complex tasks
 - **Split view** — 5 layout modes with resizable panes
 - **Preview pane** — Embedded web preview with auto-refresh and screenshot capture
 - **Model cycling** — Click the model name in the voice overlay to switch providers
@@ -147,8 +146,6 @@ When you launch AudioBash for the first time, you'll see the onboarding wizard.
 |----------|----------|----------------|
 | **Gemini** (recommended) | Fast, accurate, free tier | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
 | **ElevenLabs** | Real-time streaming (~150ms) | [elevenlabs.io](https://elevenlabs.io) |
-| **OpenAI Whisper** | High accuracy | [platform.openai.com](https://platform.openai.com/api-keys) |
-| **Claude** | Anthropic ecosystem | [console.anthropic.com](https://console.anthropic.com/) |
 | **Local Whisper** | Offline, no API key | Built-in (downloads model on first use) |
 
 ### Step 2: Enter your API key
@@ -271,8 +268,7 @@ Store API keys for various services:
 
 | Setting | Purpose |
 |---------|---------|
-| Transcription API key | Speech-to-text (Gemini, OpenAI, ElevenLabs, etc.) |
-| Claude API key | Agent mode intelligence |
+| Transcription API key | Speech-to-text (Gemini) |
 | ElevenLabs API key | Real-time streaming and text-to-speech |
 
 All keys are encrypted using Electron's `safeStorage` API and stored locally.
@@ -283,8 +279,6 @@ Choose your preferred speech recognition service:
 
 - **Gemini 2.0 Flash** — Google's fast, accurate model (recommended, free tier)
 - **ElevenLabs Scribe** — Real-time WebSocket streaming at ~150ms latency
-- **OpenAI Whisper** — Industry-standard accuracy
-- **Claude** — Anthropic's model
 - **Local Whisper** — Offline, runs on your machine
 
 Click the model name in the voice overlay to cycle between providers without opening settings.
@@ -405,13 +399,13 @@ This was fixed in v2.4.0. If you're running an older version, update to the late
 Yes. AudioBash is free and open source. The cloud transcription services require API keys, which may have usage costs depending on the provider. Gemini offers a generous free tier, and local Whisper requires no API key at all.
 
 ### Does AudioBash work offline?
-Partially. Local Whisper provides offline transcription with no internet required. Cloud providers (Gemini, OpenAI, ElevenLabs, Claude) require internet connectivity.
+Partially. Local Whisper provides offline transcription with no internet required. Cloud providers (Gemini, ElevenLabs) require internet connectivity.
 
 ### Can I use AudioBash with any shell?
 Yes. On Windows, it defaults to PowerShell. On macOS, it uses your default shell (usually zsh). You can start any shell by typing its name.
 
 ### Is my voice data private?
-When using cloud providers, your audio is sent to the chosen provider (Google, OpenAI, ElevenLabs, Anthropic) for processing. AudioBash does not store your recordings. For full privacy, use local Whisper — audio never leaves your machine. Review your provider's privacy policy for details.
+When using cloud providers, your audio is sent to the chosen provider (Google, ElevenLabs) for processing. AudioBash does not store your recordings. For full privacy, use local Whisper — audio never leaves your machine. Review your provider's privacy policy for details.
 
 ### How do I update AudioBash?
 Download the latest version from [audiobash.app](https://audiobash.app) or the [GitHub releases page](https://github.com/jamditis/audiobash/releases) and install over your existing installation. Settings are preserved.

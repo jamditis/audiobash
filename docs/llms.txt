@@ -9,8 +9,8 @@ Repository: https://github.com/jamditis/audiobash
 
 AudioBash is a desktop application that lets developers control their terminal
 with voice commands. Built with Electron, React, and xterm.js, it supports
-multiple AI providers for voice transcription including Google Gemini, OpenAI
-Whisper, and local models.
+multiple AI providers for voice transcription including Google Gemini,
+ElevenLabs, and local Whisper models.
 
 Key features:
 - Voice-to-terminal command execution via push-to-talk hotkey
