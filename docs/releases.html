@@ -822,62 +822,119 @@
         </div>
 
         <!-- ROADMAP -->
-        <section class="mt-16">
+        <section id="roadmap" class="mt-16">
             <h2 class="font-display text-2xl text-chrome mb-6">ROADMAP</h2>
 
-            <div class="bg-panel border border-white/10 p-6">
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <h4 class="font-display text-accent text-sm mb-3">Planned features</h4>
-                        <ul class="text-gray-400 text-sm space-y-2">
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Customizable keyboard shortcuts
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Voice command history browser
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Snippet library for common commands
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Multiple configuration profiles
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Export/import settings
-                            </li>
-                        </ul>
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <!-- v3.1 — Stability & keyboard shortcuts -->
+                <div class="bg-panel border border-accent/40 p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="border border-accent text-accent text-xs font-display px-2 py-0.5">v3.1</span>
+                        <h4 class="font-display text-accent text-sm">Stability & keyboard shortcuts</h4>
                     </div>
-                    <div>
-                        <h4 class="font-display text-ice text-sm mb-3">Future releases</h4>
-                        <ul class="text-gray-400 text-sm space-y-2">
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Linux support (AppImage, .deb)
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Plugin system
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                VS Code extension
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                SSH session support
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
-                                Multi-language transcription
-                            </li>
-                        </ul>
-                    </div>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Pane system hardening
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Voice pipeline reliability
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Customizable keyboard shortcuts
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Performance optimization
+                        </li>
+                    </ul>
                 </div>
+
+                <!-- v3.5 — Voice evolution -->
+                <div class="bg-panel border border-ice/40 p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="border border-ice text-ice text-xs font-display px-2 py-0.5">v3.5</span>
+                        <h4 class="font-display text-ice text-sm">Voice evolution</h4>
+                    </div>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Voice command history browser
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Continuous listening mode
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Wake word detection
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Audio input device selection
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- v4.0 — Sessions, workspaces, and signed distribution -->
+                <div class="bg-panel border border-apple/40 p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="border border-apple text-apple text-xs font-display px-2 py-0.5">v4.0</span>
+                        <h4 class="font-display text-apple text-sm">Sessions, workspaces & signed distribution</h4>
+                    </div>
+                    <ul class="text-gray-400 text-sm space-y-2">
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            macOS code signing & notarization
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Auto-update via electron-updater
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Named terminal sessions
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Project-based pane layouts
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Linux support (AppImage, .deb)
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Future / exploratory -->
+                <div class="bg-void border border-white/10 p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="border border-white/10 text-gray-500 text-xs font-display px-2 py-0.5">future</span>
+                        <h4 class="font-display text-gray-500 text-sm">Exploratory</h4>
+                    </div>
+                    <ul class="text-gray-500 text-sm space-y-2">
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Local transcription (whisper.cpp)
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Multi-language transcription
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Terminal session recording
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <span class="w-4 h-4 border border-white/20 flex-shrink-0"></span>
+                            Custom voice command aliases
+                        </li>
+                    </ul>
+                </div>
+
             </div>
         </section>
 
