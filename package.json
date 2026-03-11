@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "3.0.3",
+  "version": "3.1.0",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-"electron:dev": "concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
+    "electron:dev": "concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:mac": "npm run build && electron-builder --mac",
