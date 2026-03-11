@@ -158,17 +158,17 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v3.1.0 -->
+            <!-- v3.2.0 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm">v3.1.0</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm" data-version="v{version}">v3.2.0</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
                     <span class="text-gray-500 text-sm">March 11, 2026</span>
                 </div>
 
-                <h2 class="font-display text-2xl text-chrome mb-4">Developer ID code signing for macOS</h2>
+                <h2 class="font-display text-2xl text-chrome mb-4">Customizable pane colors with activity fade</h2>
 
-                <p class="text-gray-400 mb-6">macOS builds are now signed with a Developer ID Application certificate, the same type Apple requires for distribution outside the Mac App Store. Right-click → Open now works reliably on first launch. Roadmap redesigned with milestone-based planning.</p>
+                <p class="text-gray-400 mb-6">Each pane gets a user-chosen color from an 8-color palette. Colors fade through brightness steps as terminals go idle, and turn red on error exits. Exit now closes panes automatically, and focus tracking works for all grid positions.</p>
 
                 <!-- Downloads -->
                 <div class="bg-void border border-white/10 p-4 mb-6">
@@ -188,6 +188,39 @@
                         </a>
                     </div>
                 </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-signal text-sm mb-2">Pane colors</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>- <strong>8-color preset palette</strong> - Emerald, Cobalt, Crimson, Violet, Cyan, Amber, Rose, Acid</li>
+                            <li>- <strong>Activity fade</strong> - Full color (0-15s), fading (15-30s), dim (30-60s), gray (60s+)</li>
+                            <li>- <strong>Toolbar color picker</strong> - Click the swatch to open a popover with all 8 colors</li>
+                            <li>- <strong>Persistent colors</strong> - Pane colors saved to localStorage, survive restarts</li>
+                            <li>- <strong>Error override</strong> - Non-zero exit always shows red, regardless of pane color</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Pane behavior</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>- <strong>Exit closes pane</strong> - Shell exit (e.g., typing "exit") automatically closes the pane</li>
+                            <li>- <strong>Focus tracking fix</strong> - Bottom panes in grid layout now track focus correctly</li>
+                            <li>- <strong>6 activity states</strong> - Active, fading, dim, inactive, done, error</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v3.1.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v3.1.0</span>
+                    <span class="text-gray-500 text-sm">March 11, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Developer ID code signing for macOS</h2>
+
+                <p class="text-gray-400 mb-6">macOS builds are now signed with a Developer ID Application certificate, the same type Apple requires for distribution outside the Mac App Store. Right-click → Open now works reliably on first launch. Roadmap redesigned with milestone-based planning.</p>
 
                 <div class="grid md:grid-cols-2 gap-6">
                     <div>

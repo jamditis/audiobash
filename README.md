@@ -18,6 +18,7 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
 - **Tmux-style pane system** - Binary tree pane architecture with split horizontal (Alt+-) and vertical (Alt+\), drag dividers, double-click to equalize, 5 preset layouts
+- **Customizable pane colors** - 8-color palette (Emerald, Cobalt, Crimson, Violet, Cyan, Amber, Rose, Acid) with activity-based fade: full color → fading → dim → gray as terminals go idle. Error exits always red. Colors persist across restarts
 - **Pane keyboard navigation** - Alt+Arrow to move focus, Alt+1-4 for direct focus, Alt+Shift+Arrow to resize, Alt+Z to zoom/unzoom
 - **Named pane sessions** - Save and load pane layouts by name
 - **Claude Code /voice integration** - Detects Claude Code /voice mode, shows [CC /voice] badge in voice panel, disables mic button during CC /voice, smart handoff (cancels any active recording without sending partial audio)
