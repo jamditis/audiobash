@@ -97,7 +97,7 @@ let currentShortcuts = {
   togglePreview: 'Alt+P',
   captureScreenshot: 'Alt+Shift+P',
   splitHorizontal: 'Alt+-',
-  splitVertical: 'Alt+\',
+  splitVertical: 'Alt+\\',
   closePane: 'Alt+W',
   zoomPane: 'Alt+Z',
 };
