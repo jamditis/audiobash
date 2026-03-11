@@ -6,6 +6,7 @@ import {
   type PresetName,
 } from '../utils/paneTree';
 import { usePaneActivity } from '../hooks/usePaneActivity';
+import { loadPaneColors, savePaneColor, DEFAULT_PANE_COLOR, type PaneColorName } from '../utils/paneColors';
 
 export interface PaneManagerHandle {
   splitHorizontal: () => void;
@@ -39,6 +40,7 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
   const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null);
   const [presetIndex, setPresetIndex] = useState(0);
   const activityStates = usePaneActivity();
+  const [paneColors, setPaneColors] = useState<Map<string, PaneColorName>>(() => loadPaneColors());
 
   // Pool of all terminal IDs managed by panes — superset of current pane leaves.
   // Preset switching draws from this pool instead of creating/destroying terminals,
@@ -203,6 +205,19 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     });
   }, [focusedPaneId]);
 
+  const handleColorChange = useCallback((colorName: PaneColorName) => {
+    if (!focusedPaneId) return;
+    const leaves = flattenLeaves(paneRoot);
+    const leaf = leaves.find(l => l.id === focusedPaneId);
+    if (!leaf) return;
+    savePaneColor(leaf.terminalId, colorName);
+    setPaneColors(prev => {
+      const next = new Map(prev);
+      next.set(leaf.terminalId, colorName);
+      return next;
+    });
+  }, [focusedPaneId, paneRoot]);
+
   // Expose imperative handle for keyboard shortcuts
   useImperativeHandle(ref, () => ({
     splitHorizontal: () => handleSplit('horizontal'),
@@ -221,15 +236,24 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     ? (flattenLeaves(paneRoot).find(l => l.id === zoomedPaneId) || paneRoot)
     : paneRoot;
 
+  const focusedLeaf = focusedPaneId
+    ? flattenLeaves(paneRoot).find(l => l.id === focusedPaneId)
+    : null;
+  const currentColor: PaneColorName = focusedLeaf
+    ? (paneColors.get(focusedLeaf.terminalId) ?? DEFAULT_PANE_COLOR)
+    : DEFAULT_PANE_COLOR;
+
   return (
     <div className="h-full w-full flex flex-col">
       <PaneToolbar
         paneCount={flattenLeaves(paneRoot).length}
         isZoomed={!!zoomedPaneId}
+        currentColor={currentColor}
         onSplitH={() => handleSplit('horizontal')}
         onSplitV={() => handleSplit('vertical')}
         onPreset={handlePreset}
         onToggleZoom={toggleZoom}
+        onColorChange={handleColorChange}
       />
       <div className="flex-1 relative overflow-hidden">
         {zoomedPaneId && (
@@ -245,6 +269,7 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
           cliNotificationsEnabled={cliNotificationsEnabled}
           fontSize={fontSize}
           activityStates={activityStates}
+          paneColors={paneColors}
           onFocus={setFocusedPaneId}
           onResize={handleResize}
           onEqualize={handleEqualize}
