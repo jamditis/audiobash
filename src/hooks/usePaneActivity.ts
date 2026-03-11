@@ -67,7 +67,13 @@ export function usePaneActivity(): Map<string, ActivityState> {
       activitiesRef.current.forEach((activity, tabId) => {
         newStates.set(tabId, deriveState(activity, now));
       });
-      setStates(newStates);
+      setStates(prev => {
+        if (prev.size !== newStates.size) return newStates;
+        for (const [tabId, state] of newStates) {
+          if (prev.get(tabId) !== state) return newStates;
+        }
+        return prev;
+      });
     }, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
