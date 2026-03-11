@@ -49,3 +49,6 @@ stash/
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Superpowers brainstorm sessions
+.superpowers/
