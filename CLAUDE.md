@@ -146,10 +146,20 @@ audiobash/
 ├── src/
 │   ├── components/
 │   │   ├── Terminal.tsx       # xterm.js wrapper
-│   │   ├── VoiceOverlay.tsx   # Voice input UI
+│   │   ├── VoiceOverlay.tsx   # Voice input UI (ccVoiceActive aware)
+│   │   ├── StatusIndicator.tsx# Bottom status bar
+│   │   ├── PaneManager.tsx    # Pane layout manager (imperative handle)
+│   │   ├── PaneNode.tsx       # Recursive pane renderer
+│   │   ├── PaneToolbar.tsx    # Split/preset/zoom/save toolbar
+│   │   ├── PaneDivider.tsx    # Draggable pane resize divider
+│   │   ├── Settings.tsx       # Settings panel
 │   │   └── TitleBar.tsx       # Frameless window controls
+│   ├── contexts/              # React contexts (ConsoleError, etc.)
 │   ├── services/              # Transcription and speech services
-│   ├── utils/                 # Audio utilities
+│   ├── utils/
+│   │   ├── paneTree.ts        # Binary tree pane data model
+│   │   ├── voiceModeDetector.ts # CC /voice mode detection via terminal output
+│   │   └── ...                # Audio utilities
 │   ├── App.tsx                # Main layout
 │   ├── index.tsx              # React entry
 │   ├── index.css              # Tailwind entry
