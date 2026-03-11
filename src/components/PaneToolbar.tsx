@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { PresetName } from '../utils/paneTree';
+import { PANE_PALETTE, type PaneColorName } from '../utils/paneColors';
 
 interface PaneToolbarProps {
   paneCount: number;
   isZoomed: boolean;
+  currentColor?: PaneColorName;
   onSplitH: () => void;
   onSplitV: () => void;
   onPreset: (name: PresetName) => void;
   onToggleZoom: () => void;
+  onColorChange?: (color: PaneColorName) => void;
 }
 
 /* 14x14 inline SVG icons — each visually depicts the layout it creates */
@@ -103,68 +106,124 @@ const btnDefault = `${btnBase} text-crt-white/50 hover:text-accent hover:bg-void
 const btnDisabled = `${btnBase} text-crt-white/20 cursor-not-allowed`;
 
 const PaneToolbar: React.FC<PaneToolbarProps> = ({
-  paneCount, isZoomed, onSplitH, onSplitV, onPreset, onToggleZoom,
-}) => (
-  <div className="flex items-center gap-0.5 px-2 py-0.5 bg-void border-b border-void-300 text-xs font-mono select-none">
-    {/* Split actions */}
-    <button
-      onClick={onSplitH}
-      disabled={paneCount >= 4}
-      className={paneCount >= 4 ? btnDisabled : btnDefault}
-      title="Split horizontal (Alt+-)"
-      aria-label="Split horizontal"
-    >
-      <SplitHIcon />
-    </button>
-    <button
-      onClick={onSplitV}
-      disabled={paneCount >= 4}
-      className={paneCount >= 4 ? btnDisabled : btnDefault}
-      title="Split vertical (Alt+\)"
-      aria-label="Split vertical"
-    >
-      <SplitVIcon />
-    </button>
+  paneCount, isZoomed, currentColor = 'acid', onSplitH, onSplitV, onPreset, onToggleZoom, onColorChange,
+}) => {
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
-    <span className="w-px h-3.5 bg-void-300 mx-1.5" />
-
-    {/* Layout presets */}
-    <button onClick={() => onPreset('single')} className={btnDefault} title="Single pane" aria-label="Single pane">
-      <SingleIcon />
-    </button>
-    <button onClick={() => onPreset('side-by-side')} className={btnDefault} title="Side by side" aria-label="Side by side">
-      <SideBySideIcon />
-    </button>
-    <button onClick={() => onPreset('stacked')} className={btnDefault} title="Stacked" aria-label="Stacked">
-      <StackedIcon />
-    </button>
-    <button onClick={() => onPreset('grid-2x2')} className={btnDefault} title="Grid 2x2" aria-label="Grid 2x2">
-      <GridIcon />
-    </button>
-    <button onClick={() => onPreset('main-sidebar')} className={btnDefault} title="Main + sidebar" aria-label="Main plus sidebar">
-      <MainSidebarIcon />
-    </button>
-
-    <span className="w-px h-3.5 bg-void-300 mx-1.5" />
-
-    {/* Zoom toggle */}
-    <button
-      onClick={onToggleZoom}
-      className={isZoomed
-        ? `${btnBase} text-accent hover:text-accent-glow hover:bg-void-300`
-        : btnDefault
+  useEffect(() => {
+    if (!showPicker) return;
+    const handleClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false);
       }
-      title="Toggle pane zoom (Alt+Z)"
-      aria-label="Toggle pane zoom"
-    >
-      <ZoomIcon active={isZoomed} />
-    </button>
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showPicker]);
 
-    {/* Pane counter */}
-    <span className="ml-auto text-crt-white/25 tabular-nums tracking-wide">
-      {paneCount}<span className="text-crt-white/15">/</span>4 panes
-    </span>
-  </div>
-);
+  const baseHsl = PANE_PALETTE[currentColor];
+
+  return (
+    <div className="flex items-center gap-0.5 px-2 py-0.5 bg-void border-b border-void-300 text-xs font-mono select-none">
+      {/* Split actions */}
+      <button
+        onClick={onSplitH}
+        disabled={paneCount >= 4}
+        className={paneCount >= 4 ? btnDisabled : btnDefault}
+        title="Split horizontal (Alt+-)"
+        aria-label="Split horizontal"
+      >
+        <SplitHIcon />
+      </button>
+      <button
+        onClick={onSplitV}
+        disabled={paneCount >= 4}
+        className={paneCount >= 4 ? btnDisabled : btnDefault}
+        title="Split vertical (Alt+\)"
+        aria-label="Split vertical"
+      >
+        <SplitVIcon />
+      </button>
+
+      <span className="w-px h-3.5 bg-void-300 mx-1.5" />
+
+      {/* Layout presets */}
+      <button onClick={() => onPreset('single')} className={btnDefault} title="Single pane" aria-label="Single pane">
+        <SingleIcon />
+      </button>
+      <button onClick={() => onPreset('side-by-side')} className={btnDefault} title="Side by side" aria-label="Side by side">
+        <SideBySideIcon />
+      </button>
+      <button onClick={() => onPreset('stacked')} className={btnDefault} title="Stacked" aria-label="Stacked">
+        <StackedIcon />
+      </button>
+      <button onClick={() => onPreset('grid-2x2')} className={btnDefault} title="Grid 2x2" aria-label="Grid 2x2">
+        <GridIcon />
+      </button>
+      <button onClick={() => onPreset('main-sidebar')} className={btnDefault} title="Main + sidebar" aria-label="Main plus sidebar">
+        <MainSidebarIcon />
+      </button>
+
+      <span className="w-px h-3.5 bg-void-300 mx-1.5" />
+
+      {/* Zoom toggle */}
+      <button
+        onClick={onToggleZoom}
+        className={isZoomed
+          ? `${btnBase} text-accent hover:text-accent-glow hover:bg-void-300`
+          : btnDefault
+        }
+        title="Toggle pane zoom (Alt+Z)"
+        aria-label="Toggle pane zoom"
+      >
+        <ZoomIcon active={isZoomed} />
+      </button>
+
+      <span className="w-px h-3.5 bg-void-300 mx-1.5" />
+
+      {/* Color swatch */}
+      <div className="relative" ref={pickerRef}>
+        <button
+          onClick={() => setShowPicker(p => !p)}
+          className={`${btnBase} hover:bg-void-300`}
+          title="Pane color"
+          aria-label="Change pane color"
+        >
+          <div
+            className="w-3 h-3 rounded-sm border border-crt-white/30"
+            style={{ backgroundColor: `hsl(${baseHsl.h}, ${baseHsl.s}%, ${baseHsl.l}%)` }}
+          />
+        </button>
+        {showPicker && (
+          <div className="absolute top-full left-0 mt-1 flex gap-1.5 p-1.5 bg-[#1a1a1a] border border-[#444] rounded z-50 shadow-lg">
+            {(Object.keys(PANE_PALETTE) as PaneColorName[]).map(name => {
+              const hsl = PANE_PALETTE[name];
+              return (
+                <button
+                  key={name}
+                  onClick={() => { onColorChange?.(name); setShowPicker(false); }}
+                  className="w-4 h-4 rounded-sm transition-all duration-100"
+                  style={{
+                    backgroundColor: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`,
+                    border: name === currentColor ? '1px solid #ccff00' : '1px solid transparent',
+                    boxShadow: name === currentColor ? '0 0 4px rgba(204, 255, 0, 0.4)' : 'none',
+                  }}
+                  title={name.charAt(0).toUpperCase() + name.slice(1)}
+                  aria-label={`Set pane color to ${name}`}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Pane counter */}
+      <span className="ml-auto text-crt-white/25 tabular-nums tracking-wide">
+        {paneCount}<span className="text-crt-white/15">/</span>4 panes
+      </span>
+    </div>
+  );
+};
 
 export default PaneToolbar;
