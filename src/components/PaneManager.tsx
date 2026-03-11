@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import PaneNodeComponent from './PaneNode';
 import PaneToolbar from './PaneToolbar';
 import {
@@ -38,6 +38,11 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
   const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null);
   const [presetIndex, setPresetIndex] = useState(0);
 
+  // Pool of all terminal IDs managed by panes — superset of current pane leaves.
+  // Preset switching draws from this pool instead of creating/destroying terminals,
+  // which preserves custom tab names and terminal content.
+  const terminalPoolRef = useRef<string[]>([initialTerminalId]);
+
   // Initialize focus to first pane
   useEffect(() => {
     const leaves = flattenLeaves(paneRoot);
@@ -50,13 +55,17 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     if (!focusedPaneId) return;
     if (flattenLeaves(paneRoot).length >= 4) return;
     const newTabId = await onCreateTerminal();
+    terminalPoolRef.current.push(newTabId);
     setPaneRoot(prev => splitPane(prev, focusedPaneId, direction, newTabId));
   }, [focusedPaneId, paneRoot, onCreateTerminal]);
 
   const handleClose = useCallback((paneId: string) => {
     const leaves = flattenLeaves(paneRoot);
     const leaf = leaves.find(l => l.id === paneId);
-    if (leaf) onCloseTerminal(leaf.terminalId);
+    if (leaf) {
+      onCloseTerminal(leaf.terminalId);
+      terminalPoolRef.current = terminalPoolRef.current.filter(id => id !== leaf.terminalId);
+    }
 
     const newRoot = closePane(paneRoot, paneId);
     if (newRoot) {
@@ -92,22 +101,22 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
   }, []);
 
   const handlePreset = useCallback(async (preset: PresetName) => {
-    const currentLeaves = flattenLeaves(paneRoot);
     const neededCount = preset === 'single' ? 1 : preset === 'grid-2x2' ? 4 : 2;
-    const terminalIds = currentLeaves.map(l => l.terminalId);
+    const pool = terminalPoolRef.current;
 
-    while (terminalIds.length < neededCount) {
+    // Reuse from pool first — only create new terminals if pool is too small.
+    // This preserves custom tab names and terminal content across preset switches.
+    while (pool.length < neededCount) {
       const newTabId = await onCreateTerminal();
-      terminalIds.push(newTabId);
-    }
-    while (terminalIds.length > neededCount) {
-      const removed = terminalIds.pop()!;
-      onCloseTerminal(removed);
+      pool.push(newTabId);
     }
 
-    setPaneRoot(applyPreset(preset, terminalIds));
+    // Use first N from pool for the layout
+    const layoutIds = pool.slice(0, neededCount);
+
+    setPaneRoot(applyPreset(preset, layoutIds));
     setZoomedPaneId(null);
-  }, [paneRoot, onCreateTerminal, onCloseTerminal]);
+  }, [onCreateTerminal]);
 
   const toggleZoom = useCallback(() => {
     setZoomedPaneId(prev => prev === focusedPaneId ? null : focusedPaneId);

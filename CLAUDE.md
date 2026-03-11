@@ -26,9 +26,6 @@ AudioBash has a custom domain and web documentation:
 ### Hosting setup
 - **audiobash.app** - GitHub Pages (serves `docs/` folder)
 
-### Remote control
-The mobile remote page is served directly by AudioBash's WebSocket server at `http://<ip>:8765/`. The static files live in `docs/remote/` and are bundled via `extraResources` in electron-builder. No separate hosting needed.
-
 ### Documentation files
 ```
 docs/
@@ -39,10 +36,6 @@ docs/
 ├── releases.html       # Version history and changelog
 ├── blog.html           # Blog index
 ├── CNAME               # Custom domain for GitHub Pages
-├── remote/             # Mobile remote control page (served by WebSocket server)
-│   ├── index.html
-│   ├── manifest.json
-│   └── ...
 └── screenshots/        # UI screenshots (full + web-optimized)
 ```
 
@@ -139,7 +132,6 @@ audiobash/
 ├── electron/
 │   ├── main.cjs              # Electron main process, node-pty
 │   ├── preload.cjs           # Context bridge for IPC
-│   ├── websocket-server.cjs  # Remote control server (HTTP + WebSocket)
 │   ├── logger.cjs            # Structured logging
 │   ├── error-handler.cjs     # Error categorization and recovery
 │   └── whisperService.cjs    # Local speech-to-text via whisper.cpp

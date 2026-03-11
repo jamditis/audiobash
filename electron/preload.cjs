@@ -32,7 +32,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 /**
  * The electron API exposed to the renderer process.
  * Provides methods for window control, terminal management, voice input,
- * keyboard shortcuts, file operations, and remote control.
+ * keyboard shortcuts, and file operations.
  *
  * @namespace window.electron
  */
@@ -210,6 +210,12 @@ contextBridge.exposeInMainWorld('electron', {
    * console.log('Recent output:', context.recentOutput);
    */
   getTerminalContext: (tabId) => ipcRenderer.invoke('get-terminal-context', tabId),
+
+  /** Get buffered terminal output for replay after late mount */
+  getTerminalBuffer: (tabId) => ipcRenderer.invoke('get-terminal-buffer', tabId),
+
+  /** Signal that xterm is mounted and ready to receive data — flushes buffered output */
+  signalTerminalReady: (tabId) => ipcRenderer.invoke('terminal-ready', tabId),
 
   /**
    * Subscribes to terminal output data events.
@@ -942,86 +948,6 @@ contextBridge.exposeInMainWorld('electron', {
    * }
    */
   saveTempAudio: (base64Audio) => ipcRenderer.invoke('save-temp-audio', base64Audio),
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REMOTE CONTROL (MOBILE COMPANION)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Gets the current remote control status.
-   *
-   * @function getRemoteStatus
-   * @memberof window.electron
-   * @returns {Promise<{running: boolean, port: number, addresses: string[], connected: boolean, deviceName: string|null}>} Remote status
-   */
-  getRemoteStatus: () => ipcRenderer.invoke('get-remote-status'),
-
-  /**
-   * Sets a password for remote connections.
-   *
-   * @function setRemotePassword
-   * @memberof window.electron
-   * @param {string} password - Password for remote authentication
-   * @returns {Promise<{success: boolean}>} Set result
-   * @example
-   * await window.electron.setRemotePassword('securePassword123');
-   */
-  setRemotePassword: (password) => ipcRenderer.invoke('set-remote-password', password),
-
-  /**
-   * Gets the current remote connection password.
-   *
-   * @function getRemotePassword
-   * @memberof window.electron
-   * @returns {Promise<string>} The current password
-   * @example
-   * const password = await window.electron.getRemotePassword();
-   */
-  getRemotePassword: () => ipcRenderer.invoke('get-remote-password'),
-
-  /**
-   * Sets whether to prevent the system from sleeping.
-   * Useful when waiting for remote voice commands.
-   *
-   * @function setKeepAwake
-   * @memberof window.electron
-   * @param {boolean} enabled - Whether to keep the system awake
-   * @returns {Promise<{success: boolean}>} Set result
-   * @example
-   * await window.electron.setKeepAwake(true); // Prevent sleep
-   */
-  setKeepAwake: (enabled) => ipcRenderer.invoke('set-keep-awake', enabled),
-
-  /**
-   * Gets the current keep-awake setting.
-   *
-   * @function getKeepAwake
-   * @memberof window.electron
-   * @returns {Promise<boolean>} Whether keep-awake is enabled
-   * @example
-   * const keepAwake = await window.electron.getKeepAwake();
-   */
-  getKeepAwake: () => ipcRenderer.invoke('get-keep-awake'),
-
-  /**
-   * Subscribes to remote status change events.
-   * Called when clients connect/disconnect or server state changes.
-   *
-   * @function onRemoteStatusChanged
-   * @memberof window.electron
-   * @param {Function} callback - Handler receiving (status: {running, port, connected, deviceName})
-   * @returns {Function} Cleanup function to remove the listener
-   * @example
-   * const cleanup = window.electron.onRemoteStatusChanged((status) => {
-   *   console.log(`Clients connected: ${status.clients}`);
-   *   updateStatusIndicator(status);
-   * });
-   */
-  onRemoteStatusChanged: (callback) => {
-    const handler = (_, status) => callback(status);
-    ipcRenderer.on('remote-status-changed', handler);
-    return () => ipcRenderer.removeListener('remote-status-changed', handler);
-  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FONT ZOOM

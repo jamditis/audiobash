@@ -10,9 +10,6 @@ import * as os from 'os';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
 
-// Import services for testing
-const { RemoteControlServer } = require('../../electron/websocket-server.cjs');
-
 // Store original platform for restoration
 const originalPlatform = process.platform;
 const originalEnv = { ...process.env };
@@ -35,19 +32,6 @@ function restorePlatform(): void {
 
 describe('Shell Detection', () => {
   describe('Current Platform Shell Detection', () => {
-    it('should detect shell on current platform', () => {
-      const expectedShell =
-        process.platform === 'win32'
-          ? 'powershell.exe'
-          : process.env.SHELL || '/bin/bash';
-
-      const server = new RemoteControlServer({ port: 19999 });
-      const status = server.getStatus();
-
-      // Server should be able to provide shell info
-      expect(status).toBeDefined();
-    });
-
     it('should return correct shell environment variable', () => {
       if (process.platform !== 'win32') {
         expect(process.env.SHELL).toBeDefined();
@@ -362,41 +346,6 @@ describe('Terminal Configuration', () => {
       expect(dim.cols).toBeGreaterThan(0);
       expect(dim.rows).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('WebSocket Server Cross-Platform', () => {
-  it('should get local IP addresses', () => {
-    const server = new RemoteControlServer({ port: 29999 });
-    const addresses = server.getLocalIPAddresses();
-
-    expect(Array.isArray(addresses)).toBe(true);
-    // Should find at least one non-internal IPv4 address on most systems
-    // But may be empty in isolated environments
-    for (const addr of addresses) {
-      expect(addr).toMatch(/^\d+\.\d+\.\d+\.\d+$/);
-    }
-  });
-
-  it('should report correct OS in desktop info', () => {
-    // Verify the OS detection logic matches current platform
-    const getOsType = () => {
-      if (process.platform === 'win32') return 'windows';
-      if (process.platform === 'darwin') return 'mac';
-      return 'linux';
-    };
-
-    const osType = getOsType();
-    const expectedTypes = ['windows', 'mac', 'linux'];
-
-    expect(expectedTypes).toContain(osType);
-    expect(osType).toBe(
-      process.platform === 'win32'
-        ? 'windows'
-        : process.platform === 'darwin'
-          ? 'mac'
-          : 'linux'
-    );
   });
 });
 

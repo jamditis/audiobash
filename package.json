@@ -1,6 +1,6 @@
 {
   "name": "audiobash",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -12,11 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "test:remote": "vitest run tests/unit/transcriptionService.test.ts tests/unit/audioUtils.test.ts tests/remote-voice.test.ts tests/remote-voice-functional.test.ts tests/e2e/*.test.ts tests/stress/websocket-server.stress.ts",
-    "test:remote:unit": "vitest run tests/unit/transcriptionService.test.ts tests/unit/audioUtils.test.ts",
-    "test:remote:integration": "vitest run tests/remote-voice.test.ts tests/remote-voice-functional.test.ts tests/stress/websocket-server.stress.ts",
-    "test:remote:e2e": "vitest run tests/e2e/*.test.ts",
-    "electron:dev": "concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
+"electron:dev": "concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:mac": "npm run build && electron-builder --mac",
@@ -35,8 +31,7 @@
     "node-pty": "^1.1.0",
     "openai": "^6.10.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "ws": "^8.18.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.1",
@@ -68,8 +63,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "node_modules/node-pty/**/*",
-      "node_modules/ws/**/*"
+      "node_modules/node-pty/**/*"
     ],
     "asarUnpack": [
       "node_modules/node-pty/**/*"
@@ -86,10 +80,6 @@
       {
         "from": "audiobash-logo.ico",
         "to": "audiobash-logo.ico"
-      },
-      {
-        "from": "docs/remote",
-        "to": "remote"
       }
     ],
     "win": {

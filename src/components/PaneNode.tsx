@@ -26,6 +26,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
     return (
       <div className="h-full w-full relative">
         <Terminal
+          key={node.terminalId}
           tabId={node.terminalId}
           isActive={true}
           isVisible={true}

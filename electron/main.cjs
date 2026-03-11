@@ -21,10 +21,6 @@ process.on('unhandledRejection', (reason) => {
 // node-pty will be loaded dynamically after app ready
 let pty = null;
 
-// Remote control server
-const { RemoteControlServer } = require('./websocket-server.cjs');
-let remoteServer = null;
-
 // Whisper service for local transcription
 const whisperService = require('./whisperService.cjs');
 
@@ -71,6 +67,7 @@ store.load();
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
 const terminalOutputBuffers = new Map(); // Map of tabId -> recent output (last ~2000 chars)
 const terminalCwds = new Map(); // Map of tabId -> current working directory
+const terminalReady = new Set(); // Set of tabIds whose renderer xterm is mounted and listening
 let mainWindow = null;
 let tray = null;
 const MAX_OUTPUT_BUFFER = 2000; // Keep last 2000 characters of output
@@ -723,14 +720,11 @@ function spawnShell(tabId) {
           }
         }
 
-        if (mainWindow && !mainWindow.isDestroyed()) {
+        // Only forward to renderer if xterm has signaled ready
+        if (terminalReady.has(tabId) && mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('terminal-data', { tabId, data });
         }
 
-        // Forward to remote mobile client
-        if (remoteServer) {
-          remoteServer.sendTerminalData(tabId, data);
-        }
       } catch (err) {
         ptyLog.error('Error in PTY onData handler', err, { tabId });
       }
@@ -742,6 +736,7 @@ function spawnShell(tabId) {
         ptyProcesses.delete(tabId);
         terminalOutputBuffers.delete(tabId);
         terminalCwds.delete(tabId);
+        terminalReady.delete(tabId);
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
         }
@@ -762,6 +757,7 @@ function killShell(tabId) {
   if (ptyProcess) {
     ptyProcess.kill();
     ptyProcesses.delete(tabId);
+    terminalReady.delete(tabId);
     console.log(`[AudioBash] Killed shell for tab ${tabId}`);
     return true;
   }
@@ -853,6 +849,24 @@ function setupIPC() {
       // Write the text WITHOUT \r - user can review and press Enter
       ptyProcess.write(text);
     }
+  });
+
+  // Get buffered terminal output (for replaying after late mount)
+  ipcMain.handle('get-terminal-buffer', async (_, tabId) => {
+    return terminalOutputBuffers.get(tabId) || '';
+  });
+
+  // Terminal ready signal — renderer xterm is mounted and listening
+  // Flushes buffered output then starts live forwarding
+  ipcMain.handle('terminal-ready', async (_, tabId) => {
+    ptyLog.debug('Terminal ready signal received', { tabId });
+    terminalReady.add(tabId);
+    // Flush any buffered output that arrived before xterm mounted
+    const buffer = terminalOutputBuffers.get(tabId) || '';
+    if (buffer && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('terminal-data', { tabId, data: buffer });
+    }
+    return { success: true };
   });
 
   // Get terminal context for AI prompts
@@ -1509,109 +1523,6 @@ function setupIPC() {
     }
   });
 
-  // Remote control status
-  ipcMain.handle('get-remote-status', async () => {
-    return remoteServer?.getStatus() || {
-      running: false,
-      port: 8765,
-      addresses: [],
-      connected: false,
-      deviceName: null,
-    };
-  });
-
-  // Set static password for remote access
-  ipcMain.handle('set-remote-password', async (_, password) => {
-    if (remoteServer) {
-      // Validate and set password (returns { success, error?, warning? })
-      const result = remoteServer.setStaticPassword(password);
-
-      // Only save if validation passed
-      if (!result.success) {
-        return result; // Return error to UI
-      }
-
-      // Encrypt and save password
-      if (password && safeStorage.isEncryptionAvailable()) {
-        try {
-          const encrypted = safeStorage.encryptString(password);
-          store.set('remotePasswordEncrypted', encrypted.toString('base64'));
-          store.set('remotePassword', ''); // Clear old plain text
-          console.log('[AudioBash] Remote password encrypted and saved');
-        } catch (err) {
-          console.error('[AudioBash] Failed to encrypt password:', err);
-          // Fallback to plain text if encryption fails
-          store.set('remotePassword', password);
-        }
-      } else {
-        // No password or encryption not available - fallback to plain text
-        store.set('remotePassword', password || '');
-        store.set('remotePasswordEncrypted', '');
-      }
-      return result; // Return success (with optional warning)
-    }
-    return { success: false, error: 'Remote server not running' };
-  });
-
-  // Get remote password
-  ipcMain.handle('get-remote-password', async () => {
-    // Try to decrypt encrypted password first
-    const encryptedB64 = store.get('remotePasswordEncrypted', '');
-    if (encryptedB64 && safeStorage.isEncryptionAvailable()) {
-      try {
-        const encrypted = Buffer.from(encryptedB64, 'base64');
-        const decrypted = safeStorage.decryptString(encrypted);
-        console.log('[AudioBash] Remote password decrypted successfully');
-        return decrypted;
-      } catch (err) {
-        console.warn('[AudioBash] Failed to decrypt password, falling back to plain text:', err);
-      }
-    }
-
-    // Fallback to plain text (for migration or if encryption unavailable)
-    const plainPassword = store.get('remotePassword', '');
-
-    // Migrate plain text to encrypted if available
-    if (plainPassword && safeStorage.isEncryptionAvailable()) {
-      try {
-        const encrypted = safeStorage.encryptString(plainPassword);
-        store.set('remotePasswordEncrypted', encrypted.toString('base64'));
-        store.set('remotePassword', ''); // Clear plain text after migration
-        console.log('[AudioBash] Migrated plain text password to encrypted storage');
-      } catch (err) {
-        console.warn('[AudioBash] Failed to migrate password to encrypted storage:', err);
-      }
-    }
-
-    return plainPassword;
-  });
-
-  // Keep-awake mode for remote access
-  let powerBlockerId = null;
-
-  ipcMain.handle('set-keep-awake', async (_, enabled) => {
-    const { powerSaveBlocker } = require('electron');
-
-    if (enabled && powerBlockerId === null) {
-      // Prevent display sleep and system sleep
-      powerBlockerId = powerSaveBlocker.start('prevent-display-sleep');
-      store.set('keepAwakeEnabled', true);
-      console.log('[AudioBash] Keep-awake enabled (power blocker ID:', powerBlockerId, ')');
-      return true;
-    } else if (!enabled && powerBlockerId !== null) {
-      powerSaveBlocker.stop(powerBlockerId);
-      powerBlockerId = null;
-      store.set('keepAwakeEnabled', false);
-      console.log('[AudioBash] Keep-awake disabled');
-      return false;
-    }
-    return enabled;
-  });
-
-  ipcMain.handle('get-keep-awake', async () => {
-    return store.get('keepAwakeEnabled', false);
-  });
-
   // Whisper local transcription
   ipcMain.handle('whisper-transcribe', async (_, audioPath) => {
     try {
@@ -1867,67 +1778,6 @@ app.whenReady().then(async () => {
   // Spawn initial shell with default tab ID
   spawnShell('tab-1');
 
-  // Start remote control server (auto-start)
-  remoteServer = new RemoteControlServer({
-    port: 8765,
-    ptyProcesses,
-    terminalOutputBuffers,
-    terminalCwds,
-    mainWindow,
-    onStatusChange: (status) => {
-      console.log('[RemoteControl] Status:', status.connected ? `Connected: ${status.deviceName}` : 'Waiting for connection');
-    },
-  });
-  remoteServer.start();
-
-  // Load saved static password for remote access
-  let savedRemotePassword = '';
-
-  // Try to decrypt encrypted password first
-  const encryptedB64 = store.get('remotePasswordEncrypted', '');
-  if (encryptedB64 && safeStorage.isEncryptionAvailable()) {
-    try {
-      const encrypted = Buffer.from(encryptedB64, 'base64');
-      savedRemotePassword = safeStorage.decryptString(encrypted);
-      console.log('[AudioBash] Remote password loaded (encrypted)');
-    } catch (err) {
-      console.warn('[AudioBash] Failed to decrypt password on startup, trying plain text:', err);
-    }
-  }
-
-  // Fallback to plain text (for migration or if encryption unavailable)
-  if (!savedRemotePassword) {
-    const plainPassword = store.get('remotePassword', '');
-    if (plainPassword) {
-      savedRemotePassword = plainPassword;
-      console.log('[AudioBash] Remote password loaded (plain text)');
-
-      // Migrate to encrypted storage if available
-      if (safeStorage.isEncryptionAvailable()) {
-        try {
-          const encrypted = safeStorage.encryptString(plainPassword);
-          store.set('remotePasswordEncrypted', encrypted.toString('base64'));
-          store.set('remotePassword', ''); // Clear plain text after migration
-          console.log('[AudioBash] Migrated plain text password to encrypted storage on startup');
-        } catch (err) {
-          console.warn('[AudioBash] Failed to migrate password on startup:', err);
-        }
-      }
-    }
-  }
-
-  if (savedRemotePassword) {
-    remoteServer.setStaticPassword(savedRemotePassword);
-  }
-
-  // Restore keep-awake setting
-  const keepAwakeEnabled = store.get('keepAwakeEnabled', false);
-  if (keepAwakeEnabled) {
-    const { powerSaveBlocker } = require('electron');
-    const blockerId = powerSaveBlocker.start('prevent-display-sleep');
-    console.log('[AudioBash] Keep-awake restored (power blocker ID:', blockerId, ')');
-  }
-
   } catch (err) {
     console.error('[AudioBash] Startup failed:', err);
     try { appLog.error('Startup failed', err); } catch (_) { /* logger may not be initialized */ }
@@ -1954,12 +1804,6 @@ app.on('activate', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
-
-  // Stop WebSocket server
-  if (remoteServer) {
-    remoteServer.stop();
-    remoteServer = null;
-  }
 
   // Close all file watchers
   for (const [watcherId, entry] of fileWatchers) {

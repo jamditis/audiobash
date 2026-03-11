@@ -109,6 +109,8 @@ export interface ElectronAPI {
   sendToTerminal: (tabId: string, text: string) => void;
   insertToTerminal: (tabId: string, text: string) => void;
   getTerminalContext: (tabId: string) => Promise<TerminalContextResult>;
+  getTerminalBuffer: (tabId: string) => Promise<string>;
+  signalTerminalReady: (tabId: string) => Promise<{ success: boolean }>;
   onTerminalData: (callback: (tabId: string, data: string) => void) => (() => void);
   onTerminalClosed: (callback: (tabId: string, exitCode: number, signal: number) => void) => (() => void);
 
@@ -162,14 +164,6 @@ export interface ElectronAPI {
   whisperFullSetup: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   whisperDeleteModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
-
-  // Remote control (mobile companion)
-  getRemoteStatus: () => Promise<RemoteStatus>;
-  setRemotePassword: (password: string) => Promise<PasswordValidationResult>;
-  getRemotePassword: () => Promise<string>;
-  setKeepAwake: (enabled: boolean) => Promise<boolean>;
-  getKeepAwake: () => Promise<boolean>;
-  onRemoteStatusChanged: (callback: (status: RemoteStatus) => void) => (() => void);
 
   // Font zoom
   onZoomIn: (callback: () => void) => (() => void);
@@ -235,22 +229,6 @@ export interface ValidatePathResult {
   valid: boolean;
   absolutePath?: string;
   error?: string;
-}
-
-// Remote control types
-export interface RemoteStatus {
-  running: boolean;
-  port: number;
-  hasStaticPassword: boolean;
-  addresses: string[];
-  connected: boolean;
-  deviceName: string | null;
-}
-
-export interface PasswordValidationResult {
-  success: boolean;
-  error?: string;
-  warning?: string;
 }
 
 // Whisper local transcription types

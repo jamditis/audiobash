@@ -144,6 +144,10 @@ const Terminal: React.FC<TerminalProps> = ({
               cols: xterm.cols,
               rows: xterm.rows,
             });
+
+            // Signal main process that xterm is mounted and listening.
+            // This flushes any buffered PTY output and starts live forwarding.
+            window.electron?.signalTerminalReady(tabId);
           } catch (err) {
             log.error('Terminal initial fit failed', err, { tabId });
           }
@@ -274,7 +278,7 @@ const Terminal: React.FC<TerminalProps> = ({
 
   return (
     <div
-      className={`h-full w-full bg-void relative ${isFocused ? 'ring-1 ring-accent/50' : ''}`}
+      className={`h-full w-full bg-void relative ${isFocused ? 'ring-1 ring-acid/60' : ''}`}
       style={{ display: shouldShow ? 'block' : 'none' }}
       onClick={handleClick}
     >

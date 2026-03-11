@@ -40,7 +40,7 @@ const App: React.FC = () => {
     { id: 'tab-1', title: getDefaultShellName(), isActive: true }
   ]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
-  const [tabCounter, setTabCounter] = useState(1);
+  const tabCounterRef = useRef(1);
 
   // New state for overlay behavior
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -237,8 +237,8 @@ const App: React.FC = () => {
         const remaining = prev.filter(t => t.id !== tabId);
         if (remaining.length === 0) {
           // If all tabs are closed, create a new one
-          const newTabId = `tab-${tabCounter + 1}`;
-          setTabCounter(c => c + 1);
+          tabCounterRef.current += 1;
+          const newTabId = `tab-${tabCounterRef.current}`;
           window.electron?.createTerminal(newTabId);
           setActiveTabId(newTabId);
           return [{ id: newTabId, title: getDefaultShellName(), isActive: true }];
@@ -253,7 +253,7 @@ const App: React.FC = () => {
       });
     });
     return () => cleanup?.();
-  }, [activeTabId, tabCounter]);
+  }, [activeTabId]);
 
   // Open overlay when recording starts
   useEffect(() => {
@@ -362,8 +362,8 @@ const App: React.FC = () => {
   const handleNewTab = useCallback(async () => {
     if (tabs.length >= MAX_TABS) return;
 
-    const newTabId = `tab-${tabCounter + 1}`;
-    setTabCounter(c => c + 1);
+    tabCounterRef.current += 1;
+    const newTabId = `tab-${tabCounterRef.current}`;
 
     const result = await window.electron?.createTerminal(newTabId);
     if (result?.success) {
@@ -373,7 +373,7 @@ const App: React.FC = () => {
       ]);
       setActiveTabId(newTabId);
     }
-  }, [tabs.length, tabCounter]);
+  }, [tabs.length]);
 
   const handleCloseTab = useCallback(async (tabId: string) => {
     if (tabs.length <= 1) return; // Don't close last tab
@@ -400,8 +400,8 @@ const App: React.FC = () => {
 
   // PaneManager terminal lifecycle callbacks
   const handleCreateTerminal = useCallback(async (): Promise<string> => {
-    const newTabId = `tab-${tabCounter + 1}`;
-    setTabCounter(c => c + 1);
+    tabCounterRef.current += 1;
+    const newTabId = `tab-${tabCounterRef.current}`;
 
     const result = await window.electron?.createTerminal(newTabId);
     if (result?.success) {
@@ -412,7 +412,7 @@ const App: React.FC = () => {
       setActiveTabId(newTabId);
     }
     return newTabId;
-  }, [tabCounter]);
+  }, []);
 
   const handleCloseTerminal = useCallback((tabId: string) => {
     window.electron?.closeTerminal(tabId);
