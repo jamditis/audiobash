@@ -12,6 +12,7 @@ export interface PaneManagerHandle {
   splitHorizontal: () => void;
   splitVertical: () => void;
   closeCurrentPane: () => void;
+  closePaneByTerminalId: (terminalId: string) => void;
   toggleZoom: () => void;
   cyclePreset: () => void;
   focusNext: () => void;
@@ -77,6 +78,14 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
       if (zoomedPaneId === paneId) setZoomedPaneId(null);
     }
   }, [paneRoot, zoomedPaneId, onCloseTerminal]);
+
+  const closePaneByTerminalId = useCallback((terminalId: string) => {
+    const leaves = flattenLeaves(paneRoot);
+    const leaf = leaves.find(l => l.terminalId === terminalId);
+    if (leaf && leaves.length > 1) {
+      handleClose(leaf.id);
+    }
+  }, [paneRoot, handleClose]);
 
   const handleResize = useCallback((splitId: string, delta: number, containerSize: number) => {
     setPaneRoot(prev => {
@@ -223,13 +232,14 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     splitHorizontal: () => handleSplit('horizontal'),
     splitVertical: () => handleSplit('vertical'),
     closeCurrentPane: () => { if (focusedPaneId) handleClose(focusedPaneId); },
+    closePaneByTerminalId,
     toggleZoom,
     cyclePreset,
     focusNext,
     focusPrev,
     focusByIndex,
     resizeByDirection,
-  }), [handleSplit, handleClose, focusedPaneId, toggleZoom, cyclePreset, focusNext, focusPrev, focusByIndex, resizeByDirection]);
+  }), [handleSplit, handleClose, closePaneByTerminalId, focusedPaneId, toggleZoom, cyclePreset, focusNext, focusPrev, focusByIndex, resizeByDirection]);
 
   // Render zoomed pane or full tree
   const renderNode = zoomedPaneId

@@ -232,7 +232,8 @@ const App: React.FC = () => {
   // Listen for terminal closed events
   useEffect(() => {
     const cleanup = window.electron?.onTerminalClosed((tabId: string) => {
-      // If a terminal is closed externally (e.g., exit command), handle it
+      // If a terminal is closed externally (e.g., exit command), close its pane and tab
+      paneManagerRef.current?.closePaneByTerminalId(tabId);
       setTabs(prev => {
         const remaining = prev.filter(t => t.id !== tabId);
         if (remaining.length === 0) {

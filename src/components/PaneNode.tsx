@@ -31,7 +31,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
     const colorName = paneColors?.get(node.terminalId) || 'acid';
     const stripColor = getStripColor(colorName, activityState);
     return (
-      <div className="h-full w-full relative">
+      <div className="h-full w-full relative" onMouseDown={() => onFocus(node.id)}>
         <div
           className="absolute top-0 left-0 right-0 h-[3px] z-10 transition-colors duration-200"
           style={{ backgroundColor: stripColor }}
