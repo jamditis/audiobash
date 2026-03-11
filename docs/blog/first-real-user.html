@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Someone filed a bug and it made my week // AUDIOBASH BLOG</title>
+    <meta name="description" content="AudioBash got its first real user, who found a crash on Apple Silicon. Here's what that felt like and how we fixed it.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Someone filed a bug and it made my week - AudioBash Blog">
+    <meta property="og:description" content="AudioBash got its first real user, who found a crash on Apple Silicon. Here's what that felt like and how we fixed it.">
+    <meta property="og:type" content="article">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ff3333;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.15;
+        }
+
+        .prose-void {
+            color: #a1a1a1;
+            line-height: 1.8;
+        }
+        .prose-void h2 {
+            color: #e5e5e5;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #ff3333;
+            padding-left: 1rem;
+        }
+        .prose-void h3 {
+            color: #ff3333;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .prose-void p {
+            margin-bottom: 1.25rem;
+        }
+        .prose-void a {
+            color: #00f0ff;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .prose-void a:hover {
+            color: #ff3333;
+        }
+        .prose-void code {
+            background: #111;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+            color: #ff3333;
+        }
+        .prose-void pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+        }
+        .prose-void pre code {
+            background: none;
+            padding: 0;
+            color: #e5e5e5;
+        }
+        .prose-void blockquote {
+            border-left: 3px solid #00f0ff;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #888;
+            font-style: italic;
+        }
+        .prose-void ul, .prose-void ol {
+            margin: 1rem 0 1.5rem 1.5rem;
+        }
+        .prose-void li {
+            margin-bottom: 0.5rem;
+        }
+        .prose-void strong {
+            color: #e5e5e5;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(255, 51, 51, 0.2);
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .insight-box::before {
+            content: "INSIGHT";
+            display: block;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #ff3333;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.05] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/80 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">BLOG</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="../manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="../latest.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">LATEST</a>
+                <a href="../releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="../blog.html" class="text-chrome text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors hidden sm:block">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="../index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-24 pb-16 px-6">
+        <article class="max-w-3xl mx-auto">
+
+            <!-- Article Header -->
+            <header class="mb-12">
+                <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                    <a href="../blog.html" class="hover:text-accent transition-colors flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        BLOG
+                    </a>
+                    <span>/</span>
+                    <span>February 14, 2026</span>
+                </div>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">Someone filed a bug and it made my week</h1>
+                <p class="text-xl text-gray-400 border-l-2 border-accent pl-4">The first outside user, a crash on Apple Silicon, and what it taught me about building in the open.</p>
+
+                <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4 text-accent"></i>
+                        </div>
+                        <span class="text-sm text-gray-400">@jamditis</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>6 min read</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <div class="prose-void">
+
+                <p>Two months into building AudioBash, I got a GitHub notification that stopped me mid-sentence.</p>
+
+                <p>Issue #29: "App crashes on launch (Apple Silicon)"</p>
+
+                <p>Someone had downloaded AudioBash. Someone who wasn't me. They'd installed it on their Mac, tried to open it, and it crashed immediately. Then they took the time to file an issue about it.</p>
+
+                <p>I know that sounds like a bad thing. It wasn't. It was the best notification I'd gotten since starting this project.</p>
+
+                <h2>Why a bug report felt like a gift</h2>
+
+                <p>When you're building something alone, for yourself, you exist in a bubble. You know the app works on your machine. You know it works the way you use it. But you have no idea if anyone else cares, or if the thing even runs outside your specific setup.</p>
+
+                <p>A bug report means someone cared enough to try. And then cared enough to tell you it was broken instead of just closing the tab and moving on.</p>
+
+                <p>Most people who hit a crash on launch would never come back. This person opened an issue. That's a small act, but it meant everything to a solo developer with zero users.</p>
+
+                <h2>The bug</h2>
+
+                <p>The crash was silent. No error dialog, no crash report &mdash; the app just didn't open. On an M1 Mac, double-click the .dmg, drag to Applications, launch. Nothing.</p>
+
+                <p>I'd built macOS support back in January and tested it on my own M1 MacBook Pro. It worked. So what changed?</p>
+
+                <p>The difference was how the app got to the machine. When you build an Electron app locally with <code>npm run electron:build</code>, the resulting binary isn't quarantined. macOS trusts it because you built it yourself. But when someone downloads a .dmg from GitHub Releases, macOS marks it with a quarantine flag. And quarantined apps on Apple Silicon face stricter checks.</p>
+
+                <p>Specifically: code signature validation.</p>
+
+                <h2>The root cause</h2>
+
+                <p>AudioBash uses <a href="https://github.com/niccoloZaffworki/node-pty">node-pty</a> to spawn shell processes. It's a native module &mdash; compiled C++ code that interfaces with the operating system's terminal subsystem. On macOS, native binaries have code signatures. Apple Silicon (ARM64) enforces these signatures more strictly than Intel.</p>
+
+                <p>Here's what was happening:</p>
+
+                <p>During the build process, I had an <code>afterPack</code> script that ran <code>chmod</code> on the node-pty binaries to make sure they had the right permissions. Standard stuff. But on ARM64, running <code>chmod</code> on a signed binary <strong>invalidates its code signature</strong>.</p>
+
+                <p>The binary was fine. The permissions were fine. But the signature was broken, and macOS refused to load it.</p>
+
+<pre><code># The problem: chmod invalidates ARM64 code signatures
+chmod 755 node_modules/node-pty/build/Release/pty.node
+# ^ This breaks the signature on Apple Silicon
+
+# The fix: re-sign after chmod
+chmod 755 node_modules/node-pty/build/Release/pty.node
+codesign --force --sign - node_modules/node-pty/build/Release/pty.node
+# ^ Ad-hoc signing restores the signature</code></pre>
+
+                <p>That's it. One line. <code>codesign --force --sign -</code> after the <code>chmod</code>. Ad-hoc signing (the <code>-</code> means "sign with no identity") is enough for macOS to accept the binary from a quarantined app.</p>
+
+                <h2>The second problem</h2>
+
+                <p>While digging into the crash, I found a second issue. The app's <code>app.whenReady()</code> handler &mdash; the function that runs when Electron finishes starting up &mdash; had no error handling. If anything threw during initialization, the app died silently. No log. No dialog. Just gone.</p>
+
+                <p>I added a try-catch around the initialization, a global error handler for uncaught exceptions, and a guard around the tray icon creation (which was trying to access a window that didn't exist yet if the main window failed to create).</p>
+
+                <p>None of these were exotic fixes. They're the kind of defensive code you'd expect in any production app. I just hadn't written them because the app had never crashed on me.</p>
+
+                <h2>Shipping the fix</h2>
+
+                <p>I pushed v2.4.0 the same day. The fix was two changes:</p>
+
+                <ol>
+                    <li>Re-sign node-pty binaries after <code>chmod</code> in the afterPack script</li>
+                    <li>Add error handling to the app initialization path</li>
+                </ol>
+
+                <p>I also upgraded Electron from 35 to 39, which fixed a separate GPU rendering lag on macOS Tahoe. And I hardened the transcription pipeline with rate limiting and input validation, since I was already in there fixing things.</p>
+
+                <p>The whole cycle &mdash; from issue filed to fix released &mdash; was less than a day.</p>
+
+                <div class="insight-box">
+                    <p class="text-chrome mb-0">When you're a solo dev, you can ship a fix the same day someone reports a bug. No sprint planning. No ticket queue. No waiting for the next release train. Someone says "this is broken," and you fix it. That feedback loop is addictive.</p>
+                </div>
+
+                <h2>What I learned</h2>
+
+                <h3>Build from source works, downloads might not</h3>
+
+                <p>This is specific to macOS and Electron, but worth knowing: an app that runs perfectly when built locally can crash when downloaded. The quarantine flag changes the security context. If you distribute unsigned macOS apps, you need to test the actual download path, not just the build output.</p>
+
+                <h3>Native modules are a minefield on Apple Silicon</h3>
+
+                <p>ARM64 enforces code signatures at the kernel level. Any post-build step that modifies a binary &mdash; <code>chmod</code>, <code>strip</code>, patching &mdash; will break the signature. You have to re-sign. This isn't well-documented, and it took hours of research to piece together.</p>
+
+                <h3>Silent crashes are the worst crashes</h3>
+
+                <p>An app that shows an error message is better than an app that does nothing. Users can report an error. They can't report "I double-clicked and nothing happened." Add global error handlers. Log to a file. Show a dialog. Do something.</p>
+
+                <h3>The first user matters more than the first feature</h3>
+
+                <p>Before issue #29, AudioBash had 30 releases, 721 tests, cross-platform support, and five transcription providers. None of that mattered until someone other than me tried to use it. The real test of software isn't whether it passes your test suite. It's whether it runs on someone else's machine.</p>
+
+                <h2>Building in the open</h2>
+
+                <p>I could have built AudioBash as a private project forever. I almost did. It's a personal tool &mdash; I built it because I needed it, and I'd use it regardless of whether anyone else does.</p>
+
+                <p>But putting it on GitHub and making releases public created this feedback loop that I didn't expect. One bug report from one user taught me more about macOS code signing than weeks of reading documentation. And fixing that bug made the app better for everyone who tries it next.</p>
+
+                <p>The app is at <a href="https://github.com/jamditis/audiobash">github.com/jamditis/audiobash</a>. If you're on a Mac (or Windows) and use voice with your terminal, try it out. And if it crashes, please file an issue. I mean that.</p>
+
+            </div>
+
+            <!-- Article Footer -->
+            <footer class="mt-16 pt-8 border-t border-white/10">
+                <div class="flex items-center justify-between">
+                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-accent transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back to blog</span>
+                    </a>
+                    <div class="flex items-center gap-4">
+                        <a href="https://github.com/jamditis/audiobash/issues/29" class="text-gray-400 hover:text-chrome transition-colors text-sm">
+                            Issue #29
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </footer>
+
+        </article>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                <span data-version="AUDIOBASH v{version} // BLOG // MIT LICENSE">AUDIOBASH v3.0.3 // BLOG // MIT LICENSE</span>
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="../about.html" class="hover:text-accent transition-colors text-xs font-mono">
+                    About
+                </a>
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/version.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why I built a voice-controlled terminal // AUDIOBASH BLOG</title>
+    <meta name="description" content="I don't memorize bash commands. I talk to LLMs in plain English. So I built a terminal that lets me do that with my voice.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Why I built a voice-controlled terminal - AudioBash Blog">
+    <meta property="og:description" content="I don't memorize bash commands. I talk to LLMs in plain English. So I built a terminal that lets me do that with my voice.">
+    <meta property="og:type" content="article">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ff3333;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.15;
+        }
+
+        .prose-void {
+            color: #a1a1a1;
+            line-height: 1.8;
+        }
+        .prose-void h2 {
+            color: #e5e5e5;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #ff3333;
+            padding-left: 1rem;
+        }
+        .prose-void h3 {
+            color: #ff3333;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .prose-void p {
+            margin-bottom: 1.25rem;
+        }
+        .prose-void a {
+            color: #00f0ff;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .prose-void a:hover {
+            color: #ff3333;
+        }
+        .prose-void code {
+            background: #111;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+            color: #ff3333;
+        }
+        .prose-void pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+        }
+        .prose-void pre code {
+            background: none;
+            padding: 0;
+            color: #e5e5e5;
+        }
+        .prose-void blockquote {
+            border-left: 3px solid #00f0ff;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #888;
+            font-style: italic;
+        }
+        .prose-void ul, .prose-void ol {
+            margin: 1rem 0 1.5rem 1.5rem;
+        }
+        .prose-void li {
+            margin-bottom: 0.5rem;
+        }
+        .prose-void strong {
+            color: #e5e5e5;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(255, 51, 51, 0.2);
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .insight-box::before {
+            content: "INSIGHT";
+            display: block;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #ff3333;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.05] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/80 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">BLOG</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="../manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="../latest.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">LATEST</a>
+                <a href="../releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="../blog.html" class="text-chrome text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors hidden sm:block">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="../index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-24 pb-16 px-6">
+        <article class="max-w-3xl mx-auto">
+
+            <!-- Article Header -->
+            <header class="mb-12">
+                <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                    <a href="../blog.html" class="hover:text-accent transition-colors flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        BLOG
+                    </a>
+                    <span>/</span>
+                    <span>December 15, 2025</span>
+                </div>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">Why I built a voice-controlled terminal</h1>
+                <p class="text-xl text-gray-400 border-l-2 border-accent pl-4">I don't memorize bash commands. I talk to LLMs in plain English. So I built a terminal that lets me do that with my voice.</p>
+
+                <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4 text-accent"></i>
+                        </div>
+                        <span class="text-sm text-gray-400">@jamditis</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>7 min read</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <div class="prose-void">
+
+                <p>I should start with a confession: I'm not a developer. Not in the traditional sense, anyway. I don't have a CS degree. I can't write a sorting algorithm from memory. If you asked me to <code>grep</code> something a year ago, I'd have stared at you.</p>
+
+                <p>What I am is a journalist and media researcher who got interested in AI tools, started using Claude Code in the terminal, and gradually realized I was spending most of my day talking to an LLM through a command line interface.</p>
+
+                <p>And I was doing it by typing. Slowly. With lots of typos.</p>
+
+                <h2>The actual problem</h2>
+
+                <p>Here's what my workflow looked like before AudioBash:</p>
+
+                <ol>
+                    <li>Open a terminal</li>
+                    <li>Run <code>claude</code> to start Claude Code</li>
+                    <li>Type out a long request in plain English</li>
+                    <li>Wait for the response</li>
+                    <li>Type another long request</li>
+                    <li>Repeat for hours</li>
+                </ol>
+
+                <p>I wasn't running <code>ls -la</code> or <code>find . -name "*.tsx"</code>. I was writing things like "can you look at the settings component and figure out why the API key field isn't saving when I close the panel." Full sentences. Paragraphs, sometimes.</p>
+
+                <p>I can say that out loud in about four seconds. Typing it takes thirty.</p>
+
+                <p>There were voice dictation tools out there. macOS has built-in dictation. There are apps like Wispr and Talon. But none of them did what I wanted, which was: press a button, talk, and have the words appear directly in my terminal session. No clipboard. No copy-paste. No switching windows.</p>
+
+                <h2>So I built one</h2>
+
+                <p>AudioBash started on December 10, 2025, as a weekend project. The idea was simple: an Electron app with an embedded terminal, a microphone button, and a transcription service. You press a hotkey, talk, and your words get written into the terminal as if you'd typed them.</p>
+
+                <p>The first version did exactly that and nothing else. One terminal. One microphone button. Gemini for transcription. It worked.</p>
+
+                <p>Then I kept using it and kept finding things that didn't work well enough.</p>
+
+                <h2>The agent mode gap</h2>
+
+                <p>Here's the thing about using an LLM in the terminal: most of the time, you're not giving it bash commands. You're giving it instructions in English. "Look at this file." "Fix the bug in the login flow." "Run the tests and tell me what broke."</p>
+
+                <p>But sometimes the transcription service would hear me say "list the files in this directory" and transcribe it literally: <code>list the files in this directory</code>. Which isn't a command. The shell doesn't know what to do with that.</p>
+
+                <p>What I needed was an agent mode &mdash; a way for the transcription to understand context. If Claude Code is running in the terminal, just send my words as-is, because Claude understands English. But if I'm at a raw shell prompt, I might actually need the transcription service to figure out that "list the files in this directory" means <code>ls -la</code>.</p>
+
+                <p>So I built two modes:</p>
+
+                <ul>
+                    <li><strong>Raw mode</strong> &mdash; transcribes exactly what you say, sends it straight to the terminal. Use this when you're talking to Claude Code, Gemini CLI, or any LLM.</li>
+                    <li><strong>Agent mode</strong> &mdash; sends your speech plus context (current directory, recent terminal output) to an LLM, which decides whether to pass it through as English or translate it into an actual shell command.</li>
+                </ul>
+
+                <p>Agent mode is for people like me. People who know what they want to do but don't have the command memorized. I can say "find all the TypeScript files that import React" and agent mode turns that into the right <code>grep</code> or <code>find</code> command. I don't have to know the flags. I don't have to look it up.</p>
+
+                <div class="insight-box">
+                    <p class="text-chrome mb-0">Most voice coding tools assume you know the commands and just want to say them faster. AudioBash assumes you might not know the commands at all, and that's fine. You're still a developer if your primary language is English and your compiler is an LLM.</p>
+                </div>
+
+                <h2>Who this is for</h2>
+
+                <p>If you're a senior backend engineer who thinks in bash and types 120 WPM, you probably don't need this. You're already fast.</p>
+
+                <p>AudioBash is for a different kind of developer. The kind that's growing fast right now:</p>
+
+                <ul>
+                    <li>People who build with AI assistants (Claude Code, Gemini CLI, Copilot) and spend most of their time writing natural language prompts</li>
+                    <li>People who came to coding through a non-traditional path and don't have years of shell muscle memory</li>
+                    <li>People who think faster than they type</li>
+                    <li>People who want to keep their hands on the keyboard but use their voice for the long instructions</li>
+                </ul>
+
+                <p>There's a name for this style of development now: vibe coding. Andrej Karpathy coined it. The idea is that you describe what you want in natural language and let AI handle the implementation. Whether or not you like the term, the practice is real and growing. A huge number of people are building software by talking to LLMs, and most of them are doing it by typing into a chat window or a terminal.</p>
+
+                <p>Talking is faster.</p>
+
+                <h2>What happened next</h2>
+
+                <p>Within the first week, AudioBash went from a single terminal with a mic button to something I was using all day:</p>
+
+                <ul>
+                    <li>Split view so I could have Claude Code in one pane and a running dev server in another</li>
+                    <li>Custom vocabulary mapping (so "next js" transcribes as "Next.js" instead of "next JS")</li>
+                    <li>CLI notification chimes that play a sound when a tool needs my input, so I can look away from the screen</li>
+                    <li>A preview pane for seeing localhost output without switching to a browser</li>
+                </ul>
+
+                <p>Every feature came from the same place: something annoyed me during my own workflow, so I fixed it. I'd describe the problem to Claude Code, talk through the solution, and ship a new version. Sometimes two or three versions in a day.</p>
+
+                <p>Five days in, I'd shipped seven releases.</p>
+
+                <h2>The part where I admit I don't know what I'm doing</h2>
+
+                <p>I want to be honest about something. I'm building this app with Claude Code. The AI writes most of the code. I describe what I want, review what it produces, test it, and ship it. I understand the architecture at a high level. I can read the code and follow what it's doing. But I'm not sitting here writing React components from scratch.</p>
+
+                <p>Some people would say that means I'm not a "real" developer. I don't care about that argument. The app works. It solves a problem I have. Other people might find it useful too. The code is open source &mdash; anyone can look at it, improve it, or tell me I'm doing it wrong.</p>
+
+                <p>What I do bring is a clear sense of what the tool should do, because I'm the target user. I'm not building for an imagined persona. I'm building for me, right now, every day.</p>
+
+                <h2>What's next</h2>
+
+                <p>I'm working on macOS support (I switch between a Windows desktop and a MacBook). After that, I want to get the pane system right &mdash; tmux-style splits where each terminal can have its own voice routing.</p>
+
+                <p>The code is at <a href="https://github.com/jamditis/audiobash">github.com/jamditis/audiobash</a>. If you use Claude Code or Gemini CLI and you're tired of typing long prompts, give it a shot. Press Alt+S, talk, and see what happens.</p>
+
+                <div class="insight-box">
+                    <p class="text-chrome mb-0">The best dev tool is the one that matches how you already work. If you think in English and talk to LLMs all day, your input method should support that.</p>
+                </div>
+
+            </div>
+
+            <!-- Article Footer -->
+            <footer class="mt-16 pt-8 border-t border-white/10">
+                <div class="flex items-center justify-between">
+                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-accent transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back to blog</span>
+                    </a>
+                    <div class="flex items-center gap-4">
+                        <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </footer>
+
+        </article>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                <span data-version="AUDIOBASH v{version} // BLOG // MIT LICENSE">AUDIOBASH v3.0.3 // BLOG // MIT LICENSE</span>
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="../about.html" class="hover:text-accent transition-colors text-xs font-mono">
+                    About
+                </a>
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/version.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

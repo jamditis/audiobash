@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anthropic added /voice to Claude Code. Here's why that's fine. // AUDIOBASH BLOG</title>
+    <meta name="description" content="When the company behind the tool you're building for ships a feature that overlaps with yours, you have two choices. We chose to integrate.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Anthropic added /voice to Claude Code. Here's why that's fine. - AudioBash Blog">
+    <meta property="og:description" content="When the company behind the tool you're building for ships a feature that overlaps with yours, you have two choices. We chose to integrate.">
+    <meta property="og:type" content="article">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        accentDim: 'rgba(255, 51, 51, 0.1)',
+                        signal: '#ff2a2a',
+                        signalDim: 'rgba(255, 42, 42, 0.1)',
+                        ice: '#00f0ff',
+                        iceDim: 'rgba(0, 240, 255, 0.1)',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            color: #e5e5e5;
+        }
+
+        ::selection {
+            background-color: #ff3333;
+            color: #000;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+
+        .clip-notch {
+            clip-path: polygon(
+                0 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%
+            );
+        }
+
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.15;
+        }
+
+        .prose-void {
+            color: #a1a1a1;
+            line-height: 1.8;
+        }
+        .prose-void h2 {
+            color: #e5e5e5;
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #ff3333;
+            padding-left: 1rem;
+        }
+        .prose-void h3 {
+            color: #ff3333;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+        .prose-void p {
+            margin-bottom: 1.25rem;
+        }
+        .prose-void a {
+            color: #00f0ff;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .prose-void a:hover {
+            color: #ff3333;
+        }
+        .prose-void code {
+            background: #111;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+            color: #ff3333;
+        }
+        .prose-void pre {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+        }
+        .prose-void pre code {
+            background: none;
+            padding: 0;
+            color: #e5e5e5;
+        }
+        .prose-void blockquote {
+            border-left: 3px solid #00f0ff;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #888;
+            font-style: italic;
+        }
+        .prose-void ul, .prose-void ol {
+            margin: 1rem 0 1.5rem 1.5rem;
+        }
+        .prose-void li {
+            margin-bottom: 0.5rem;
+        }
+        .prose-void strong {
+            color: #e5e5e5;
+        }
+
+        .insight-box {
+            background: linear-gradient(135deg, rgba(255, 51, 51, 0.05), rgba(0, 240, 255, 0.05));
+            border: 1px solid rgba(255, 51, 51, 0.2);
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .insight-box::before {
+            content: "INSIGHT";
+            display: block;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #ff3333;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="antialiased font-mono">
+
+    <div class="crt-overlay"></div>
+
+    <!-- Background Grid -->
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.05] pointer-events-none z-0"></div>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/80 backdrop-blur-sm border-b border-white/10">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="../index.html" class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
+                        <p class="text-[9px] text-gray-500 tracking-[0.2em]">BLOG</p>
+                    </div>
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="../manual.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">MANUAL</a>
+                <a href="../latest.html" class="text-accent hover:text-accent/80 transition-colors text-sm font-display hidden sm:block">LATEST</a>
+                <a href="../releases.html" class="text-gray-400 hover:text-chrome transition-colors text-sm font-display hidden sm:block">RELEASES</a>
+                <a href="../blog.html" class="text-chrome text-sm font-display hidden sm:block">BLOG</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors hidden sm:block">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+                <a href="../index.html#download" class="px-4 py-2 bg-accent text-black font-display font-bold text-sm tracking-wider hover:bg-accent/80 transition-colors clip-notch">
+                    DOWNLOAD
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-24 pb-16 px-6">
+        <article class="max-w-3xl mx-auto">
+
+            <!-- Article Header -->
+            <header class="mb-12">
+                <div class="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                    <a href="../blog.html" class="hover:text-accent transition-colors flex items-center gap-1">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        BLOG
+                    </a>
+                    <span>/</span>
+                    <span>March 10, 2026</span>
+                </div>
+                <h1 class="font-display text-4xl md:text-5xl text-chrome mb-6">Anthropic added /voice to Claude Code. Here's why that's fine.</h1>
+                <p class="text-xl text-gray-400 border-l-2 border-accent pl-4">When the company behind the tool you're building for ships a feature that overlaps with yours, you have two choices. We chose to integrate.</p>
+
+                <div class="flex items-center gap-4 mt-6 pt-6 border-t border-white/10">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4 text-accent"></i>
+                        </div>
+                        <span class="text-sm text-gray-400">@jamditis</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <i data-lucide="clock" class="w-4 h-4"></i>
+                        <span>8 min read</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Article Content -->
+            <div class="prose-void">
+
+                <p>On March 3, Anthropic started rolling out voice mode for Claude Code. You type <code>/voice</code>, hold the spacebar, and talk. Your words become prompts. No third-party app needed.</p>
+
+                <p>I've been building <a href="https://github.com/jamditis/audiobash">AudioBash</a> &mdash; a voice-controlled terminal &mdash; since December 2025. Three months of my nights and weekends. When I saw the announcement, my first thought was: well, that's that.</p>
+
+                <p>My second thought was: actually, no. These solve different problems.</p>
+
+                <h2>What /voice does</h2>
+
+                <p>Anthropic's implementation is clean. Hold spacebar, talk, release. Your speech gets transcribed and submitted as a prompt to Claude. Transcription tokens don't count against your rate limit. It's included with Pro, Max, Team, and Enterprise subscriptions at no extra cost. You can mix voice and typing in the same session &mdash; paste a file path, then speak your instructions about it.</p>
+
+                <p>For Claude Code users who want to talk instead of type, it works. I've used it. It's good.</p>
+
+                <p>So why does AudioBash still exist?</p>
+
+                <h2>Different tools for different problems</h2>
+
+                <p>Claude Code's <code>/voice</code> solves one problem: voice input for Claude Code. That's it. It transcribes your speech and sends it as a prompt to Claude.</p>
+
+                <p>AudioBash solves a different problem: voice input for your terminal. Any terminal. Any LLM. Any command.</p>
+
+                <p>Here's what I mean:</p>
+
+                <h3>Multiple terminals</h3>
+
+                <p>My daily workflow involves at least two terminal sessions. Claude Code in one, a dev server or test runner in another. Sometimes three or four. AudioBash has a pane system &mdash; tmux-style splits where each pane is its own shell with its own context. I can talk to Claude Code in the left pane and run tests in the right pane with the same voice shortcut. <code>/voice</code> only works inside Claude Code's own session.</p>
+
+                <h3>Not just Claude</h3>
+
+                <p>I use Gemini CLI too. And sometimes plain PowerShell for quick file operations. AudioBash works with all of them. Press Alt+S, talk, and your words go to whatever terminal has focus. It doesn't care what's running in it.</p>
+
+                <p><code>/voice</code> is tied to Claude Code. If you switch to another tool, you lose voice input.</p>
+
+                <h3>Agent mode</h3>
+
+                <p>This is the feature that matters most to me. When I'm at a raw shell prompt (not inside Claude Code), I don't always know the right command. I know what I want to do in English. AudioBash's agent mode takes my speech, considers what directory I'm in and what I've been doing, and figures out the right shell command. "Find all the test files that import vitest" becomes <code>grep -rl "import.*vitest" tests/</code>.</p>
+
+                <p><code>/voice</code> doesn't do this because it doesn't need to &mdash; Claude Code already understands natural language. But outside of Claude Code, at a raw prompt, you need something that translates.</p>
+
+                <h3>Provider choice</h3>
+
+                <p>AudioBash supports multiple transcription providers: Gemini, ElevenLabs, and local Whisper for offline use. You can pick the one that works best for you. Anthropic hasn't said what powers <code>/voice</code> transcription, and you can't change it.</p>
+
+                <p>Local Whisper matters if you're working on a plane, on slow hotel wifi, or if you just don't want your voice data going to a server.</p>
+
+                <h3>Offline</h3>
+
+                <p>If your internet drops, <code>/voice</code> stops working. AudioBash with local Whisper keeps going. I've used this on flights. It's not fast (local transcription on a laptop CPU takes a few seconds), but it works.</p>
+
+                <h2>What we built instead of competing</h2>
+
+                <p>When I saw the <code>/voice</code> announcement, the question wasn't "how do I beat this." It was "how do I make sure they work well together."</p>
+
+                <p>AudioBash v3.0 &mdash; which shipped the same week &mdash; includes voice mode detection. When Claude Code's <code>/voice</code> is active in a terminal pane, AudioBash detects it by watching the terminal output for activation patterns. When it sees <code>/voice</code> is running:</p>
+
+                <ul>
+                    <li>The mic button shows a <code>[CC /voice]</code> badge so you know what's happening</li>
+                    <li>AudioBash disables its own recording on that pane to prevent interference</li>
+                    <li>If you're in a multi-pane layout, voice input automatically routes to a different pane</li>
+                    <li>If you're actively recording when <code>/voice</code> activates, AudioBash cancels the recording cleanly instead of sending a partial transcription</li>
+                </ul>
+
+                <p>Two voice systems fighting over the same microphone would be a mess. Instead, AudioBash yields when <code>/voice</code> is present and stays available for everything else.</p>
+
+                <div class="insight-box">
+                    <p class="text-chrome mb-0">When a platform vendor ships a feature that overlaps with your tool, the worst response is to pretend it doesn't exist. The best response is to integrate with it and focus on what you do that they don't.</p>
+                </div>
+
+                <h2>Why I'm not worried</h2>
+
+                <p>The way people write software is changing. Vibe coding &mdash; describing what you want in natural language and letting AI figure out the implementation &mdash; is how a growing number of people work. And "vibe coders" don't just use Claude Code. They use Gemini CLI, Copilot, Cursor, Codex, and a dozen other tools. They switch between them based on the task.</p>
+
+                <p>Voice input for one specific tool is useful. Voice input for your entire terminal environment is a different thing.</p>
+
+                <p>There are also practical differences. <code>/voice</code> is rolling out to about 5% of Claude Code users as of this writing and is English-only. AudioBash is available now, runs locally, and supports whatever your transcription provider supports.</p>
+
+                <p>And there's a category difference that matters: <code>/voice</code> is a feature inside someone else's product. AudioBash is a standalone app you control. You pick the transcription provider. You configure the shortcuts. You own the workflow. If Anthropic changes how <code>/voice</code> works or limits it or removes it, that's their call. AudioBash is open source and runs on your machine.</p>
+
+                <h2>What's next</h2>
+
+                <p>The v3.0 release also shipped the pane system I've been wanting to build since December &mdash; binary tree splits, named sessions, keyboard navigation. It's the feature that makes AudioBash feel like a real terminal instead of a toy. Combined with voice mode detection, it means you can have Claude Code with <code>/voice</code> in one pane and use AudioBash voice in your other panes, all without conflicts.</p>
+
+                <p>I'm going to keep building this. Not because I think I can out-ship Anthropic &mdash; I obviously can't &mdash; but because AudioBash solves my specific problem in a way that <code>/voice</code> alone doesn't. I need multiple terminals. I need agent mode at the raw prompt. I need offline transcription on flights. I need to talk to Gemini CLI and PowerShell, not just Claude.</p>
+
+                <p>If you use Claude Code and <code>/voice</code> is enough for you, that's great. Use it. But if you want voice across your whole terminal setup, with panes and provider choice and offline support, <a href="https://github.com/jamditis/audiobash">AudioBash</a> is still here.</p>
+
+                <p>And it gets along with <code>/voice</code> just fine.</p>
+
+            </div>
+
+            <!-- Article Footer -->
+            <footer class="mt-16 pt-8 border-t border-white/10">
+                <div class="flex items-center justify-between">
+                    <a href="../blog.html" class="flex items-center gap-2 text-gray-400 hover:text-accent transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back to blog</span>
+                    </a>
+                    <div class="flex items-center gap-4">
+                        <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors">
+                            <i data-lucide="github" class="w-5 h-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </footer>
+
+        </article>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600 font-mono">
+                <span data-version="AUDIOBASH v{version} // BLOG // MIT LICENSE">AUDIOBASH v3.0.3 // BLOG // MIT LICENSE</span>
+            </div>
+            <div class="flex items-center gap-4 text-gray-500">
+                <a href="../about.html" class="hover:text-accent transition-colors text-xs font-mono">
+                    About
+                </a>
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">
+                    <i data-lucide="github" class="w-4 h-4"></i>
+                </a>
+                <a href="https://github.com/jamditis" class="hover:text-accent transition-colors text-xs font-mono">
+                    @jamditis
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/version.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
