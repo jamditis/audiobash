@@ -3,13 +3,7 @@ import type { PaneNode as PaneNodeType } from '../utils/paneTree';
 import Terminal from './Terminal';
 import PaneDivider from './PaneDivider';
 import type { ActivityState } from '../types';
-
-const ACTIVITY_COLORS: Record<ActivityState, string> = {
-  active: '#3fb950',
-  silent: '#d29922',
-  done: '#484f58',
-  error: '#f85149',
-};
+import { getStripColor, type PaneColorName } from '../utils/paneColors';
 
 interface PaneNodeProps {
   node: PaneNodeType;
@@ -19,6 +13,7 @@ interface PaneNodeProps {
   cliNotificationsEnabled: boolean;
   fontSize: number;
   activityStates: Map<string, ActivityState>;
+  paneColors?: Map<string, PaneColorName>;
   onFocus: (id: string) => void;
   onResize: (splitId: string, delta: number, containerSize: number) => void;
   onEqualize: (splitId: string) => void;
@@ -26,14 +21,15 @@ interface PaneNodeProps {
 
 const PaneNodeComponent: React.FC<PaneNodeProps> = ({
   node, focusedId, zoomedId, isRecording, cliNotificationsEnabled, fontSize,
-  activityStates, onFocus, onResize, onEqualize,
+  activityStates, paneColors, onFocus, onResize, onEqualize,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   if (node.type === 'leaf') {
     const isFocused = node.id === focusedId;
     const activityState = activityStates.get(node.terminalId) || 'active';
-    const stripColor = ACTIVITY_COLORS[activityState];
+    const colorName = paneColors?.get(node.terminalId) || 'acid';
+    const stripColor = getStripColor(colorName, activityState);
     return (
       <div className="h-full w-full relative">
         <div
@@ -76,7 +72,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
           node={node.children[0]}
           focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}
           cliNotificationsEnabled={cliNotificationsEnabled} fontSize={fontSize}
-          activityStates={activityStates}
+          activityStates={activityStates} paneColors={paneColors}
           onFocus={onFocus} onResize={onResize} onEqualize={onEqualize}
         />
       </div>
@@ -90,7 +86,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
           node={node.children[1]}
           focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}
           cliNotificationsEnabled={cliNotificationsEnabled} fontSize={fontSize}
-          activityStates={activityStates}
+          activityStates={activityStates} paneColors={paneColors}
           onFocus={onFocus} onResize={onResize} onEqualize={onEqualize}
         />
       </div>
