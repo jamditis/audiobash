@@ -1,11 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-// Test the state derivation logic directly (extracted as a pure function)
-// The hook itself wraps this in React state management
-
-const SILENCE_TIMEOUT_MS = 15000;
-
-type ActivityState = 'active' | 'silent' | 'done' | 'error';
+import { describe, it, expect } from 'vitest';
+import { deriveState } from '../../src/hooks/usePaneActivity';
 
 interface PaneActivity {
   lastOutputTime: number;
@@ -13,22 +7,12 @@ interface PaneActivity {
   exitCode: number | null;
 }
 
-function deriveState(activity: PaneActivity, now: number): ActivityState {
-  if (activity.exited) {
-    return activity.exitCode === 0 ? 'done' : 'error';
-  }
-  if (now - activity.lastOutputTime < SILENCE_TIMEOUT_MS) {
-    return 'active';
-  }
-  return 'silent';
-}
-
 describe('pane activity state derivation', () => {
   const NOW = 1710000000000;
 
   it('returns active when output received within 15 seconds', () => {
     const activity: PaneActivity = {
-      lastOutputTime: NOW - 5000, // 5 seconds ago
+      lastOutputTime: NOW - 5000,
       exited: false,
       exitCode: null,
     };
@@ -91,21 +75,19 @@ describe('pane activity state derivation', () => {
 
   it('exit state takes priority over silence timeout', () => {
     const activity: PaneActivity = {
-      lastOutputTime: NOW - 60000, // long silence
+      lastOutputTime: NOW - 60000,
       exited: true,
       exitCode: 0,
     };
-    // Should be 'done', not 'silent'
     expect(deriveState(activity, NOW)).toBe('done');
   });
 
   it('exit state takes priority over active output', () => {
     const activity: PaneActivity = {
-      lastOutputTime: NOW, // just now
+      lastOutputTime: NOW,
       exited: true,
       exitCode: 1,
     };
-    // Should be 'error', not 'active'
     expect(deriveState(activity, NOW)).toBe('error');
   });
 });
