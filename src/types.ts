@@ -4,7 +4,7 @@ export type ApiProvider = 'gemini' | 'openai' | 'anthropic' | 'elevenlabs';
 
 export type ShellType = 'powershell' | 'cmd' | 'bash';
 
-export type ActivityState = 'active' | 'silent' | 'done' | 'error';
+export type ActivityState = 'active' | 'fading' | 'dim' | 'inactive' | 'done' | 'error';
 
 /** Array of valid shell types for iteration */
 export const SHELL_TYPES: readonly ShellType[] = ['powershell', 'cmd', 'bash'] as const;

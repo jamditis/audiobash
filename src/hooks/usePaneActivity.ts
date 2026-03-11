@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActivityState } from '../types';
 
-const SILENCE_TIMEOUT_MS = 15000;
+const ACTIVE_MS = 15000;
+const FADING_MS = 30000;
+const DIM_MS = 60000;
 const POLL_INTERVAL_MS = 1000;
 
 interface PaneActivity {
@@ -14,10 +16,11 @@ export function deriveState(activity: PaneActivity, now: number): ActivityState 
   if (activity.exited) {
     return activity.exitCode === 0 ? 'done' : 'error';
   }
-  if (now - activity.lastOutputTime < SILENCE_TIMEOUT_MS) {
-    return 'active';
-  }
-  return 'silent';
+  const elapsed = now - activity.lastOutputTime;
+  if (elapsed < ACTIVE_MS) return 'active';
+  if (elapsed < FADING_MS) return 'fading';
+  if (elapsed < DIM_MS) return 'dim';
+  return 'inactive';
 }
 
 export function usePaneActivity(): Map<string, ActivityState> {
