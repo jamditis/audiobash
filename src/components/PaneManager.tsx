@@ -5,6 +5,7 @@ import {
   PaneNode, PaneSplit, createLeaf, splitPane, closePane, flattenLeaves, applyPreset, findPane,
   type PresetName,
 } from '../utils/paneTree';
+import { usePaneActivity } from '../hooks/usePaneActivity';
 
 export interface PaneManagerHandle {
   splitHorizontal: () => void;
@@ -37,6 +38,7 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null);
   const [zoomedPaneId, setZoomedPaneId] = useState<string | null>(null);
   const [presetIndex, setPresetIndex] = useState(0);
+  const activityStates = usePaneActivity();
 
   // Pool of all terminal IDs managed by panes — superset of current pane leaves.
   // Preset switching draws from this pool instead of creating/destroying terminals,
@@ -242,6 +244,7 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
           isRecording={isRecording}
           cliNotificationsEnabled={cliNotificationsEnabled}
           fontSize={fontSize}
+          activityStates={activityStates}
           onFocus={setFocusedPaneId}
           onResize={handleResize}
           onEqualize={handleEqualize}
