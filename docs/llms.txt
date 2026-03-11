@@ -16,7 +16,6 @@ Key features:
 - Voice-to-terminal command execution via push-to-talk hotkey
 - Multi-tab split-view terminal with up to 4 panes
 - Agent mode with context-aware command generation
-- Mobile remote control via WebSocket
 - Available for Windows and macOS (Apple Silicon and Intel)
 - Multiple AI transcription providers
 - Fully customizable hotkeys and settings

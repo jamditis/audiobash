@@ -19,11 +19,11 @@
 │  │  │   Window    │ │    PTY      │ │   Global    │ │   System    │               │   │
 │  │  │  Manager    │ │  Manager    │ │  Shortcuts  │ │    Tray     │               │   │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘               │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                               │   │
-│  │  │   Remote    │ │   Whisper   │ │     AI      │                               │   │
-│  │  │   Server    │ │   Service   │ │   Clients   │                               │   │
-│  │  │(WS + HTTP)  │ │  (Local)    │ │(Gemini/OAI) │                               │   │
-│  │  └─────────────┘ └─────────────┘ └─────────────┘                               │   │
+│  │  ┌─────────────┐ ┌─────────────┐                                               │   │
+│  │  │   Whisper   │ │     AI      │                                               │   │
+│  │  │   Service   │ │   Clients   │                                               │   │
+│  │  │  (Local)    │ │(Gemini/OAI) │                                               │   │
+│  │  └─────────────┘ └─────────────┘                                               │   │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                               │   │
 │  │  │    File     │ │  Persistent │ │   Logger    │                               │   │
 │  │  │   Watcher   │ │   Storage   │ │   Service   │                               │   │
@@ -36,11 +36,11 @@
 │  │                          PRELOAD SCRIPT (Context Bridge)                         │   │
 │  │                            (electron/preload.cjs)                                │   │
 │  │                                                                                  │   │
-│  │   60 APIs exposed via window.electron:                                          │   │
+│  │   53 APIs exposed via window.electron:                                          │   │
 │  │   • Window Control (3)    • Terminal I/O (10)     • Voice Events (2)            │   │
 │  │   • Mode/Navigation (8)   • Shortcuts (3)         • API Keys (2)               │   │
 │  │   • Transcription (4)     • Directories (5)       • Preview (7)                │   │
-│  │   • Whisper Local (10)    • Remote Control (6)                                  │   │
+│  │   • Whisper Local (10)                                                          │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                         │                                               │
 │                                         │ contextBridge.exposeInMainWorld              │
@@ -145,11 +145,6 @@ flowchart TB
             WhisperSvc["Whisper Service<br/>(Local)"]
         end
 
-        subgraph Remote["Remote Control"]
-            WSServer["WebSocket + HTTP Server<br/>(port 8765)"]
-            PasswordMgr["Password Manager"]
-        end
-
         subgraph Storage["Persistent Storage"]
             AppStore["app-store.json"]
             DirStore["directories.json"]
@@ -168,7 +163,6 @@ flowchart TB
             TermIPC["terminal-*<br/>(10 channels)"]
             VoiceIPC["*-recording<br/>(2 channels)"]
             ShortcutIPC["*-shortcuts<br/>(3 channels)"]
-            RemoteIPC["remote-*<br/>(7 channels)"]
             WhisperIPC["whisper-*<br/>(10 channels)"]
             WinIPC["minimize/maximize/close"]
         end
@@ -233,7 +227,6 @@ flowchart TB
         OpenAIAPI["OpenAI API<br/>(Whisper + GPT-4)"]
         AnthropicAPI["Anthropic API<br/>(Claude)"]
         ElevenLabsAPI["ElevenLabs API<br/>(Scribe + Realtime)"]
-        MobileClient2["Mobile Browser<br/>(WebSocket client)"]
     end
 
     %% Main process connections
@@ -242,7 +235,6 @@ flowchart TB
     PTYPool --> OutputBuffer
     OutputBuffer --> CWDTracker
     GS --> ShortcutConfig
-    WSServer --> PasswordMgr
 
     %% IPC connections
     MAIN <--> PRELOAD
@@ -261,7 +253,6 @@ flowchart TB
     TranscriptionSvc --> AnthropicAPI
     TranscriptionSvc --> ElevenLabsAPI
     ElevenLabsSvc --> ElevenLabsAPI
-    WSServer --> MobileClient2
 ```
 
 ---
@@ -364,7 +355,6 @@ flowchart LR
         R_Dir["Directories"]
         R_Prev["Preview"]
         R_Whisper["Local Whisper"]
-        R_Remote["Remote Control"]
     end
 
     subgraph IPC["IPC Channels"]
@@ -454,15 +444,6 @@ flowchart LR
             save-temp-audio
         end
 
-        subgraph Remote["Remote (7)"]
-            get-remote-status
-            set-remote-password
-            get-remote-password
-            set-keep-awake
-            get-keep-awake
-            remote-status-changed
-            remote-switch-tab
-        end
     end
 
     subgraph MAIN["Main Process"]
@@ -474,7 +455,6 @@ flowchart LR
         M_AI["AI Clients"]
         M_Whisper["Whisper Service"]
         M_FS["File System"]
-        M_WS["WebSocket Server"]
     end
 
     R_Win --> Window --> M_BW
@@ -487,7 +467,6 @@ flowchart LR
     R_Dir --> Dir --> M_FS
     R_Prev --> Prev --> M_FS
     R_Whisper --> Whisper --> M_Whisper
-    R_Remote --> Remote --> M_WS
 ```
 
 ---
@@ -538,7 +517,7 @@ flowchart TB
 
         subgraph Overlays["Overlay Components"]
             VoiceOverlay["VoiceOverlay<br/>• isRecording<br/>• mode<br/>• transcript<br/>• startRecording()<br/>• stopRecording()"]
-            Settings["Settings<br/>• API keys<br/>• model selection<br/>• shortcuts<br/>• vocabulary<br/>• remote config"]
+            Settings["Settings<br/>• API keys<br/>• model selection<br/>• shortcuts<br/>• vocabulary"]
             DirectoryPicker["DirectoryPicker<br/>• recentDirs[]<br/>• favoriteDirs[]<br/>• cdToDirectory()"]
             ConsoleErrorViewer["ConsoleErrorViewer<br/>• errors[]<br/>• copyError()<br/>• clearErrors()"]
             Onboarding["Onboarding<br/>• currentStep<br/>• handleNext()"]
@@ -635,51 +614,6 @@ flowchart TB
     LocalAdapter --> LocalServices
 
     ElevenLabsRealtime --> ElevenLabsAPI
-```
-
----
-
-## Remote control architecture
-
-```mermaid
-flowchart TB
-    subgraph MobileClient["📱 Mobile browser"]
-        MobileUI["Terminal UI +<br/>speech-to-text input"]
-        MobileWS["WebSocket Client"]
-    end
-
-    subgraph AudioBash["🖥️ AudioBash Desktop"]
-        subgraph MainProcess["Main Process"]
-            direction TB
-
-            subgraph RemoteServer["Remote Control Server"]
-                HTTPServer["HTTP Server<br/>(serves mobile page)"]
-                WSServer["WebSocket Server<br/>(port 8765, ws://)"]
-                PasswordAuth["Optional Password Auth"]
-            end
-
-            KeepAwake["Keep Awake<br/>(powerSaveBlocker)"]
-        end
-
-        subgraph Renderer["Renderer Process"]
-            Settings2["Settings<br/>(Remote Control tab)"]
-        end
-    end
-
-    subgraph Network["Network"]
-        LAN["LAN / Tailscale"]
-    end
-
-    MobileUI --> MobileWS
-    MobileWS <-->|"ws://"| LAN
-    LAN <--> WSServer
-    MobileWS -->|"HTTP GET"| HTTPServer
-
-    WSServer --> PasswordAuth
-    WSServer <-->|"IPC"| Renderer
-
-    Settings2 -->|"Configure"| RemoteServer
-    Settings2 -->|"Toggle"| KeepAwake
 ```
 
 ---
@@ -851,11 +785,9 @@ audiobash/
 │   │   ├── PTY management
 │   │   ├── IPC handlers (38+)
 │   │   ├── AI client initialization
-│   │   └── Remote server setup
-│   ├── preload.cjs                   # IPC Bridge (60 APIs)
+│   ├── preload.cjs                   # IPC Bridge (53 APIs)
 │   ├── logger.cjs                    # Main process logging
 │   ├── error-handler.cjs             # Global error handlers
-│   ├── websocket-server.cjs          # Remote control server (WS + HTTP)
 │   └── whisperService.cjs            # Local Whisper
 │
 ├── src/                               # Renderer Process
@@ -955,7 +887,7 @@ audiobash/
 
 | Category | Count |
 |----------|-------|
-| **Exposed APIs** | 60 |
+| **Exposed APIs** | 53 |
 | **React Components** | 17 |
 | **Custom Hooks** | 6 |
 | **Transcription Models** | 12 |

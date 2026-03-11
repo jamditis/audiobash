@@ -31,7 +31,6 @@ These features have shipped:
 - [x] **macOS support** (v2.0.0) — Native Apple Silicon and Intel builds
 - [x] **Split view** (v1.0.4) — 5 layout modes with resizable panes
 - [x] **Preview pane** (v2.3.x) — Embedded web preview with auto-refresh and screenshot capture
-- [x] **Remote control** (v2.1.x) — Phone-based input via WebSocket, simplified in v2.4.1
 - [x] **ElevenLabs real-time** (v2.1.0) — WebSocket streaming at ~150ms latency
 - [x] **Code signing infrastructure** (v2.4.1) — Entitlements, notarization hook, hardened runtime
 

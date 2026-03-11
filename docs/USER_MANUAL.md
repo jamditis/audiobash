@@ -18,7 +18,6 @@
    - [Multi-tab interface](#multi-tab-interface)
    - [Split view layouts](#split-view-layouts)
    - [Preview pane](#preview-pane)
-   - [Remote control](#remote-control)
 5. [Settings & configuration](#settings--configuration)
    - [API keys](#api-keys)
    - [Transcription providers](#transcription-providers)
@@ -47,7 +46,6 @@ AudioBash is a voice-controlled terminal application designed to work with Claud
 - **Agent mode** — AI-powered command generation for complex tasks
 - **Split view** — 5 layout modes with resizable panes
 - **Preview pane** — Embedded web preview with auto-refresh and screenshot capture
-- **Remote control** — Voice input from your phone via WebSocket
 - **Model cycling** — Click the model name in the voice overlay to switch providers
 - **Custom vocabulary** — Map misheard words to correct spellings
 - **Cross-platform** — Windows 10/11 and macOS (Intel & Apple Silicon)
@@ -260,16 +258,6 @@ The embedded preview pane shows web content alongside your terminal:
 - Auto-refreshes when files change
 - Screenshot capture for sharing
 - Useful for front-end development with live reload
-
-### Remote control
-
-Control AudioBash from your phone via WebSocket:
-
-1. Open the remote control URL shown in the app (served at `http://<your-ip>:8765/`)
-2. Use the on-screen buttons to start/stop recording
-3. Voice input from your phone is sent to the terminal on your computer
-
-This is useful when your computer is across the room or connected to an external display.
 
 ---
 

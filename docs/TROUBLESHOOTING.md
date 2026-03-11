@@ -137,47 +137,6 @@ echo $env:SHELL   # Windows PowerShell
 
 ---
 
-### Remote Control Issues
-
-#### Cannot Connect from Mobile
-
-**Symptoms:**
-- "Connection failed" on mobile page
-- Timeout when connecting
-
-**Solutions:**
-
-1. **Verify IP address:**
-   - Check the IP shown in AudioBash Settings → Remote control
-   - Ensure your phone is on the same WiFi network
-   - Open `http://<your-ip>:8765` in your phone's browser
-
-2. **Check password:**
-   - If you've set a password, ensure it's entered correctly on the mobile page
-   - If no password is set, the connection should succeed without one
-
-3. **Check firewall:**
-   - AudioBash uses port 8765
-   - Add an exception for AudioBash in your firewall
-
-4. **Check if already connected:**
-   - Only one device can connect at a time
-   - Disconnect any existing connections first
-
-#### Connection Drops Frequently
-
-**Solutions:**
-
-1. **Check WiFi stability** - Move closer to your router
-2. **Disable power saving** - Keep your desktop awake during use
-3. **Check for IP changes** - Your desktop IP might change; verify it periodically
-
-#### Cannot Connect Outside Local Network
-
-Use [Tailscale](https://tailscale.com/) to connect from outside your local network. Install Tailscale on both your desktop and phone, then use the Tailscale IP address instead of the local one.
-
----
-
 ### Performance Issues
 
 #### High Memory Usage
@@ -316,7 +275,7 @@ AudioBash uses error codes to help identify issues. Look for these in logs or er
 | Code | Category | Issue | Solution |
 |------|----------|-------|----------|
 | E1001 | Network | Connection timeout | Check internet, retry |
-| E1002 | Network | WebSocket failed | Check if AudioBash desktop is running |
+| E1002 | Network | WebSocket failed | Check connection and retry |
 | E1003 | Network | Rate limit exceeded | Wait and retry |
 | E2001 | Audio | Microphone denied | Grant microphone permission |
 | E2002 | Audio | Recording failed | Check microphone connection |
