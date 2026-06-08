@@ -120,8 +120,11 @@ describe('Linux build configuration', () => {
   // unless package.json author is an object with an email, or build.linux.maintainer is set.
   // author was a bare "Joe Amditis" string, so the deb step failed in CI and blocked the release job.
   it('provides a maintainer email for the deb target', () => {
-    const targets = buildConfig.linux.target ?? [];
-    if (!targets.includes('deb')) return;
+    const rawTargets = buildConfig.linux.target ?? [];
+    const targetNames = (Array.isArray(rawTargets) ? rawTargets : [rawTargets]).map((t: any) =>
+      typeof t === 'string' ? t : t?.target,
+    );
+    if (!targetNames.includes('deb')) return;
     const author = packageJson.author;
     const authorEmail = author && typeof author === 'object' ? author.email : undefined;
     const source = buildConfig.linux.maintainer || authorEmail || '';
