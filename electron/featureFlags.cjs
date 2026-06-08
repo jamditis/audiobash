@@ -8,8 +8,22 @@
 // for security, so global shortcuts silently no-op unless the app opts into Chromium's
 // GlobalShortcutsPortal feature (routes through the xdg-desktop-portal GlobalShortcuts API).
 // See electron/electron#45171.
+//
+// Chromium keeps only the LAST value of a repeated --enable-features switch, so we merge our feature
+// into any value already on the command line (e.g. a Linux desktop entry enabling Ozone/Wayland
+// flags) instead of overwriting it.
 function enableWaylandShortcuts(app) {
-  app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
+  const existing = app.commandLine.getSwitchValue('enable-features');
+  const features = existing
+    ? existing
+        .split(',')
+        .map((feature) => feature.trim())
+        .filter(Boolean)
+    : [];
+  if (!features.includes('GlobalShortcutsPortal')) {
+    features.push('GlobalShortcutsPortal');
+  }
+  app.commandLine.appendSwitch('enable-features', features.join(','));
 }
 
 module.exports = { enableWaylandShortcuts };

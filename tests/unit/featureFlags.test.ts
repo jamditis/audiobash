@@ -15,7 +15,34 @@ describe('enableWaylandShortcuts', () => {
   // real app.commandLine the main process passes in.
   it('appends the GlobalShortcutsPortal feature so global shortcuts work under Wayland', () => {
     const appendSwitch = vi.fn();
-    const app = { commandLine: { appendSwitch } };
+    const getSwitchValue = vi.fn().mockReturnValue('');
+    const app = { commandLine: { appendSwitch, getSwitchValue } };
+
+    enableWaylandShortcuts(app);
+
+    expect(appendSwitch).toHaveBeenCalledWith('enable-features', 'GlobalShortcutsPortal');
+  });
+
+  // Chromium keeps only the last value of a repeated --enable-features switch, so blindly appending
+  // would drop any feature list a desktop entry or QA run passed in. We must merge, not overwrite.
+  it('merges GlobalShortcutsPortal into an existing enable-features value instead of overwriting it', () => {
+    const appendSwitch = vi.fn();
+    const getSwitchValue = vi.fn().mockReturnValue('SomeFeature,AnotherFeature');
+    const app = { commandLine: { appendSwitch, getSwitchValue } };
+
+    enableWaylandShortcuts(app);
+
+    expect(getSwitchValue).toHaveBeenCalledWith('enable-features');
+    expect(appendSwitch).toHaveBeenCalledWith(
+      'enable-features',
+      'SomeFeature,AnotherFeature,GlobalShortcutsPortal',
+    );
+  });
+
+  it('does not duplicate GlobalShortcutsPortal if it is already enabled', () => {
+    const appendSwitch = vi.fn();
+    const getSwitchValue = vi.fn().mockReturnValue('GlobalShortcutsPortal');
+    const app = { commandLine: { appendSwitch, getSwitchValue } };
 
     enableWaylandShortcuts(app);
 
