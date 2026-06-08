@@ -52,6 +52,8 @@
                         iceDim: 'rgba(0, 240, 255, 0.1)',
                         apple: '#a3aaae',
                         appleDim: 'rgba(163, 170, 174, 0.1)',
+                        linux: '#ccff00',
+                        linuxDim: 'rgba(204, 255, 0, 0.1)',
                     },
                     backgroundImage: {
                         'grid-pattern': "linear-gradient(to right, #222 1px, transparent 1px), linear-gradient(to bottom, #222 1px, transparent 1px)",
@@ -207,7 +209,7 @@
                 <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                 <div>
                     <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
-                    <p class="text-[9px] text-gray-500 tracking-[0.2em]" data-version="v{version} // VOICE_TERMINAL">v3.2.0 // VOICE_TERMINAL</p>
+                    <p class="text-[9px] text-gray-500 tracking-[0.2em]" data-version="v{version} // VOICE_TERMINAL">v3.3.0 // VOICE_TERMINAL</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -239,7 +241,7 @@
                 <!-- NEW: Version Badge -->
                 <a href="latest.html" class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6 hover:bg-accent/20 transition-colors">
                     <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                    <span data-version="v{version}">v3.2.0</span> — Customizable pane colors, activity fade, exit-closes-pane
+                    <span data-version="v{version}">v3.3.0</span> — Linux builds, hardened transcription, Wayland shortcuts
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
 
@@ -269,6 +271,12 @@
                         <span class="flex items-center gap-2">
                             <i data-lucide="laptop" class="w-4 h-4"></i>
                             macOS (Intel)
+                        </span>
+                    </a>
+                    <a href="#" data-download="linux-appimage" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-linux hover:text-linux transition-all">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4"></i>
+                            Linux (AppImage)
                         </span>
                     </a>
                     <a href="https://github.com/jamditis/audiobash" class="px-6 py-3 border border-white/20 text-chrome font-display font-bold text-sm tracking-wider hover:border-accent hover:text-accent transition-all">
@@ -320,28 +328,28 @@
             </div>
         </section>
 
-        <!-- WHAT'S NEW IN v3.2.0 -->
+        <!-- WHAT'S NEW IN v3.3.0 -->
         <section class="py-16 px-6 bg-accent/5 border-y border-accent/20">
             <div class="max-w-4xl mx-auto">
                 <div class="text-center mb-8">
-                    <h3 class="font-display text-2xl text-accent mb-2" data-version="NEW IN v{version}">NEW IN v3.2.0</h3>
-                    <p class="text-gray-500 font-mono">Customizable pane colors with activity-based fade</p>
+                    <h3 class="font-display text-2xl text-accent mb-2" data-version="NEW IN v{version}">NEW IN v3.3.0</h3>
+                    <p class="text-gray-500 font-mono">Linux builds, hardened transcription, and Wayland shortcuts</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #ccff00;">///</div>
-                        <h4 class="font-display text-chrome mb-1">Pane color strips</h4>
-                        <p class="text-gray-500 text-sm">Each pane gets a colored 3px strip that fades through brightness steps as the terminal goes idle.</p>
+                        <h4 class="font-display text-chrome mb-1">Linux downloads</h4>
+                        <p class="text-gray-500 text-sm">AppImage and .deb builds now ship alongside Windows and macOS. One voice terminal, every desktop.</p>
                     </div>
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #3399ff;">///</div>
-                        <h4 class="font-display text-chrome mb-1">8-color palette</h4>
-                        <p class="text-gray-500 text-sm">Pick from Emerald, Cobalt, Crimson, Violet, Cyan, Amber, Rose, or Acid. Colors persist across restarts.</p>
+                        <h4 class="font-display text-chrome mb-1">Hardened transcription</h4>
+                        <p class="text-gray-500 text-sm">Batch cloud transcription requests now run in the main process instead of the renderer.</p>
                     </div>
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #ff3333;">///</div>
-                        <h4 class="font-display text-chrome mb-1">Smarter panes</h4>
-                        <p class="text-gray-500 text-sm">Exit closes panes automatically. Focus tracking fixed for all grid positions. Error exits always show red.</p>
+                        <h4 class="font-display text-chrome mb-1">Wayland shortcuts</h4>
+                        <p class="text-gray-500 text-sm">Global hotkeys register under Wayland, not just X11, so the Alt bindings work on modern Linux desktops.</p>
                     </div>
                 </div>
             </div>
@@ -457,15 +465,15 @@
 
         <!-- DOWNLOAD SECTION -->
         <section id="download" class="py-32 px-6">
-            <div class="max-w-4xl mx-auto text-center">
+            <div class="max-w-5xl mx-auto text-center">
 
                 <div class="bg-panel border border-accent/30 p-12 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-3xl"></div>
 
                     <h3 class="font-display text-4xl text-chrome mb-4 relative">INITIALIZE_NOW</h3>
-                    <p class="text-gray-400 font-mono mb-8 relative">Free and open source. Windows + macOS ready.</p>
+                    <p class="text-gray-400 font-mono mb-8 relative">Free and open source. Windows, macOS, and Linux ready.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative mb-8">
                         <!-- Windows -->
                         <div class="bg-void border border-white/10 p-6 text-left">
                             <div class="flex items-center gap-3 mb-4">
@@ -495,6 +503,25 @@
                                 </a>
                                 <a href="#" data-download="mac-intel" class="flex-1 px-4 py-3 border border-apple text-apple font-display font-bold text-center text-sm tracking-wider hover:bg-apple/10 transition-all">
                                     INTEL
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Linux -->
+                        <div class="bg-void border border-white/10 p-6 text-left">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i data-lucide="terminal" class="w-8 h-8 text-linux"></i>
+                                <div>
+                                    <h4 class="font-display text-lg text-chrome">LINUX</h4>
+                                    <p class="text-gray-500 text-xs">Linux x64</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="#" data-download="linux-appimage" class="flex-1 px-4 py-3 bg-linux text-black font-display font-bold text-center text-sm tracking-wider hover:bg-linux/80 transition-all clip-notch">
+                                    APPIMAGE
+                                </a>
+                                <a href="#" data-download="linux-deb" class="flex-1 px-4 py-3 border border-linux text-linux font-display font-bold text-center text-sm tracking-wider hover:bg-linux/10 transition-all">
+                                    .DEB
                                 </a>
                             </div>
                         </div>
@@ -555,7 +582,7 @@
         <footer class="border-t border-white/10 py-8 px-6">
             <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="text-[10px] text-gray-600 font-mono">
-                    <span data-version="AUDIOBASH v{version} // BUILD 2026.03.10 // MIT LICENSE">AUDIOBASH v3.2.0 // BUILD 2026.03.11 // MIT LICENSE</span>
+                    <span data-version="AUDIOBASH v{version} // BUILD 2026.06.08 // MIT LICENSE">AUDIOBASH v3.3.0 // BUILD 2026.06.08 // MIT LICENSE</span>
                 </div>
                 <div class="flex items-center gap-4 text-gray-500">
                     <a href="about.html" class="hover:text-accent transition-colors text-xs font-mono">

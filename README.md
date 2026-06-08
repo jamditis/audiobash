@@ -17,6 +17,7 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 ## Features
 
 - **Voice-to-terminal** - Speak naturally and have your words transcribed directly into the terminal
+- **Cross-platform** - Native builds for Windows, macOS (Intel & Apple Silicon), and Linux (AppImage & .deb)
 - **Tmux-style pane system** - Binary tree pane architecture with split horizontal (Alt+-) and vertical (Alt+\), drag dividers, double-click to equalize, 5 preset layouts
 - **Customizable pane colors** - 8-color palette (Emerald, Cobalt, Crimson, Violet, Cyan, Amber, Rose, Acid) with activity-based fade: full color → fading → dim → gray as terminals go idle. Error exits always red. Colors persist across restarts
 - **Pane keyboard navigation** - Alt+Arrow to move focus, Alt+1-4 for direct focus, Alt+Shift+Arrow to resize, Alt+Z to zoom/unzoom
@@ -31,11 +32,11 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **Window persistence** - Window position and size saved across sessions
 - **Multi-tab support** - Run up to 4 terminal sessions simultaneously
 - **Quick directory navigation** - Jump to recent or favorite folders with one click
-- **Multiple AI providers** - Gemini 2.0/2.5 Flash, OpenAI Whisper, Claude, or ElevenLabs
+- **Multiple AI providers** - Gemini 2.0/2.5 Flash, ElevenLabs Scribe (real-time or batch), or fully offline with bundled local Whisper (plus Parakeet, if you run your own NVIDIA GPU server)
 - **Auto-copy** - Selected text is automatically copied to clipboard
 - **Always-on-top mode** - Pin the voice panel while you work
 - **System tray** - Runs quietly in background, accessible via global shortcuts
-- **Extensive keyboard shortcuts** - 16 customizable shortcuts for power users
+- **Extensive keyboard shortcuts** - 20 customizable shortcuts for power users
 - **Preview pane** - Embedded web preview for localhost dev servers, HTML, images, and markdown
 - **Screenshot capture** - Take screenshots of the preview pane (saves to current working directory)
 - **Auto-refresh** - File watcher automatically refreshes preview when source files change
@@ -52,7 +53,7 @@ Download the latest `.exe` installer from [Releases](https://github.com/jamditis
 
 ### macOS
 
-> **Signed builds coming soon.** The current DMG builds are unsigned and may not launch on Apple Silicon. Build from source for the most reliable experience. See [macOS code signing](#macos-code-signing-coming-soon).
+> **The DMG builds aren't signed yet.** Downloaded DMGs are unsigned and may not launch on Apple Silicon without a Gatekeeper bypass. Building from source is the most reliable option until signed builds ship. See [macOS code signing](#macos-code-signing-coming-soon).
 
 ```bash
 git clone https://github.com/jamditis/audiobash.git
@@ -63,6 +64,21 @@ npm run electron:dev                  # Run in dev mode
 npm run electron:build:mac:arm64      # Build DMG for Apple Silicon (M1/M2/M3/M4)
 npm run electron:build:mac:x64        # Build DMG for Intel Macs
 ```
+
+### Linux
+
+Download the latest `.AppImage` or `.deb` from [Releases](https://github.com/jamditis/audiobash/releases).
+
+```bash
+# AppImage (portable, runs on most distributions)
+chmod +x AudioBash-*.AppImage
+./AudioBash-*.AppImage
+
+# Debian / Ubuntu
+sudo dpkg -i AudioBash-*.deb
+```
+
+Global shortcuts use the desktop's GlobalShortcuts portal on Wayland and fall back to X11.
 
 ### Build from source (any platform)
 
@@ -140,7 +156,7 @@ Open Settings (gear icon in title bar) to configure:
 
 The macOS DMG builds are currently **unsigned**, which means Gatekeeper blocks them on Apple Silicon Macs and may cause crashes even after using `xattr -cr` or right-click → Open. We're aware this is a bad experience.
 
-**We've enrolled in the Apple Developer Program** and are waiting for activation (can take up to 48 hours). Once active, all macOS builds will be:
+**Code signing and notarization are planned.** The signing infrastructure (entitlements and the notarization hook) is already in the repo. Once a Developer ID certificate is active, macOS builds will be:
 
 - **Signed** with a Developer ID Application certificate
 - **Notarized** by Apple — Gatekeeper will trust the app on first launch

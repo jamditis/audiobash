@@ -19,7 +19,7 @@ on:
       build_linux:
         description: 'Build for Linux'
         required: false
-        default: false
+        default: true
         type: boolean
 
 jobs:
@@ -81,7 +81,7 @@ jobs:
           retention-days: 30
 
   build-linux:
-    if: inputs.build_linux == true
+    if: github.event_name == 'push' || inputs.build_linux
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -110,7 +110,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-mac, build-windows]
+    needs: [build-mac, build-windows, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -133,4 +133,6 @@ jobs:
             artifacts/**/*.dmg
             artifacts/**/*.zip
             artifacts/**/*.exe
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
           token: ${{ secrets.GITHUB_TOKEN }}
