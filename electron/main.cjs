@@ -19,6 +19,11 @@ const crypto = require('crypto');
 // Centralized logger - must initialize after app ready
 const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
 
+// Enable Chromium feature flags before the app is ready (too late inside whenReady). This lets
+// global shortcuts register under Wayland, not just X11.
+const { enableWaylandShortcuts } = require('./featureFlags.cjs');
+enableWaylandShortcuts(app);
+
 // Global error handlers to prevent silent crashes (fixes #29)
 process.on('uncaughtException', (err) => {
   console.error('[AudioBash] Uncaught exception:', err);
