@@ -70,7 +70,7 @@ function sanitizeUrl(url: string): string | null {
 
 // Simple markdown to HTML conversion (basic, no dependencies)
 function renderMarkdown(text: string): string {
-  let html = text
+  const html = text
     // Escape HTML first
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -132,12 +132,7 @@ const UnknownTypeDisplay: React.FC<{ url: string }> = ({ url }) => (
   </div>
 );
 
-const PreviewRenderer: React.FC<PreviewRendererProps> = ({
-  url,
-  refreshKey,
-  onLoad,
-  onError,
-}) => {
+const PreviewRenderer: React.FC<PreviewRendererProps> = ({ url, refreshKey, onLoad, onError }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markdownContent, setMarkdownContent] = useState<string>('');

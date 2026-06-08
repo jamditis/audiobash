@@ -41,19 +41,19 @@ const PreviewPane: React.FC<PreviewPaneProps> = ({
     enabled: autoRefresh && isVisible,
     onFileChange: useCallback(() => {
       console.log('[Preview] Auto-refreshing due to file change');
-      setRefreshKey(k => k + 1);
+      setRefreshKey((k) => k + 1);
     }, []),
   });
 
   // Handle URL change
   const handleUrlChange = useCallback((newUrl: string) => {
     setUrl(newUrl);
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   }, []);
 
   // Handle manual refresh
   const handleRefresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   }, []);
 
   // Handle screenshot capture

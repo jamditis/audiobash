@@ -9,15 +9,15 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      external: ['electron', 'node-pty']
-    }
+      external: ['electron', 'node-pty'],
+    },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   server: {
-    port: 9527
-  }
+    port: 9527,
+  },
 });

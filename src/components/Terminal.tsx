@@ -2,19 +2,23 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
-import { playNotificationSound, checkForCliInputPrompt, resetOutputBuffer } from '../utils/notificationSound';
+import {
+  playNotificationSound,
+  checkForCliInputPrompt,
+  resetOutputBuffer,
+} from '../utils/notificationSound';
 import { terminalLog as log } from '../utils/logger';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
   tabId: string;
   isActive: boolean;
-  isVisible?: boolean;   // For split view - show terminal
-  isFocused?: boolean;   // For voice commands target
+  isVisible?: boolean; // For split view - show terminal
+  isFocused?: boolean; // For voice commands target
   isRecording?: boolean; // For focus indicator animation
-  onFocus?: () => void;  // Click callback for split view
+  onFocus?: () => void; // Click callback for split view
   cliNotificationsEnabled?: boolean; // Play sound when CLI requests input
-  fontSize?: number;     // Terminal font size (controlled by Ctrl+/-/0)
+  fontSize?: number; // Terminal font size (controlled by Ctrl+/-/0)
 }
 
 const Terminal: React.FC<TerminalProps> = ({
@@ -285,7 +289,10 @@ const Terminal: React.FC<TerminalProps> = ({
       <div ref={terminalRef} className="h-full w-full" tabIndex={0} />
       {/* Subtle CRT scanline effect overlay (toggleable) */}
       {scanlines && (
-        <div className="absolute inset-0 pointer-events-none crt-effect" style={{ opacity: 0.15 }} />
+        <div
+          className="absolute inset-0 pointer-events-none crt-effect"
+          style={{ opacity: 0.15 }}
+        />
       )}
     </div>
   );

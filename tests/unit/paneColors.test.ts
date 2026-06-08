@@ -61,7 +61,16 @@ describe('getStripColor', () => {
   });
 
   it('works for all palette colors in active state', () => {
-    const names: PaneColorName[] = ['emerald', 'cobalt', 'crimson', 'violet', 'cyan', 'amber', 'rose', 'acid'];
+    const names: PaneColorName[] = [
+      'emerald',
+      'cobalt',
+      'crimson',
+      'violet',
+      'cyan',
+      'amber',
+      'rose',
+      'acid',
+    ];
     for (const name of names) {
       const color = getStripColor(name, 'active');
       expect(color).toMatch(/^hsl\(/);

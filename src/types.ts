@@ -126,22 +126,24 @@ export interface ElectronAPI {
   getTerminalContext: (tabId: string) => Promise<TerminalContextResult>;
   getTerminalBuffer: (tabId: string) => Promise<string>;
   signalTerminalReady: (tabId: string) => Promise<{ success: boolean }>;
-  onTerminalData: (callback: (tabId: string, data: string) => void) => (() => void);
-  onTerminalClosed: (callback: (tabId: string, exitCode: number, signal: number) => void) => (() => void);
+  onTerminalData: (callback: (tabId: string, data: string) => void) => () => void;
+  onTerminalClosed: (
+    callback: (tabId: string, exitCode: number, signal: number) => void,
+  ) => () => void;
 
   // Voice recording toggle
-  onToggleRecording: (callback: () => void) => (() => void);
-  onCancelRecording: (callback: () => void) => (() => void);
+  onToggleRecording: (callback: () => void) => () => void;
+  onCancelRecording: (callback: () => void) => () => void;
 
   // Quick actions
-  onToggleMode: (callback: () => void) => (() => void);
-  onClearTerminal: (callback: () => void) => (() => void);
-  onCycleLayout: (callback: () => void) => (() => void);
-  onFocusNextTerminal: (callback: () => void) => (() => void);
-  onFocusPrevTerminal: (callback: () => void) => (() => void);
-  onBookmarkDirectory: (callback: () => void) => (() => void);
-  onResendLast: (callback: () => void) => (() => void);
-  onSwitchTab: (callback: (index: number) => void) => (() => void);
+  onToggleMode: (callback: () => void) => () => void;
+  onClearTerminal: (callback: () => void) => () => void;
+  onCycleLayout: (callback: () => void) => () => void;
+  onFocusNextTerminal: (callback: () => void) => () => void;
+  onFocusPrevTerminal: (callback: () => void) => () => void;
+  onBookmarkDirectory: (callback: () => void) => () => void;
+  onResendLast: (callback: () => void) => () => void;
+  onSwitchTab: (callback: (index: number) => void) => () => void;
 
   // Keyboard shortcuts
   getShortcuts: () => Promise<Shortcuts>;
@@ -170,33 +172,39 @@ export interface ElectronAPI {
   watchFile: (filepath: string) => Promise<FileWatchResult>;
   unwatchFile: (watcherId: string) => Promise<{ success: boolean }>;
   validateFilePath: (filepath: string) => Promise<ValidatePathResult>;
-  onFileChanged: (callback: (filepath: string) => void) => (() => void);
-  onTogglePreview: (callback: () => void) => (() => void);
-  onCaptureScreenshot: (callback: () => void) => (() => void);
+  onFileChanged: (callback: (filepath: string) => void) => () => void;
+  onTogglePreview: (callback: () => void) => () => void;
+  onCaptureScreenshot: (callback: () => void) => () => void;
 
   // Whisper local transcription
   whisperTranscribe: (audioPath: string) => Promise<WhisperTranscribeResult>;
   whisperSetModel: (modelName: string) => Promise<WhisperSetModelResult>;
   whisperGetModels: () => Promise<WhisperGetModelsResult>;
   whisperDownloadModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
-  whisperIsModelDownloaded: (modelName: string) => Promise<{ success: boolean; downloaded: boolean }>;
+  whisperIsModelDownloaded: (
+    modelName: string,
+  ) => Promise<{ success: boolean; downloaded: boolean }>;
   whisperInstall: () => Promise<{ success: boolean; error?: string }>;
-  whisperGetStatus: () => Promise<{ success: boolean; whisperInstalled: boolean; modelsDir: string }>;
+  whisperGetStatus: () => Promise<{
+    success: boolean;
+    whisperInstalled: boolean;
+    modelsDir: string;
+  }>;
   whisperFullSetup: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   whisperDeleteModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
 
   // Font zoom
-  onZoomIn: (callback: () => void) => (() => void);
-  onZoomOut: (callback: () => void) => (() => void);
-  onZoomReset: (callback: () => void) => (() => void);
+  onZoomIn: (callback: () => void) => () => void;
+  onZoomOut: (callback: () => void) => () => void;
+  onZoomReset: (callback: () => void) => () => void;
 
   // Pane management
-  onSplitHorizontal: (callback: () => void) => (() => void);
-  onSplitVertical: (callback: () => void) => (() => void);
-  onClosePane: (callback: () => void) => (() => void);
-  onZoomPane: (callback: () => void) => (() => void);
-  onResizePane: (callback: (direction: string) => void) => (() => void);
+  onSplitHorizontal: (callback: () => void) => () => void;
+  onSplitVertical: (callback: () => void) => () => void;
+  onClosePane: (callback: () => void) => () => void;
+  onZoomPane: (callback: () => void) => () => void;
+  onResizePane: (callback: (direction: string) => void) => () => void;
 
   // Pane sessions
   savePaneSession: (name: string, tree: string) => Promise<{ success: boolean }>;
@@ -285,4 +293,3 @@ export interface SaveTempAudioResult {
   path?: string;
   error?: string;
 }
-

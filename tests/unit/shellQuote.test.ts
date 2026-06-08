@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { createRequire } from 'module';
 
 // Load the CommonJS module exactly as Node/Electron does, so the test exercises the real
@@ -23,7 +23,9 @@ describe('buildCdCommand', () => {
       const malicious = "C:\\x'; Remove-Item -Recurse -Force C:\\ #";
       const { command } = buildCdCommand('powershell.exe', malicious);
       // The lone quote is doubled, so the payload stays a literal argument and cannot break out.
-      expect(command).toBe("Set-Location -LiteralPath 'C:\\x''; Remove-Item -Recurse -Force C:\\ #'");
+      expect(command).toBe(
+        "Set-Location -LiteralPath 'C:\\x''; Remove-Item -Recurse -Force C:\\ #'",
+      );
     });
 
     it('matches pwsh (PowerShell Core) by basename', () => {

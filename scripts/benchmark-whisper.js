@@ -72,7 +72,7 @@ async function benchmarkNodejsWhisper(audioPath, modelName = 'base.en') {
         outputInText: true,
         translateToEnglish: false,
         wordTimestamps: false,
-      }
+      },
     });
 
     const elapsed = Date.now() - startTime;
@@ -119,7 +119,11 @@ async function benchmarkWhisperNodeGPU(audioPath, modelName = 'base.en') {
     if (!fs.existsSync(modelPath)) {
       log(`⚠ Model not found: ${modelPath}`, 'yellow');
       log('  Download models first or use nodejs-whisper', 'dim');
-      return { implementation: `@fugood/whisper.node (${modelName})`, success: false, error: 'Model not found' };
+      return {
+        implementation: `@fugood/whisper.node (${modelName})`,
+        success: false,
+        error: 'Model not found',
+      };
     }
 
     // Detect GPU type
@@ -143,7 +147,7 @@ async function benchmarkWhisperNodeGPU(audioPath, modelName = 'base.en') {
     const audioBuffer = fs.readFileSync(audioPath);
     const arrayBuffer = audioBuffer.buffer.slice(
       audioBuffer.byteOffset,
-      audioBuffer.byteOffset + audioBuffer.byteLength
+      audioBuffer.byteOffset + audioBuffer.byteLength,
     );
 
     // Transcribe
@@ -154,7 +158,7 @@ async function benchmarkWhisperNodeGPU(audioPath, modelName = 'base.en') {
         translate: false,
         max_len: 1,
         token_timestamps: false,
-      }
+      },
     });
 
     const elapsed = Date.now() - startTime;
@@ -197,9 +201,9 @@ function printComparison(results) {
   console.log('\n' + '  Implementation                        Time        Speed    Memory');
   console.log('  ' + '-'.repeat(72));
 
-  const successfulResults = results.filter(r => r.success);
+  const successfulResults = results.filter((r) => r.success);
 
-  successfulResults.forEach(result => {
+  successfulResults.forEach((result) => {
     const impl = result.implementation.padEnd(35);
     const time = formatTime(result.time).padStart(8);
     const speed = `${result.speedup.toFixed(2)}x`.padStart(8);
@@ -215,7 +219,7 @@ function printComparison(results) {
     const baseline = successfulResults[0];
     log('Speedup vs baseline:', 'cyan');
 
-    successfulResults.slice(1).forEach(result => {
+    successfulResults.slice(1).forEach((result) => {
       const speedup = baseline.time / result.time;
       const color = speedup > 1 ? 'green' : 'red';
       log(`  ${result.implementation}: ${speedup.toFixed(2)}x faster`, color);
@@ -225,10 +229,10 @@ function printComparison(results) {
   }
 
   // Show failed implementations
-  const failedResults = results.filter(r => !r.success);
+  const failedResults = results.filter((r) => !r.success);
   if (failedResults.length > 0) {
     log('Failed implementations:', 'yellow');
-    failedResults.forEach(result => {
+    failedResults.forEach((result) => {
       log(`  ${result.implementation}: ${result.error}`, 'dim');
     });
     console.log();
@@ -241,7 +245,9 @@ function printSystemInfo() {
   console.log(`  OS:        ${os.platform()} ${os.release()}`);
   console.log(`  Arch:      ${os.arch()}`);
   console.log(`  CPUs:      ${os.cpus()[0].model} (${os.cpus().length} cores)`);
-  console.log(`  RAM:       ${formatMemory(os.totalmem())} total, ${formatMemory(os.freemem())} free`);
+  console.log(
+    `  RAM:       ${formatMemory(os.totalmem())} total, ${formatMemory(os.freemem())} free`,
+  );
   console.log(`  Node.js:   ${process.version}`);
   console.log();
 }
@@ -286,7 +292,7 @@ async function main() {
 
   log('Benchmark complete!', 'green');
   log('\nRecommendations:', 'cyan');
-  const fastestResult = results.filter(r => r.success).sort((a, b) => a.time - b.time)[0];
+  const fastestResult = results.filter((r) => r.success).sort((a, b) => a.time - b.time)[0];
   if (fastestResult) {
     log(`  Fastest: ${fastestResult.implementation} (${formatTime(fastestResult.time)})`, 'bright');
 
@@ -300,7 +306,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Fatal error:', err);
   process.exit(1);
 });

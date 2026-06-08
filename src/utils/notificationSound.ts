@@ -132,12 +132,12 @@ export function playNotificationSound(): void {
 // trailing whitespace, ANSI codes, or partial data after the prompt
 export const CLI_INPUT_PATTERNS: RegExp[] = [
   // === Yes/No bracket and paren prompts ===
-  /\[Y\/n\]\s*$/im,       // [Y/n] at end of line
-  /\[y\/N\]\s*$/im,       // [y/N] at end of line
-  /\(y\/n\)\s*$/im,       // (y/n) at end of line
-  /\(yes\/no\)\s*$/im,    // (yes/no) at end of line
-  /\[Y\/n\]/i,            // [Y/n] anywhere in tail
-  /\[y\/N\]/i,            // [y/N] anywhere in tail
+  /\[Y\/n\]\s*$/im, // [Y/n] at end of line
+  /\[y\/N\]\s*$/im, // [y/N] at end of line
+  /\(y\/n\)\s*$/im, // (y/n) at end of line
+  /\(yes\/no\)\s*$/im, // (yes/no) at end of line
+  /\[Y\/n\]/i, // [Y/n] anywhere in tail
+  /\[y\/N\]/i, // [y/N] anywhere in tail
 
   // === Claude Code permission prompts ===
   /Allow .+\? \[Y\/n\]/i,
@@ -151,11 +151,11 @@ export const CLI_INPUT_PATTERNS: RegExp[] = [
   // === Claude Code TUI selection menus ===
   // Modern Claude Code renders selection prompts with arrow-key navigation
   /Use arrow keys/i,
-  /❯\s*(Yes|Allow|Approve)/i,   // Inquirer-style selected option
-  />\s*(Yes|Allow|Approve)/i,    // ASCII arrow selection
+  /❯\s*(Yes|Allow|Approve)/i, // Inquirer-style selected option
+  />\s*(Yes|Allow|Approve)/i, // ASCII arrow selection
 
   // === Codex CLI prompts ===
-  /\(a\)pprove/i,               // Codex uses (a)pprove, (d)eny, (e)dit
+  /\(a\)pprove/i, // Codex uses (a)pprove, (d)eny, (e)dit
   /approve, deny/i,
 
   // === Gemini CLI prompts ===
@@ -166,9 +166,9 @@ export const CLI_INPUT_PATTERNS: RegExp[] = [
   /Press Enter to continue/i,
   /Press any key to continue/i,
   /Press any key/i,
-  /\? \[Y\/n\]/,          // Any question ending in [Y/n]
-  /\? \(y\/n\)/i,         // Any question ending in (y/n)
-  /\? \(Y\)/i,            // Single-letter accept prompt
+  /\? \[Y\/n\]/, // Any question ending in [Y/n]
+  /\? \(y\/n\)/i, // Any question ending in (y/n)
+  /\? \(Y\)/i, // Single-letter accept prompt
 
   // === npm/yarn prompts ===
   /Ok to proceed\? \(y\/n\)/i,
@@ -196,7 +196,6 @@ const PROMPT_CHECK_LENGTH = 500;
 
 // Strip ANSI escape codes for cleaner pattern matching
 export function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
   return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 }
 
@@ -217,9 +216,12 @@ export function checkForCliInputPrompt(data: string, tabId = '_default'): boolea
   if (existingTimer) {
     clearTimeout(existingTimer);
   }
-  terminalTimers.set(tabId, setTimeout(() => {
-    terminalBuffers.set(tabId, '');
-  }, BUFFER_CLEAR_DELAY));
+  terminalTimers.set(
+    tabId,
+    setTimeout(() => {
+      terminalBuffers.set(tabId, '');
+    }, BUFFER_CLEAR_DELAY),
+  );
 
   // Only check the END of the buffer where prompts appear
   // This prevents matching mentions in the middle of explanatory text
@@ -227,12 +229,14 @@ export function checkForCliInputPrompt(data: string, tabId = '_default'): boolea
   const cleanTail = stripAnsi(tail);
 
   // Check for patterns
-  const hasPrompt = CLI_INPUT_PATTERNS.some(pattern => pattern.test(cleanTail));
+  const hasPrompt = CLI_INPUT_PATTERNS.some((pattern) => pattern.test(cleanTail));
 
   if (isDebugEnabled()) {
     // Show what we're checking (last 100 chars for readability)
     const preview = cleanTail.slice(-100).replace(/\n/g, '\\n');
-    console.log(`[Notification] [${tabId}] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`);
+    console.log(
+      `[Notification] [${tabId}] Checking: "${preview}" -> ${hasPrompt ? 'MATCH!' : 'no match'}`,
+    );
   }
 
   // If we found a prompt, clear the buffer to prevent re-triggering

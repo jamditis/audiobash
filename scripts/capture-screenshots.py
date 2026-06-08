@@ -14,25 +14,24 @@ Usage:
 """
 
 import subprocess
-import time
-import os
 import sys
+import time
 from pathlib import Path
 
 try:
     import pyautogui
-    from PIL import Image
+    from PIL import Image  # noqa: F401  (presence check: pillow is required at runtime)
 except ImportError:
     print("Installing required packages...")
     subprocess.run([sys.executable, "-m", "pip", "install", "pyautogui", "pillow", "-q"])
     import pyautogui
-    from PIL import Image
 
 # Configuration
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 SCREENSHOTS_DIR = PROJECT_DIR / "docs" / "screenshots"
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def capture_window(title_contains: str, output_name: str, delay: float = 0.5) -> bool:
     """Capture a screenshot of a window containing the given title."""
@@ -67,6 +66,7 @@ def capture_window(title_contains: str, output_name: str, delay: float = 0.5) ->
         print(f"  Error capturing '{title_contains}': {e}")
         return False
 
+
 def capture_full_screen(output_name: str) -> bool:
     """Capture full screen screenshot."""
     try:
@@ -79,11 +79,13 @@ def capture_full_screen(output_name: str) -> bool:
         print(f"  Error: {e}")
         return False
 
+
 def simulate_keypress(key: str, delay: float = 0.5):
     """Simulate a keypress."""
     time.sleep(delay)
-    pyautogui.hotkey(*key.split('+'))
+    pyautogui.hotkey(*key.split("+"))
     time.sleep(0.3)
+
 
 def main():
     print("=" * 60)
@@ -147,6 +149,7 @@ def main():
     for f in SCREENSHOTS_DIR.glob("*.png"):
         size = f.stat().st_size / 1024
         print(f"  - {f.name} ({size:.1f} KB)")
+
 
 if __name__ == "__main__":
     main()

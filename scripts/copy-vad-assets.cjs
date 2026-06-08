@@ -41,6 +41,8 @@ for (const [src, name] of assets) {
 
 console.log(`[copy-vad-assets] ${copied}/${assets.length} VAD assets present in public/vad`);
 if (missing > 0) {
-  console.error('[copy-vad-assets] One or more source assets were missing. Run `npm install` first.');
+  console.error(
+    '[copy-vad-assets] One or more source assets were missing. Run `npm install` first.',
+  );
   process.exit(1);
 }

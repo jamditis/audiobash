@@ -3,8 +3,8 @@
  * Supports multiple providers: Gemini, OpenAI, Claude, and local Parakeet
  */
 
-import { blobToBase64 } from "../utils/audioUtils";
-import { transcriptionLog as log } from "../utils/logger";
+import { blobToBase64 } from '../utils/audioUtils';
+import { transcriptionLog as log } from '../utils/logger';
 
 // Cloud transcription runs in the Electron main process via IPC. The renderer never holds a
 // browser SDK client (no `dangerouslyAllowBrowser`) and never sends API keys over the network
@@ -52,7 +52,7 @@ export class TranscriptionError extends Error {
     message: string,
     public readonly provider: string,
     public readonly code: string,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'TranscriptionError';
@@ -95,26 +95,26 @@ export type TranscriptionMode = 'raw' | 'agent';
 
 // Context information for smarter command translation
 export interface TerminalContext {
-  cwd: string;                    // Current working directory
-  recentOutput: string;           // Last N lines of terminal output
+  cwd: string; // Current working directory
+  recentOutput: string; // Last N lines of terminal output
   os: 'windows' | 'linux' | 'mac'; // Operating system
-  shell: string;                  // Current shell (powershell, bash, cmd, etc.)
-  lastCommand?: string;           // The last command that was run
-  lastError?: string;             // Last error message if any
+  shell: string; // Current shell (powershell, bash, cmd, etc.)
+  lastCommand?: string; // The last command that was run
+  lastError?: string; // Last error message if any
 }
 
 // Custom instructions for transcription/agent modes
 export interface CustomInstructions {
-  rawModeInstructions: string;    // Additional instructions for raw transcription
-  agentModeInstructions: string;  // Additional instructions for agent mode
-  vocabulary: VocabularyEntry[];  // Custom pronunciations/vocabulary
+  rawModeInstructions: string; // Additional instructions for raw transcription
+  agentModeInstructions: string; // Additional instructions for agent mode
+  vocabulary: VocabularyEntry[]; // Custom pronunciations/vocabulary
 }
 
 // Vocabulary entry for custom pronunciations
 export interface VocabularyEntry {
-  spoken: string;    // How the word sounds or might be transcribed
-  written: string;   // How it should be written
-  context?: string;  // Optional context hint (e.g., "programming", "name")
+  spoken: string; // How the word sounds or might be transcribed
+  written: string; // How it should be written
+  context?: string; // Optional context hint (e.g., "programming", "name")
 }
 
 // Model identifiers
@@ -138,26 +138,65 @@ export interface ModelInfo {
   provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs' | 'local';
   description: string;
   supportsAgent: boolean;
-  isRealtime?: boolean;  // True for streaming models like ElevenLabs real-time
+  isRealtime?: boolean; // True for streaming models like ElevenLabs real-time
 }
 
 export const MODELS: ModelInfo[] = [
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', description: 'Fast, native audio support', supportsAgent: true },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'gemini', description: 'Latest Gemini with audio', supportsAgent: true },
-  { id: 'elevenlabs-scribe', name: 'ElevenLabs Scribe', provider: 'elevenlabs', description: 'High-quality speech-to-text (batch)', supportsAgent: false },
-  { id: 'elevenlabs-scribe-realtime', name: 'ElevenLabs Scribe v2', provider: 'elevenlabs', description: 'Real-time streaming (~150ms)', supportsAgent: false, isRealtime: true },
-  { id: 'parakeet-local', name: 'Parakeet (Local)', provider: 'local', description: 'Free, requires NVIDIA GPU', supportsAgent: false },
-  { id: 'whisper-local-small', name: 'Whisper Local', provider: 'local', description: '466 MB, best accuracy, offline', supportsAgent: false },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    provider: 'gemini',
+    description: 'Fast, native audio support',
+    supportsAgent: true,
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'gemini',
+    description: 'Latest Gemini with audio',
+    supportsAgent: true,
+  },
+  {
+    id: 'elevenlabs-scribe',
+    name: 'ElevenLabs Scribe',
+    provider: 'elevenlabs',
+    description: 'High-quality speech-to-text (batch)',
+    supportsAgent: false,
+  },
+  {
+    id: 'elevenlabs-scribe-realtime',
+    name: 'ElevenLabs Scribe v2',
+    provider: 'elevenlabs',
+    description: 'Real-time streaming (~150ms)',
+    supportsAgent: false,
+    isRealtime: true,
+  },
+  {
+    id: 'parakeet-local',
+    name: 'Parakeet (Local)',
+    provider: 'local',
+    description: 'Free, requires NVIDIA GPU',
+    supportsAgent: false,
+  },
+  {
+    id: 'whisper-local-small',
+    name: 'Whisper Local',
+    provider: 'local',
+    description: '466 MB, best accuracy, offline',
+    supportsAgent: false,
+  },
 ];
 
 // Build vocabulary section for prompts
 function buildVocabularySection(vocabulary: VocabularyEntry[]): string {
   if (!vocabulary || vocabulary.length === 0) return '';
 
-  const entries = vocabulary.map(v => {
-    const contextHint = v.context ? ` (${v.context})` : '';
-    return `- "${v.spoken}" → "${v.written}"${contextHint}`;
-  }).join('\n');
+  const entries = vocabulary
+    .map((v) => {
+      const contextHint = v.context ? ` (${v.context})` : '';
+      return `- "${v.spoken}" → "${v.written}"${contextHint}`;
+    })
+    .join('\n');
 
   return `
 CUSTOM VOCABULARY (always use these exact spellings/terms):
@@ -166,7 +205,10 @@ ${entries}
 }
 
 // Generate a context-aware prompt based on terminal state
-function buildAgentPrompt(context?: TerminalContext, customInstructions?: CustomInstructions): string {
+function buildAgentPrompt(
+  context?: TerminalContext,
+  customInstructions?: CustomInstructions,
+): string {
   const osName = context?.os === 'windows' ? 'Windows' : context?.os === 'mac' ? 'macOS' : 'Linux';
   const shell = context?.shell || 'unknown shell';
   const cwd = context?.cwd || 'unknown directory';
@@ -250,10 +292,14 @@ UNIVERSAL EXAMPLES:
 - "start docker compose" → docker-compose up
 - "hello there" → (empty - not a command)
 - (silence) → (empty)
-${buildVocabularySection(customInstructions?.vocabulary || [])}${customInstructions?.agentModeInstructions ? `
+${buildVocabularySection(customInstructions?.vocabulary || [])}${
+    customInstructions?.agentModeInstructions
+      ? `
 ADDITIONAL INSTRUCTIONS:
 ${customInstructions.agentModeInstructions}
-` : ''}
+`
+      : ''
+  }
 Convert the following speech to a ${shell} command:`;
 }
 
@@ -274,7 +320,10 @@ export class TranscriptionService {
 
   constructor() {}
 
-  public setApiKey(key: string, provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs' = 'gemini') {
+  public setApiKey(
+    key: string,
+    provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs' = 'gemini',
+  ) {
     this.apiKeys[provider] = key;
   }
 
@@ -288,13 +337,23 @@ export class TranscriptionService {
     if (m.includes('no ') && m.includes('api key')) {
       return new TranscriptionError(msg, provider, 'NO_API_KEY');
     }
-    if (m.includes('rate limit') || m.includes('429') || m.includes('quota') || m.includes('resource_exhausted')) {
+    if (
+      m.includes('rate limit') ||
+      m.includes('429') ||
+      m.includes('quota') ||
+      m.includes('resource_exhausted')
+    ) {
       return new TranscriptionError(msg, provider, 'RATE_LIMIT');
     }
     if ((m.includes('invalid') && m.includes('key')) || m.includes('401') || m.includes('403')) {
       return new TranscriptionError(msg, provider, 'INVALID_API_KEY');
     }
-    if (m.includes('network') || m.includes('fetch') || m.includes('econn') || m.includes('etimedout')) {
+    if (
+      m.includes('network') ||
+      m.includes('fetch') ||
+      m.includes('econn') ||
+      m.includes('etimedout')
+    ) {
       return new TranscriptionError(msg, provider, 'NETWORK_ERROR');
     }
     if (m.includes('500') || m.includes('502') || m.includes('503') || m.includes('server error')) {
@@ -310,7 +369,14 @@ export class TranscriptionService {
    */
   private validateAudioBlob(blob: Blob, provider: string): void {
     const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25MB, matches the main-process limit
-    const ALLOWED_PREFIXES = ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/mpeg'];
+    const ALLOWED_PREFIXES = [
+      'audio/webm',
+      'audio/ogg',
+      'audio/wav',
+      'audio/x-wav',
+      'audio/mp4',
+      'audio/mpeg',
+    ];
 
     if (!blob || blob.size === 0) {
       throw new TranscriptionError('Audio recording is empty', provider, 'AUDIO_TOO_SHORT');
@@ -320,13 +386,17 @@ export class TranscriptionService {
     }
     // MediaRecorder reports types like "audio/webm;codecs=opus"; match on the prefix. Some
     // browsers report an empty type for short blobs, which we allow through to the provider.
-    if (blob.type && !ALLOWED_PREFIXES.some(prefix => blob.type.startsWith(prefix))) {
-      throw new TranscriptionError(`Unsupported audio format: ${blob.type}`, provider, 'UNSUPPORTED_FORMAT');
+    if (blob.type && !ALLOWED_PREFIXES.some((prefix) => blob.type.startsWith(prefix))) {
+      throw new TranscriptionError(
+        `Unsupported audio format: ${blob.type}`,
+        provider,
+        'UNSUPPORTED_FORMAT',
+      );
     }
   }
 
   public getModelInfo(modelId: ModelId): ModelInfo | undefined {
-    return MODELS.find(m => m.id === modelId);
+    return MODELS.find((m) => m.id === modelId);
   }
 
   public hasApiKey(provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs'): boolean {
@@ -369,8 +439,8 @@ export class TranscriptionService {
     // Extract the written form of each vocabulary entry
     // These are the terms we want ElevenLabs to recognize
     return this.customInstructions.vocabulary
-      .slice(0, 100)  // ElevenLabs limit
-      .map(v => v.written);
+      .slice(0, 100) // ElevenLabs limit
+      .map((v) => v.written);
   }
 
   /**
@@ -397,12 +467,14 @@ export class TranscriptionService {
     audioBlob: Blob,
     mode: TranscriptionMode = 'raw',
     modelId: ModelId = 'gemini-2.0-flash',
-    durationMs: number = 0
+    durationMs: number = 0,
   ): Promise<TranscribeResult> {
     const modelInfo = this.getModelInfo(modelId);
     if (!modelInfo) {
       log.error(`Unknown model: ${modelId}`, new Error(`Unknown model ID`), { modelId });
-      throw new TranscriptionError(`Unknown model: ${modelId}`, 'unknown', 'UNKNOWN_MODEL', { modelId });
+      throw new TranscriptionError(`Unknown model: ${modelId}`, 'unknown', 'UNKNOWN_MODEL', {
+        modelId,
+      });
     }
 
     // Validate the audio blob before doing any work or sending it across IPC. The main-process
@@ -453,7 +525,7 @@ export class TranscriptionService {
           throw new TranscriptionError(
             `Unsupported provider: ${modelInfo.provider}`,
             modelInfo.provider,
-            'UNSUPPORTED_PROVIDER'
+            'UNSUPPORTED_PROVIDER',
           );
       }
 
@@ -483,10 +555,10 @@ export class TranscriptionService {
     audioBlob: Blob,
     mode: TranscriptionMode,
     modelId: string,
-    durationMs: number
+    durationMs: number,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('gemini')) {
-      throw new TranscriptionError("No Gemini API key configured", "Gemini", "NO_API_KEY");
+      throw new TranscriptionError('No Gemini API key configured', 'Gemini', 'NO_API_KEY');
     }
 
     try {
@@ -497,23 +569,28 @@ export class TranscriptionService {
       const vocabularySection = buildVocabularySection(this.customInstructions.vocabulary);
       const rawInstructions = this.customInstructions.rawModeInstructions;
 
-      const prompt = mode === 'agent'
-        ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
-        : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
+      const prompt =
+        mode === 'agent'
+          ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+          : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
 
       log.debug('Sending request to Gemini (via main process)', { modelId, mode });
 
-      const result = await window.electron.transcribeWithGemini({ audioBase64: base64Audio, prompt, modelId });
+      const result = await window.electron.transcribeWithGemini({
+        audioBase64: base64Audio,
+        prompt,
+        modelId,
+      });
       if (!result.success) {
         throw this.mapIpcError(result.error, 'Gemini');
       }
 
-      const text = (result.text || "").trim();
+      const text = (result.text || '').trim();
 
       // Calculate cost (32 tokens/sec, ~$0.10 per 1M tokens for flash)
       const seconds = durationMs / 1000;
       const tokens = seconds * 32;
-      const cost = (tokens / 1000000) * 0.10;
+      const cost = (tokens / 1000000) * 0.1;
 
       return { text, cost: `$${cost.toFixed(6)}` };
     } catch (error: unknown) {
@@ -526,26 +603,31 @@ export class TranscriptionService {
     audioBlob: Blob,
     mode: TranscriptionMode,
     modelId: ModelId,
-    durationMs: number
+    durationMs: number,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('openai')) {
-      throw new TranscriptionError("No OpenAI API key configured.", "OpenAI", "NO_API_KEY");
+      throw new TranscriptionError('No OpenAI API key configured.', 'OpenAI', 'NO_API_KEY');
     }
 
     const base64Audio = await blobToBase64(audioBlob);
 
     // In agent mode with GPT-4, main runs Whisper then GPT-4 with this prompt as the system
     // message. For raw mode (or non-gpt4 models) we send no prompt so main only runs Whisper.
-    const prompt = (mode === 'agent' && modelId === 'openai-gpt4')
-      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
-      : '';
+    const prompt =
+      mode === 'agent' && modelId === 'openai-gpt4'
+        ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+        : '';
 
-    const result = await window.electron.transcribeWithOpenAI({ audioBase64: base64Audio, prompt, modelId });
+    const result = await window.electron.transcribeWithOpenAI({
+      audioBase64: base64Audio,
+      prompt,
+      modelId,
+    });
     if (!result.success) {
       throw this.mapIpcError(result.error, 'OpenAI');
     }
 
-    let text = (result.text || "").trim();
+    let text = (result.text || '').trim();
 
     // Apply vocabulary corrections to raw transcriptions. In agent mode the vocabulary is
     // already supplied to the model inside the prompt, so don't double-apply it to a command.
@@ -569,30 +651,39 @@ export class TranscriptionService {
     audioBlob: Blob,
     mode: TranscriptionMode,
     modelId: ModelId,
-    durationMs: number
+    durationMs: number,
   ): Promise<TranscribeResult> {
     // Claude doesn't support audio directly, so main uses OpenAI Whisper first, then Claude.
     if (!this.hasApiKey('openai')) {
-      throw new TranscriptionError("OpenAI API key required for audio transcription with Claude.", "OpenAI", "NO_API_KEY");
+      throw new TranscriptionError(
+        'OpenAI API key required for audio transcription with Claude.',
+        'OpenAI',
+        'NO_API_KEY',
+      );
     }
     if (!this.hasApiKey('anthropic')) {
-      throw new TranscriptionError("No Anthropic API key configured.", "Anthropic", "NO_API_KEY");
+      throw new TranscriptionError('No Anthropic API key configured.', 'Anthropic', 'NO_API_KEY');
     }
 
     const base64Audio = await blobToBase64(audioBlob);
 
     // In agent mode, main passes this prompt to Claude to convert the transcript to a command.
     // For raw mode we send no prompt so main returns the plain Whisper transcript.
-    const prompt = (mode === 'agent')
-      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
-      : '';
+    const prompt =
+      mode === 'agent'
+        ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+        : '';
 
-    const result = await window.electron.transcribeWithAnthropic({ audioBase64: base64Audio, prompt, modelId });
+    const result = await window.electron.transcribeWithAnthropic({
+      audioBase64: base64Audio,
+      prompt,
+      modelId,
+    });
     if (!result.success) {
       throw this.mapIpcError(result.error, 'Claude');
     }
 
-    let text = (result.text || "").trim();
+    let text = (result.text || '').trim();
 
     // Apply vocabulary corrections only to raw transcripts; in agent mode the vocabulary is
     // already part of the prompt sent to Claude.
@@ -613,10 +704,10 @@ export class TranscriptionService {
 
   private async transcribeWithElevenLabs(
     audioBlob: Blob,
-    durationMs: number
+    durationMs: number,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('elevenlabs')) {
-      throw new TranscriptionError("No ElevenLabs API key configured.", "ElevenLabs", "NO_API_KEY");
+      throw new TranscriptionError('No ElevenLabs API key configured.', 'ElevenLabs', 'NO_API_KEY');
     }
 
     const base64Audio = await blobToBase64(audioBlob);
@@ -625,7 +716,7 @@ export class TranscriptionService {
       throw this.mapIpcError(result.error, 'ElevenLabs');
     }
 
-    const text = (result.text || "").trim();
+    const text = (result.text || '').trim();
 
     // ElevenLabs Scribe pricing: ~$0.40 per hour = $0.0067 per minute
     const minutes = durationMs / 60000;
@@ -643,7 +734,7 @@ export class TranscriptionService {
 
       const res = await fetch('http://localhost:8003/transcribe', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       if (!res.ok) {
@@ -656,7 +747,7 @@ export class TranscriptionService {
           `Local server returned ${res.status}: ${errorText}`,
           'Parakeet',
           res.status >= 500 ? 'SERVER_ERROR' : 'UNKNOWN',
-          { status: res.status, response: errorText }
+          { status: res.status, response: errorText },
         );
       }
 
@@ -666,7 +757,7 @@ export class TranscriptionService {
       }
 
       log.debug('Parakeet transcription successful', { textLength: data.text?.length || 0 });
-      return { text: data.text || "", cost: "$0.00 (Local)" };
+      return { text: data.text || '', cost: '$0.00 (Local)' };
     } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
 
@@ -680,11 +771,11 @@ export class TranscriptionService {
           'Local Parakeet server is not running or not reachable',
           'Parakeet',
           'LOCAL_SERVER_UNAVAILABLE',
-          e
+          e,
         );
       }
 
-      throw new TranscriptionError("Local Parakeet error: " + message, 'Parakeet', 'UNKNOWN', e);
+      throw new TranscriptionError('Local Parakeet error: ' + message, 'Parakeet', 'UNKNOWN', e);
     }
   }
 
@@ -705,7 +796,7 @@ export class TranscriptionService {
           `Unknown Whisper model: ${modelId}`,
           'Whisper',
           'UNKNOWN_MODEL',
-          { modelId }
+          { modelId },
         );
       }
 
@@ -725,7 +816,7 @@ export class TranscriptionService {
           saveResult.error || 'Failed to save temp audio file',
           'Whisper',
           'UNKNOWN',
-          saveResult
+          saveResult,
         );
       }
       log.debug('Audio saved to temp file', { path: saveResult.path });
@@ -739,12 +830,17 @@ export class TranscriptionService {
 
       log.debug('Whisper transcription successful', { textLength: result.text?.length || 0 });
       return {
-        text: result.text || "",
-        cost: "$0.00 (Local)"
+        text: result.text || '',
+        cost: '$0.00 (Local)',
       };
     } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
-      throw new TranscriptionError("Local Whisper error: " + getErrorMessage(e), 'Whisper', 'UNKNOWN', e);
+      throw new TranscriptionError(
+        'Local Whisper error: ' + getErrorMessage(e),
+        'Whisper',
+        'UNKNOWN',
+        e,
+      );
     }
   }
 }

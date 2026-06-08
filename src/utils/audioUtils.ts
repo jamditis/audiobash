@@ -25,7 +25,7 @@ export function float32ArrayToBase64(data: Float32Array): string {
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {
     const s = Math.max(-1, Math.min(1, data[i]));
-    int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
   }
 
   let binary = '';
@@ -41,7 +41,7 @@ export async function getMicrophones(): Promise<MediaDeviceInfo[]> {
   try {
     await navigator.mediaDevices.getUserMedia({ audio: true });
     const devices = await navigator.mediaDevices.enumerateDevices();
-    return devices.filter(device => device.kind === 'audioinput');
+    return devices.filter((device) => device.kind === 'audioinput');
   } catch (e) {
     console.error('[AudioBash] Error fetching microphones:', e);
     return [];

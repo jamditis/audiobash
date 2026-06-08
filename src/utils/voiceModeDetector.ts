@@ -1,7 +1,6 @@
 // Strip ANSI escape codes for clean pattern matching
 // Duplicated here to avoid coupling to notificationSound (which is globally mocked in tests)
 function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
   return str.replace(/\x1B(?:[@-Z\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 }
 
@@ -36,21 +35,21 @@ export class VoiceModeDetector {
   onStateChange(callback: StateChangeCallback): () => void {
     this.callbacks.push(callback);
     return () => {
-      this.callbacks = this.callbacks.filter(cb => cb !== callback);
+      this.callbacks = this.callbacks.filter((cb) => cb !== callback);
     };
   }
 
   processOutput(terminalId: string, data: string): void {
     const clean = stripAnsi(data);
 
-    if (VOICE_ACTIVATE_PATTERNS.some(p => p.test(clean))) {
+    if (VOICE_ACTIVATE_PATTERNS.some((p) => p.test(clean))) {
       if (!this.activeTerminals.has(terminalId)) {
         this.activeTerminals.add(terminalId);
         this.emit({ active: true, terminalId });
       }
     }
 
-    if (VOICE_DEACTIVATE_PATTERNS.some(p => p.test(clean))) {
+    if (VOICE_DEACTIVATE_PATTERNS.some((p) => p.test(clean))) {
       if (this.activeTerminals.has(terminalId)) {
         this.activeTerminals.delete(terminalId);
         this.emit({ active: false, terminalId });
@@ -67,6 +66,6 @@ export class VoiceModeDetector {
   }
 
   private emit(state: VoiceModeState): void {
-    this.callbacks.forEach(cb => cb(state));
+    this.callbacks.forEach((cb) => cb(state));
   }
 }

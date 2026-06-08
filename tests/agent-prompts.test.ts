@@ -10,7 +10,7 @@ import { join } from 'path';
 const rootDir = join(__dirname, '..');
 const transcriptionCode = readFileSync(
   join(rootDir, 'src', 'services', 'transcriptionService.ts'),
-  'utf8'
+  'utf8',
 );
 
 describe('agent prompt - OS detection', () => {

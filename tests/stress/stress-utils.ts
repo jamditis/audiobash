@@ -44,7 +44,7 @@ const DEFAULT_CONFIG: StressTestConfig = {
 export async function runStressTest(
   name: string,
   testFn: (iteration: number) => Promise<void> | void,
-  config: StressTestConfig = {}
+  config: StressTestConfig = {},
 ): Promise<StressTestResult> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const errors: string[] = [];
@@ -75,7 +75,7 @@ export async function runStressTest(
       await Promise.race([
         testFn(i),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Iteration timeout')), cfg.timeout! / cfg.iterations!)
+          setTimeout(() => reject(new Error('Iteration timeout')), cfg.timeout! / cfg.iterations!),
         ),
       ]);
       successCount++;
@@ -154,7 +154,7 @@ export async function runStressTest(
 export async function runConcurrentStressTest(
   name: string,
   testFn: (iteration: number, workerId: number) => Promise<void> | void,
-  config: StressTestConfig = {}
+  config: StressTestConfig = {},
 ): Promise<StressTestResult> {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const errors: string[] = [];
@@ -184,7 +184,7 @@ export async function runConcurrentStressTest(
             await sleep(cfg.cooldown);
           }
         }
-      })()
+      })(),
     );
   }
 
@@ -283,13 +283,17 @@ export function printStressTestReport(results: StressTestResult[]): void {
     console.log(`  Duration: ${result.duration}ms (${result.iterations} iterations)`);
 
     if (result.metrics.avgLatency !== undefined) {
-      console.log(`  Latency: avg=${result.metrics.avgLatency.toFixed(2)}ms, max=${result.metrics.maxLatency}ms, min=${result.metrics.minLatency}ms`);
+      console.log(
+        `  Latency: avg=${result.metrics.avgLatency.toFixed(2)}ms, max=${result.metrics.maxLatency}ms, min=${result.metrics.minLatency}ms`,
+      );
     }
     if (result.metrics.throughput !== undefined) {
       console.log(`  Throughput: ${result.metrics.throughput.toFixed(2)} ops/sec`);
     }
     if (result.metrics.memoryUsed !== undefined) {
-      console.log(`  Memory: used=${formatBytes(result.metrics.memoryUsed)}, peak=${formatBytes(result.metrics.memoryPeak || 0)}`);
+      console.log(
+        `  Memory: used=${formatBytes(result.metrics.memoryUsed)}, peak=${formatBytes(result.metrics.memoryPeak || 0)}`,
+      );
     }
 
     if (result.warnings.length > 0) {

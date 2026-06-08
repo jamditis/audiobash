@@ -79,7 +79,7 @@ User Agent: ${navigator.userAgent}
   };
 
   toggleDetails = (): void => {
-    this.setState(prev => ({ showDetails: !prev.showDetails }));
+    this.setState((prev) => ({ showDetails: !prev.showDetails }));
   };
 
   render(): ReactNode {
@@ -97,8 +97,18 @@ User Agent: ${navigator.userAgent}
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <svg
+                  className="w-6 h-6 text-red-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
                 </svg>
               </div>
               <div>
@@ -153,7 +163,12 @@ User Agent: ${navigator.userAgent}
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
               {showDetails ? 'Hide' : 'Show'} technical details
             </button>
@@ -185,9 +200,10 @@ User Agent: ${navigator.userAgent}
                     Recent Errors ({logger.getErrorSummary().count} total)
                   </h3>
                   <pre className="bg-void border border-gray-700 rounded p-3 text-xs text-gray-300 overflow-x-auto max-h-40 overflow-y-auto">
-                    {logger.getErrorSummary().recent.map(e =>
-                      `[${e.timestamp}] ${e.category}: ${e.message}`
-                    ).join('\n') || 'No recent errors logged'}
+                    {logger
+                      .getErrorSummary()
+                      .recent.map((e) => `[${e.timestamp}] ${e.category}: ${e.message}`)
+                      .join('\n') || 'No recent errors logged'}
                   </pre>
                 </div>
               </div>

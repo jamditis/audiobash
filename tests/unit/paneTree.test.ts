@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
-  createLeaf, splitPane, closePane, resizePane,
-  findPane, flattenLeaves, applyPreset,
-  serializeTree, deserializeTree,
+  createLeaf,
+  splitPane,
+  closePane,
+  resizePane,
+  findPane,
+  flattenLeaves,
+  applyPreset,
+  serializeTree,
+  deserializeTree,
 } from '../../src/utils/paneTree';
 
 describe('paneTree', () => {
@@ -84,7 +90,7 @@ describe('paneTree', () => {
       root = splitPane(root, leaves[1].id, 'vertical', 'tab-3');
       // Close tab-3, should collapse back
       const allLeaves = flattenLeaves(root);
-      const tab3 = allLeaves.find(l => l.terminalId === 'tab-3');
+      const tab3 = allLeaves.find((l) => l.terminalId === 'tab-3');
       if (tab3) {
         const result = closePane(root, tab3.id);
         expect(result).not.toBeNull();

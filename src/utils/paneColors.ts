@@ -6,19 +6,27 @@ interface HSL {
   l: number;
 }
 
-export type PaneColorName = 'emerald' | 'cobalt' | 'crimson' | 'violet' | 'cyan' | 'amber' | 'rose' | 'acid';
+export type PaneColorName =
+  | 'emerald'
+  | 'cobalt'
+  | 'crimson'
+  | 'violet'
+  | 'cyan'
+  | 'amber'
+  | 'rose'
+  | 'acid';
 
 export const DEFAULT_PANE_COLOR: PaneColorName = 'acid';
 
 export const PANE_PALETTE: Record<PaneColorName, HSL> = {
   emerald: { h: 130, s: 50, l: 48 },
-  cobalt:  { h: 215, s: 100, l: 67 },
+  cobalt: { h: 215, s: 100, l: 67 },
   crimson: { h: 2, s: 93, l: 63 },
-  violet:  { h: 265, s: 100, l: 77 },
-  cyan:    { h: 170, s: 58, l: 52 },
-  amber:   { h: 40, s: 73, l: 48 },
-  rose:    { h: 330, s: 89, l: 72 },
-  acid:    { h: 72, s: 100, l: 50 },
+  violet: { h: 265, s: 100, l: 77 },
+  cyan: { h: 170, s: 58, l: 52 },
+  amber: { h: 40, s: 73, l: 48 },
+  rose: { h: 330, s: 89, l: 72 },
+  acid: { h: 72, s: 100, l: 50 },
 };
 
 const GRAY = '#484f58';
@@ -62,6 +70,8 @@ export function savePaneColor(terminalId: string, colorName: PaneColorName): voi
   const colors = loadPaneColors();
   colors.set(terminalId, colorName);
   const obj: Record<string, string> = {};
-  colors.forEach((v, k) => { obj[k] = v; });
+  colors.forEach((v, k) => {
+    obj[k] = v;
+  });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
 }

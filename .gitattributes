@@ -1,0 +1,17 @@
+# Normalize line endings to LF in every working tree (Mac, Windows, CI).
+# The committed blobs are already LF; this keeps Windows checkouts from
+# reintroducing CRLF and keeps `prettier --check` deterministic everywhere.
+* text=auto eol=lf
+
+# Binary assets must never be normalized.
+*.png binary
+*.ico binary
+*.bmp binary
+*.svg text
+*.mp3 binary
+*.wav binary
+*.webm binary
+*.onnx binary
+*.dmg binary
+*.exe binary
+*.blockmap binary

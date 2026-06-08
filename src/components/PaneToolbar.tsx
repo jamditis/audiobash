@@ -101,12 +101,20 @@ const ZoomIcon = ({ active }: { active: boolean }) => (
   </Icon>
 );
 
-const btnBase = 'flex items-center justify-center w-6 h-6 rounded-sm transition-colors duration-100';
+const btnBase =
+  'flex items-center justify-center w-6 h-6 rounded-sm transition-colors duration-100';
 const btnDefault = `${btnBase} text-crt-white/50 hover:text-accent hover:bg-void-300`;
 const btnDisabled = `${btnBase} text-crt-white/20 cursor-not-allowed`;
 
 const PaneToolbar: React.FC<PaneToolbarProps> = ({
-  paneCount, isZoomed, currentColor = 'acid', onSplitH, onSplitV, onPreset, onToggleZoom, onColorChange,
+  paneCount,
+  isZoomed,
+  currentColor = 'acid',
+  onSplitH,
+  onSplitV,
+  onPreset,
+  onToggleZoom,
+  onColorChange,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -149,19 +157,44 @@ const PaneToolbar: React.FC<PaneToolbarProps> = ({
       <span className="w-px h-3.5 bg-void-300 mx-1.5" />
 
       {/* Layout presets */}
-      <button onClick={() => onPreset('single')} className={btnDefault} title="Single pane" aria-label="Single pane">
+      <button
+        onClick={() => onPreset('single')}
+        className={btnDefault}
+        title="Single pane"
+        aria-label="Single pane"
+      >
         <SingleIcon />
       </button>
-      <button onClick={() => onPreset('side-by-side')} className={btnDefault} title="Side by side" aria-label="Side by side">
+      <button
+        onClick={() => onPreset('side-by-side')}
+        className={btnDefault}
+        title="Side by side"
+        aria-label="Side by side"
+      >
         <SideBySideIcon />
       </button>
-      <button onClick={() => onPreset('stacked')} className={btnDefault} title="Stacked" aria-label="Stacked">
+      <button
+        onClick={() => onPreset('stacked')}
+        className={btnDefault}
+        title="Stacked"
+        aria-label="Stacked"
+      >
         <StackedIcon />
       </button>
-      <button onClick={() => onPreset('grid-2x2')} className={btnDefault} title="Grid 2x2" aria-label="Grid 2x2">
+      <button
+        onClick={() => onPreset('grid-2x2')}
+        className={btnDefault}
+        title="Grid 2x2"
+        aria-label="Grid 2x2"
+      >
         <GridIcon />
       </button>
-      <button onClick={() => onPreset('main-sidebar')} className={btnDefault} title="Main + sidebar" aria-label="Main plus sidebar">
+      <button
+        onClick={() => onPreset('main-sidebar')}
+        className={btnDefault}
+        title="Main + sidebar"
+        aria-label="Main plus sidebar"
+      >
         <MainSidebarIcon />
       </button>
 
@@ -170,9 +203,8 @@ const PaneToolbar: React.FC<PaneToolbarProps> = ({
       {/* Zoom toggle */}
       <button
         onClick={onToggleZoom}
-        className={isZoomed
-          ? `${btnBase} text-accent hover:text-accent-glow hover:bg-void-300`
-          : btnDefault
+        className={
+          isZoomed ? `${btnBase} text-accent hover:text-accent-glow hover:bg-void-300` : btnDefault
         }
         title="Toggle pane zoom (Alt+Z)"
         aria-label="Toggle pane zoom"
@@ -185,7 +217,7 @@ const PaneToolbar: React.FC<PaneToolbarProps> = ({
       {/* Color swatch */}
       <div className="relative" ref={pickerRef}>
         <button
-          onClick={() => setShowPicker(p => !p)}
+          onClick={() => setShowPicker((p) => !p)}
           className={`${btnBase} hover:bg-void-300`}
           title="Pane color"
           aria-label="Change pane color"
@@ -197,12 +229,15 @@ const PaneToolbar: React.FC<PaneToolbarProps> = ({
         </button>
         {showPicker && (
           <div className="absolute top-full left-0 mt-1 flex gap-1.5 p-1.5 bg-[#1a1a1a] border border-[#444] rounded z-50 shadow-lg">
-            {(Object.keys(PANE_PALETTE) as PaneColorName[]).map(name => {
+            {(Object.keys(PANE_PALETTE) as PaneColorName[]).map((name) => {
               const hsl = PANE_PALETTE[name];
               return (
                 <button
                   key={name}
-                  onClick={() => { onColorChange?.(name); setShowPicker(false); }}
+                  onClick={() => {
+                    onColorChange?.(name);
+                    setShowPicker(false);
+                  }}
                   className="w-4 h-4 rounded-sm transition-all duration-100"
                   style={{
                     backgroundColor: `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`,
@@ -220,7 +255,8 @@ const PaneToolbar: React.FC<PaneToolbarProps> = ({
 
       {/* Pane counter */}
       <span className="ml-auto text-crt-white/25 tabular-nums tracking-wide">
-        {paneCount}<span className="text-crt-white/15">/</span>4 panes
+        {paneCount}
+        <span className="text-crt-white/15">/</span>4 panes
       </span>
     </div>
   );

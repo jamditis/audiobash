@@ -4,10 +4,10 @@ Captures the AudioBash window when you press Enter.
 Does NOT send any hotkeys - safe to use while AudioBash is active.
 """
 
-import time
 import ctypes
 import ctypes.wintypes
 import sys
+import time
 from pathlib import Path
 
 import pyautogui
@@ -27,6 +27,7 @@ user32 = ctypes.windll.user32
 EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
 _found_windows = []
 
+
 def _enum_callback(hwnd, lParam):
     if user32.IsWindowVisible(hwnd):
         length = user32.GetWindowTextLengthW(hwnd)
@@ -35,6 +36,7 @@ def _enum_callback(hwnd, lParam):
             user32.GetWindowTextW(hwnd, buffer, length + 1)
             _found_windows.append((hwnd, buffer.value))
     return True
+
 
 def find_audiobash_window():
     """Find the AudioBash Electron window."""
@@ -53,10 +55,12 @@ def find_audiobash_window():
             return hwnd, title
     return None, None
 
+
 def get_window_rect(hwnd):
     rect = ctypes.wintypes.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+
 
 def capture_window(hwnd, name: str):
     """Capture window screenshot without bringing to front or sending keys."""
@@ -66,7 +70,7 @@ def capture_window(hwnd, name: str):
         top = max(0, top)
 
         if width <= 0 or height <= 0:
-            print(f"[ERROR] Invalid window size")
+            print("[ERROR] Invalid window size")
             return False
 
         # Small delay for any UI to settle
@@ -95,6 +99,7 @@ def capture_window(hwnd, name: str):
         print(f"[ERROR] {e}")
         return False
 
+
 def main():
     print("=" * 60)
     print("AudioBash Manual Screenshot Capture")
@@ -108,12 +113,12 @@ def main():
     if not hwnd:
         print("ERROR: AudioBash window not found!")
         print("\nAvailable windows with 'audio' in title:")
-        for h, t in _found_windows:
+        for _h, t in _found_windows:
             if "audio" in t.lower():
                 print(f"  - {t[:70]}")
         sys.exit(1)
 
-    clean_title = title.encode('ascii', 'ignore').decode('ascii')
+    clean_title = title.encode("ascii", "ignore").decode("ascii")
     print(f"Found: {clean_title}")
     left, top, width, height = get_window_rect(hwnd)
     print(f"Size: {width}x{height}")
@@ -137,7 +142,7 @@ def main():
         print(f"  Setup: {instruction}")
         response = input("  Press Enter to capture (or 's' to skip): ")
 
-        if response.lower() == 's':
+        if response.lower() == "s":
             print("  Skipped.")
             continue
 
@@ -152,6 +157,7 @@ def main():
     print("\nCaptured files:")
     for f in sorted(SCREENSHOTS_DIR.glob("*.png")):
         print(f"  {f.name}")
+
 
 if __name__ == "__main__":
     main()

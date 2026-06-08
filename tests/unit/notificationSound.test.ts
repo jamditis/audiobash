@@ -102,7 +102,9 @@ describe('notificationSound', () => {
     describe('Claude Code TUI selection menus', () => {
       it('detects "Use arrow keys" prompt', () => {
         resetOutputBuffer('test-tab');
-        expect(checkForCliInputPrompt('? Allow tool? (Use arrow keys)\n❯ Yes\n  No', 'test-tab')).toBe(true);
+        expect(
+          checkForCliInputPrompt('? Allow tool? (Use arrow keys)\n❯ Yes\n  No', 'test-tab'),
+        ).toBe(true);
       });
 
       it('detects inquirer-style ❯ Yes selection', () => {
@@ -194,12 +196,16 @@ describe('notificationSound', () => {
     describe('false positive avoidance', () => {
       it('does not trigger on normal output text', () => {
         resetOutputBuffer('test-tab');
-        expect(checkForCliInputPrompt('Building project...\nCompiling 42 files\n', 'test-tab')).toBe(false);
+        expect(
+          checkForCliInputPrompt('Building project...\nCompiling 42 files\n', 'test-tab'),
+        ).toBe(false);
       });
 
       it('does not trigger on file listings', () => {
         resetOutputBuffer('test-tab');
-        expect(checkForCliInputPrompt('src/index.ts\nsrc/app.ts\npackage.json\n', 'test-tab')).toBe(false);
+        expect(checkForCliInputPrompt('src/index.ts\nsrc/app.ts\npackage.json\n', 'test-tab')).toBe(
+          false,
+        );
       });
 
       it('does not trigger on empty input', () => {
@@ -270,12 +276,27 @@ describe('notificationSound', () => {
         resume = mockResume;
         currentTime = 0;
         destination = {};
-        constructor() { constructorCalls++; }
+        constructor() {
+          constructorCalls++;
+        }
         createOscillator() {
-          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+          return {
+            type: '',
+            frequency: { setValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+          };
         }
         createGain() {
-          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+          return {
+            gain: {
+              setValueAtTime: vi.fn(),
+              linearRampToValueAtTime: vi.fn(),
+              exponentialRampToValueAtTime: vi.fn(),
+            },
+            connect: vi.fn(),
+          };
         }
       }
       vi.stubGlobal('AudioContext', MockAudioContext);
@@ -302,10 +323,23 @@ describe('notificationSound', () => {
         currentTime = 0;
         destination = {};
         createOscillator() {
-          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+          return {
+            type: '',
+            frequency: { setValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+          };
         }
         createGain() {
-          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+          return {
+            gain: {
+              setValueAtTime: vi.fn(),
+              linearRampToValueAtTime: vi.fn(),
+              exponentialRampToValueAtTime: vi.fn(),
+            },
+            connect: vi.fn(),
+          };
         }
       }
       vi.stubGlobal('AudioContext', RunningAudioContext);
@@ -325,10 +359,23 @@ describe('notificationSound', () => {
         currentTime = 0;
         destination = {};
         createOscillator() {
-          return { type: '', frequency: { setValueAtTime: vi.fn() }, connect: vi.fn(), start: vi.fn(), stop: vi.fn() };
+          return {
+            type: '',
+            frequency: { setValueAtTime: vi.fn() },
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+          };
         }
         createGain() {
-          return { gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, connect: vi.fn() };
+          return {
+            gain: {
+              setValueAtTime: vi.fn(),
+              linearRampToValueAtTime: vi.fn(),
+              exponentialRampToValueAtTime: vi.fn(),
+            },
+            connect: vi.fn(),
+          };
         }
       }
       vi.stubGlobal('AudioContext', MockAudioContext);
@@ -356,7 +403,7 @@ describe('notificationSound', () => {
 
       // When debug is enabled, we should see debug output
       const debugCalls = consoleSpy.mock.calls.filter(
-        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]')
+        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]'),
       );
       expect(debugCalls.length).toBeGreaterThan(0);
 
@@ -372,7 +419,7 @@ describe('notificationSound', () => {
       checkForCliInputPrompt('Allow? [Y/n]', 'debug-test-off');
 
       const debugCalls = consoleSpy.mock.calls.filter(
-        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]')
+        (args) => typeof args[0] === 'string' && args[0].includes('[Notification]'),
       );
       expect(debugCalls.length).toBe(0);
 

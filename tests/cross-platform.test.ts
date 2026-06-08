@@ -25,14 +25,14 @@ describe('shell detection', () => {
     // getDefaultShell() selects PowerShell for Windows, $SHELL for others
     const shellLine = shellQuoteCode.match(/return process\.platform === 'win32'.+/);
     expect(shellLine).toBeTruthy();
-    expect(shellLine![0]).toContain("win32");
-    expect(shellLine![0]).toContain("powershell");
-    expect(shellLine![0]).toContain("SHELL");
+    expect(shellLine![0]).toContain('win32');
+    expect(shellLine![0]).toContain('powershell');
+    expect(shellLine![0]).toContain('SHELL');
   });
 
   it('main process delegates shell selection to getDefaultShell', () => {
     expect(mainProcessCode).toContain("require('./shellQuote.cjs')");
-    expect(mainProcessCode).toContain("getDefaultShell()");
+    expect(mainProcessCode).toContain('getDefaultShell()');
   });
 });
 
@@ -40,15 +40,15 @@ describe('icon handling', () => {
   it('uses ICO for Windows tray, PNG for other platforms', () => {
     // Should have platform-specific icon selection for tray
     expect(mainProcessCode).toContain("process.platform === 'win32'");
-    expect(mainProcessCode).toContain("audiobash-logo.ico");
-    expect(mainProcessCode).toContain("audiobash-logo.png");
+    expect(mainProcessCode).toContain('audiobash-logo.ico');
+    expect(mainProcessCode).toContain('audiobash-logo.png');
   });
 
   it('has fallback icon paths', () => {
     // Should try multiple paths if icon fails to load
-    expect(mainProcessCode).toContain("fallbackPaths");
-    expect(mainProcessCode).toContain("process.resourcesPath");
-    expect(mainProcessCode).toContain("app.getAppPath()");
+    expect(mainProcessCode).toContain('fallbackPaths');
+    expect(mainProcessCode).toContain('process.resourcesPath');
+    expect(mainProcessCode).toContain('app.getAppPath()');
   });
 });
 
@@ -56,13 +56,13 @@ describe('macOS app lifecycle', () => {
   it('does not quit on window close for macOS', () => {
     // macOS apps typically stay running when all windows close
     expect(mainProcessCode).toContain("process.platform !== 'darwin'");
-    expect(mainProcessCode).toContain("window-all-closed");
+    expect(mainProcessCode).toContain('window-all-closed');
   });
 
   it('handles activate event for macOS dock click', () => {
     // Clicking dock icon should reopen window on macOS
     expect(mainProcessCode).toContain("'activate'");
-    expect(mainProcessCode).toContain("BrowserWindow.getAllWindows()");
+    expect(mainProcessCode).toContain('BrowserWindow.getAllWindows()');
   });
 });
 
@@ -78,7 +78,7 @@ describe('terminal context detection', () => {
 
   it('returns shell type in context', () => {
     // Agent needs to know shell type (bash, zsh, powershell)
-    expect(mainProcessCode).toContain("path.basename(shell)");
+    expect(mainProcessCode).toContain('path.basename(shell)');
   });
 });
 
@@ -90,31 +90,31 @@ describe('PTY configuration', () => {
   });
 
   it('starts in home directory', () => {
-    expect(mainProcessCode).toContain("os.homedir()");
+    expect(mainProcessCode).toContain('os.homedir()');
   });
 
   it('passes environment variables to shell', () => {
-    expect(mainProcessCode).toContain("...process.env");
+    expect(mainProcessCode).toContain('...process.env');
   });
 });
 
 describe('path handling', () => {
   it('uses path.join for cross-platform paths', () => {
     // path.join handles / vs \ automatically
-    expect(mainProcessCode).toContain("path.join(");
+    expect(mainProcessCode).toContain('path.join(');
     // Should not have hardcoded Windows paths
     expect(mainProcessCode).not.toMatch(/['"]\w:\\\\[^'"]+['"]/);
   });
 
   it('handles absolute path validation', () => {
-    expect(mainProcessCode).toContain("path.isAbsolute");
+    expect(mainProcessCode).toContain('path.isAbsolute');
   });
 });
 
 describe('working directory detection', () => {
   it('detects PowerShell prompts', () => {
     // PowerShell prompt format: PS C:\path>
-    expect(mainProcessCode).toContain("PS");
+    expect(mainProcessCode).toContain('PS');
   });
 
   it('detects Unix shell prompts', () => {

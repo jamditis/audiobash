@@ -4,12 +4,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  runStressTest,
-  generateRandomData,
-  sleep,
-  StressTestResult,
-} from './stress-utils';
+import { runStressTest, generateRandomData, sleep, StressTestResult } from './stress-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -32,7 +27,7 @@ describe('Transcription Service Stress Tests', () => {
 
           expect(audioBuffer.length).toBe(size);
         },
-        { iterations: 100, cooldown: 5 }
+        { iterations: 100, cooldown: 5 },
       );
 
       results.push(result);
@@ -40,12 +35,7 @@ describe('Transcription Service Stress Tests', () => {
     });
 
     it('should handle empty audio buffers', async () => {
-      const emptyBuffers = [
-        Buffer.alloc(0),
-        Buffer.from([]),
-        null,
-        undefined,
-      ];
+      const emptyBuffers = [Buffer.alloc(0), Buffer.from([]), null, undefined];
 
       for (const buffer of emptyBuffers) {
         // Validation should reject empty buffers
@@ -67,7 +57,7 @@ describe('Transcription Service Stress Tests', () => {
           // and return an error message, not crash
           expect(corruptedAudio.length).toBe(10000);
         },
-        { iterations: 50, cooldown: 5 }
+        { iterations: 50, cooldown: 5 },
       );
 
       results.push(result);
@@ -87,7 +77,7 @@ describe('Transcription Service Stress Tests', () => {
           const expectedSize = 4915200; // ~5MB
           expect(size).toBeCloseTo(expectedSize, -4);
         },
-        { iterations: 10, cooldown: 10 }
+        { iterations: 10, cooldown: 10 },
       );
 
       results.push(result);
@@ -123,7 +113,7 @@ describe('Transcription Service Stress Tests', () => {
 
           expect(contextString.length).toBeLessThan(maxContextLength * 2);
         },
-        { iterations: 50, cooldown: 5 }
+        { iterations: 50, cooldown: 5 },
       );
 
       results.push(result);
@@ -169,7 +159,7 @@ describe('Transcription Service Stress Tests', () => {
 
           activeRequests--;
         },
-        { iterations: 50, cooldown: 0 }
+        { iterations: 50, cooldown: 0 },
       );
 
       results.push(result);
@@ -189,9 +179,7 @@ describe('Transcription Service Stress Tests', () => {
           try {
             await Promise.race([
               sleep(Math.min(responseTime, 50)), // Cap for test speed
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('API timeout')), 100)
-              ),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 100)),
             ]);
           } catch (err: any) {
             if (err.message === 'API timeout') {
@@ -201,7 +189,7 @@ describe('Transcription Service Stress Tests', () => {
             }
           }
         },
-        { iterations: 100, cooldown: 5 }
+        { iterations: 100, cooldown: 5 },
       );
 
       results.push(result);
@@ -297,7 +285,7 @@ describe('Transcription Service Stress Tests', () => {
           const vocabString = vocabulary.join(', ');
           expect(vocabString.length).toBeGreaterThan(0);
         },
-        { iterations: 50, cooldown: 5 }
+        { iterations: 50, cooldown: 5 },
       );
 
       results.push(result);
@@ -323,10 +311,7 @@ describe('Transcription Service Stress Tests', () => {
 
       for (const term of specialTerms) {
         // Should be safely includable in prompt
-        const escaped = term
-          .replace(/\\/g, '\\\\')
-          .replace(/"/g, '\\"')
-          .replace(/\n/g, ' ');
+        const escaped = term.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ');
 
         expect(escaped).not.toContain('\n');
       }

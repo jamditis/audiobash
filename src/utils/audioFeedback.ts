@@ -26,7 +26,7 @@ class AudioFeedback {
   }
 
   public setVolume(volume: number) {
-    this.sounds.forEach(audio => {
+    this.sounds.forEach((audio) => {
       audio.volume = Math.max(0, Math.min(1, volume));
     });
   }
@@ -38,17 +38,25 @@ class AudioFeedback {
     if (audio) {
       // Reset to start if already playing
       audio.currentTime = 0;
-      audio.play().catch(err => {
+      audio.play().catch((err) => {
         console.warn('[AudioBash] Failed to play sound:', err);
       });
     }
   }
 
   // Convenience methods
-  public playStart() { this.play('start'); }
-  public playStop() { this.play('stop'); }
-  public playSuccess() { this.play('success'); }
-  public playError() { this.play('error'); }
+  public playStart() {
+    this.play('start');
+  }
+  public playStop() {
+    this.play('stop');
+  }
+  public playSuccess() {
+    this.play('success');
+  }
+  public playError() {
+    this.play('error');
+  }
 }
 
 // Singleton instance

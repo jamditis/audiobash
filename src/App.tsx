@@ -37,7 +37,7 @@ const App: React.FC = () => {
     return 'PowerShell';
   };
   const [tabs, setTabs] = useState<TerminalTab[]>([
-    { id: 'tab-1', title: getDefaultShellName(), isActive: true }
+    { id: 'tab-1', title: getDefaultShellName(), isActive: true },
   ]);
   const [activeTabId, setActiveTabId] = useState('tab-1');
   const tabCounterRef = useRef(1);
@@ -68,7 +68,10 @@ const App: React.FC = () => {
   const [voiceMode, setVoiceMode] = useState<'agent' | 'raw'>('raw');
 
   // Last transcript for resend feature
-  const [lastTranscript, setLastTranscript] = useState<{ text: string; mode: 'agent' | 'raw' } | null>(null);
+  const [lastTranscript, setLastTranscript] = useState<{
+    text: string;
+    mode: 'agent' | 'raw';
+  } | null>(null);
   // CC /voice mode detection
   const voiceDetectorRef = useRef<VoiceModeDetector | null>(null);
   const [ccVoiceActiveTerminals, setCcVoiceActiveTerminals] = useState<Set<string>>(new Set());
@@ -98,7 +101,7 @@ const App: React.FC = () => {
     voiceDetectorRef.current = detector;
 
     const unsub = detector.onStateChange((state) => {
-      setCcVoiceActiveTerminals(prev => {
+      setCcVoiceActiveTerminals((prev) => {
         const next = new Set(prev);
         if (state.active) {
           next.add(state.terminalId);
@@ -217,11 +220,11 @@ const App: React.FC = () => {
   // Font zoom IPC wiring (Ctrl+Plus / Ctrl+Minus / Ctrl+0)
   useEffect(() => {
     const cleanups = [
-      window.electron?.onZoomIn(() => setFontSize(s => Math.min(s + 2, 32))),
-      window.electron?.onZoomOut(() => setFontSize(s => Math.max(s - 2, 8))),
+      window.electron?.onZoomIn(() => setFontSize((s) => Math.min(s + 2, 32))),
+      window.electron?.onZoomOut(() => setFontSize((s) => Math.max(s - 2, 8))),
       window.electron?.onZoomReset(() => setFontSize(14)),
     ];
-    return () => cleanups.forEach(c => c?.());
+    return () => cleanups.forEach((c) => c?.());
   }, []);
 
   // Persist font size to localStorage
@@ -234,8 +237,8 @@ const App: React.FC = () => {
     const cleanup = window.electron?.onTerminalClosed((tabId: string) => {
       // If a terminal is closed externally (e.g., exit command), close its pane and tab
       paneManagerRef.current?.closePaneByTerminalId(tabId);
-      setTabs(prev => {
-        const remaining = prev.filter(t => t.id !== tabId);
+      setTabs((prev) => {
+        const remaining = prev.filter((t) => t.id !== tabId);
         if (remaining.length === 0) {
           // If all tabs are closed, create a new one
           tabCounterRef.current += 1;
@@ -248,7 +251,7 @@ const App: React.FC = () => {
         if (activeTabId === tabId) {
           const newActive = remaining[remaining.length - 1];
           setActiveTabId(newActive.id);
-          return remaining.map(t => ({ ...t, isActive: t.id === newActive.id }));
+          return remaining.map((t) => ({ ...t, isActive: t.id === newActive.id }));
         }
         return remaining;
       });
@@ -278,7 +281,7 @@ const App: React.FC = () => {
   // Listen for Alt+M to toggle voice mode
   useEffect(() => {
     const handleToggleMode = () => {
-      setVoiceMode(prev => prev === 'agent' ? 'raw' : 'agent');
+      setVoiceMode((prev) => (prev === 'agent' ? 'raw' : 'agent'));
     };
     const cleanup = window.electron?.onToggleMode(handleToggleMode);
     return () => cleanup?.();
@@ -302,43 +305,48 @@ const App: React.FC = () => {
       window.electron?.onSplitVertical(() => paneManagerRef.current?.splitVertical()),
       window.electron?.onClosePane(() => paneManagerRef.current?.closeCurrentPane()),
       window.electron?.onZoomPane(() => paneManagerRef.current?.toggleZoom()),
-      window.electron?.onResizePane((direction) => paneManagerRef.current?.resizeByDirection(direction)),
+      window.electron?.onResizePane((direction) =>
+        paneManagerRef.current?.resizeByDirection(direction),
+      ),
     ];
-    return () => cleanups.forEach(c => c?.());
+    return () => cleanups.forEach((c) => c?.());
   }, []);
 
-  const handleTranscript = useCallback((text: string, mode: 'agent' | 'raw') => {
-    setTranscript(text);
-    setStatus('idle');
+  const handleTranscript = useCallback(
+    (text: string, mode: 'agent' | 'raw') => {
+      setTranscript(text);
+      setStatus('idle');
 
-    if (!text.trim()) return;
+      if (!text.trim()) return;
 
-    // Save for resend feature
-    setLastTranscript({ text, mode });
+      // Save for resend feature
+      setLastTranscript({ text, mode });
 
-    if (autoSend) {
-      // Smart handoff: if focused terminal has CC /voice active, route to another pane
-      let targetTabId = activeTabId;
-      if (ccVoiceActiveTerminals.has(activeTabId)) {
-        const allTabIds = tabs.map(t => t.id);
-        const freeTab = allTabIds.find(id => !ccVoiceActiveTerminals.has(id));
-        if (freeTab) {
-          targetTabId = freeTab;
-          appLog.info('CC /voice active on focused terminal, routing to', { targetTabId });
+      if (autoSend) {
+        // Smart handoff: if focused terminal has CC /voice active, route to another pane
+        let targetTabId = activeTabId;
+        if (ccVoiceActiveTerminals.has(activeTabId)) {
+          const allTabIds = tabs.map((t) => t.id);
+          const freeTab = allTabIds.find((id) => !ccVoiceActiveTerminals.has(id));
+          if (freeTab) {
+            targetTabId = freeTab;
+            appLog.info('CC /voice active on focused terminal, routing to', { targetTabId });
+          } else {
+            // All panes have CC /voice active - skip sending
+            appLog.warn('All terminals have CC /voice active, cannot send AudioBash voice input');
+            return;
+          }
+        }
+
+        if (previewBeforeExecute) {
+          window.electron?.insertToTerminal(targetTabId, text);
         } else {
-          // All panes have CC /voice active - skip sending
-          appLog.warn('All terminals have CC /voice active, cannot send AudioBash voice input');
-          return;
+          window.electron?.sendToTerminal(targetTabId, text);
         }
       }
-
-      if (previewBeforeExecute) {
-        window.electron?.insertToTerminal(targetTabId, text);
-      } else {
-        window.electron?.sendToTerminal(targetTabId, text);
-      }
-    }
-  }, [autoSend, previewBeforeExecute, activeTabId, ccVoiceActiveTerminals, tabs]);
+    },
+    [autoSend, previewBeforeExecute, activeTabId, ccVoiceActiveTerminals, tabs],
+  );
 
   const handleCloseOverlay = useCallback(() => {
     if (!isPinned) {
@@ -351,13 +359,13 @@ const App: React.FC = () => {
   }, []);
 
   const handleOpenDirectoryPicker = useCallback(() => {
-    setDirectoryPickerOpen(prev => !prev);
+    setDirectoryPickerOpen((prev) => !prev);
   }, []);
 
   // Tab management functions
   const handleSelectTab = useCallback((tabId: string) => {
     setActiveTabId(tabId);
-    setTabs(prev => prev.map(t => ({ ...t, isActive: t.id === tabId })));
+    setTabs((prev) => prev.map((t) => ({ ...t, isActive: t.id === tabId })));
   }, []);
 
   const handleNewTab = useCallback(async () => {
@@ -368,35 +376,36 @@ const App: React.FC = () => {
 
     const result = await window.electron?.createTerminal(newTabId);
     if (result?.success) {
-      setTabs(prev => [
-        ...prev.map(t => ({ ...t, isActive: false })),
-        { id: newTabId, title: getDefaultShellName(), isActive: true }
+      setTabs((prev) => [
+        ...prev.map((t) => ({ ...t, isActive: false })),
+        { id: newTabId, title: getDefaultShellName(), isActive: true },
       ]);
       setActiveTabId(newTabId);
     }
   }, [tabs.length]);
 
-  const handleCloseTab = useCallback(async (tabId: string) => {
-    if (tabs.length <= 1) return; // Don't close last tab
+  const handleCloseTab = useCallback(
+    async (tabId: string) => {
+      if (tabs.length <= 1) return; // Don't close last tab
 
-    await window.electron?.closeTerminal(tabId);
+      await window.electron?.closeTerminal(tabId);
 
-    setTabs(prev => {
-      const remaining = prev.filter(t => t.id !== tabId);
-      // If we closed the active tab, switch to another
-      if (activeTabId === tabId && remaining.length > 0) {
-        const newActive = remaining[remaining.length - 1];
-        setActiveTabId(newActive.id);
-        return remaining.map(t => ({ ...t, isActive: t.id === newActive.id }));
-      }
-      return remaining;
-    });
-  }, [tabs.length, activeTabId]);
+      setTabs((prev) => {
+        const remaining = prev.filter((t) => t.id !== tabId);
+        // If we closed the active tab, switch to another
+        if (activeTabId === tabId && remaining.length > 0) {
+          const newActive = remaining[remaining.length - 1];
+          setActiveTabId(newActive.id);
+          return remaining.map((t) => ({ ...t, isActive: t.id === newActive.id }));
+        }
+        return remaining;
+      });
+    },
+    [tabs.length, activeTabId],
+  );
 
   const handleRenameTab = useCallback((tabId: string, newTitle: string) => {
-    setTabs(prev => prev.map(tab =>
-      tab.id === tabId ? { ...tab, title: newTitle } : tab
-    ));
+    setTabs((prev) => prev.map((tab) => (tab.id === tabId ? { ...tab, title: newTitle } : tab)));
   }, []);
 
   // PaneManager terminal lifecycle callbacks
@@ -406,28 +415,31 @@ const App: React.FC = () => {
 
     const result = await window.electron?.createTerminal(newTabId);
     if (result?.success) {
-      setTabs(prev => [
-        ...prev.map(t => ({ ...t, isActive: false })),
-        { id: newTabId, title: getDefaultShellName(), isActive: true }
+      setTabs((prev) => [
+        ...prev.map((t) => ({ ...t, isActive: false })),
+        { id: newTabId, title: getDefaultShellName(), isActive: true },
       ]);
       setActiveTabId(newTabId);
     }
     return newTabId;
   }, []);
 
-  const handleCloseTerminal = useCallback((tabId: string) => {
-    window.electron?.closeTerminal(tabId);
-    setTabs(prev => {
-      const remaining = prev.filter(t => t.id !== tabId);
-      if (remaining.length === 0) return prev;
-      if (activeTabId === tabId) {
-        const newActive = remaining[remaining.length - 1];
-        setActiveTabId(newActive.id);
-        return remaining.map(t => ({ ...t, isActive: t.id === newActive.id }));
-      }
-      return remaining;
-    });
-  }, [activeTabId]);
+  const handleCloseTerminal = useCallback(
+    (tabId: string) => {
+      window.electron?.closeTerminal(tabId);
+      setTabs((prev) => {
+        const remaining = prev.filter((t) => t.id !== tabId);
+        if (remaining.length === 0) return prev;
+        if (activeTabId === tabId) {
+          const newActive = remaining[remaining.length - 1];
+          setActiveTabId(newActive.id);
+          return remaining.map((t) => ({ ...t, isActive: t.id === newActive.id }));
+        }
+        return remaining;
+      });
+    },
+    [activeTabId],
+  );
 
   // Listen for Alt+L to cycle layout (delegates to PaneManager)
   useEffect(() => {
@@ -488,7 +500,7 @@ const App: React.FC = () => {
   // Listen for Alt+P to toggle preview pane
   useEffect(() => {
     const handleTogglePreview = () => {
-      setPreviewVisible(prev => {
+      setPreviewVisible((prev) => {
         const newValue = !prev;
         localStorage.setItem('audiobash-preview-visible', String(newValue));
         return newValue;
@@ -526,14 +538,14 @@ const App: React.FC = () => {
   const handlePreviewResizeHorizontal = useCallback((delta: number) => {
     const containerWidth = window.innerWidth;
     const deltaPercent = (delta / containerWidth) * 100;
-    setPreviewWidth(prev => Math.max(20, Math.min(60, prev - deltaPercent)));
+    setPreviewWidth((prev) => Math.max(20, Math.min(60, prev - deltaPercent)));
   }, []);
 
   // Handle preview resize (bottom panel)
   const handlePreviewResizeVertical = useCallback((delta: number) => {
     const containerHeight = window.innerHeight;
     const deltaPercent = (delta / containerHeight) * 100;
-    setPreviewHeight(prev => Math.max(15, Math.min(50, prev - deltaPercent)));
+    setPreviewHeight((prev) => Math.max(15, Math.min(50, prev - deltaPercent)));
   }, []);
 
   return (
@@ -555,16 +567,19 @@ const App: React.FC = () => {
       {/* Main content - Terminal + Preview layout */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Main area with optional preview pane */}
-        <div className={`flex-1 min-h-0 flex ${previewVisible && previewPosition === 'bottom' ? 'flex-col' : 'flex-row'}`}>
+        <div
+          className={`flex-1 min-h-0 flex ${previewVisible && previewPosition === 'bottom' ? 'flex-col' : 'flex-row'}`}
+        >
           {/* Terminal area */}
           <div
             className="min-h-0 min-w-0 overflow-hidden"
             style={{
-              flex: previewVisible && previewPosition === 'right'
-                ? `0 0 ${100 - previewWidth}%`
-                : previewVisible && previewPosition === 'bottom'
-                ? `0 0 ${100 - previewHeight}%`
-                : '1 1 auto',
+              flex:
+                previewVisible && previewPosition === 'right'
+                  ? `0 0 ${100 - previewWidth}%`
+                  : previewVisible && previewPosition === 'bottom'
+                    ? `0 0 ${100 - previewHeight}%`
+                    : '1 1 auto',
             }}
           >
             <PaneManager
@@ -698,9 +713,7 @@ const App: React.FC = () => {
       />
 
       {/* Onboarding modal */}
-      {showOnboarding && (
-        <Onboarding onComplete={() => setShowOnboarding(false)} />
-      )}
+      {showOnboarding && <Onboarding onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 };

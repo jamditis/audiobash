@@ -1,6 +1,8 @@
 """Generate NSIS installer images with void aesthetic."""
-from PIL import Image, ImageDraw, ImageFont
+
 import os
+
+from PIL import Image, ImageDraw, ImageFont
 
 # Void color palette
 VOID = (5, 5, 5)
@@ -13,9 +15,10 @@ CRT_WHITE = (240, 240, 240)
 BUILD_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(os.path.dirname(BUILD_DIR), "audiobash-logo.png")
 
+
 def create_header_image():
     """Create 150x57 header image for installer pages."""
-    img = Image.new('RGB', (150, 57), VOID)
+    img = Image.new("RGB", (150, 57), VOID)
     draw = ImageDraw.Draw(img)
 
     # Add subtle gradient effect
@@ -25,7 +28,7 @@ def create_header_image():
 
     # Load and resize logo
     try:
-        logo = Image.open(LOGO_PATH).convert('RGBA')
+        logo = Image.open(LOGO_PATH).convert("RGBA")
         logo_size = 45
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
@@ -42,7 +45,7 @@ def create_header_image():
     try:
         # Try to use a monospace font
         font = ImageFont.truetype("consola.ttf", 14)
-    except:
+    except Exception:
         font = ImageFont.load_default()
 
     draw.text((58, 20), "AUDIOBASH", fill=CRT_WHITE, font=font)
@@ -55,9 +58,10 @@ def create_header_image():
     img.save(output_path, "BMP")
     print(f"Created: {output_path}")
 
+
 def create_sidebar_image():
     """Create 164x314 sidebar image for welcome/finish pages."""
-    img = Image.new('RGB', (164, 314), VOID)
+    img = Image.new("RGB", (164, 314), VOID)
     draw = ImageDraw.Draw(img)
 
     # Create gradient background
@@ -72,7 +76,7 @@ def create_sidebar_image():
 
     # Load and position logo
     try:
-        logo = Image.open(LOGO_PATH).convert('RGBA')
+        logo = Image.open(LOGO_PATH).convert("RGBA")
         logo_size = 120
         logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
@@ -91,7 +95,7 @@ def create_sidebar_image():
     # Add "VOICE TERMINAL" text vertically at bottom
     try:
         font = ImageFont.truetype("consola.ttf", 11)
-    except:
+    except Exception:
         font = ImageFont.load_default()
 
     # Draw text
@@ -107,6 +111,7 @@ def create_sidebar_image():
     output_path = os.path.join(BUILD_DIR, "installerSidebar.bmp")
     img.save(output_path, "BMP")
     print(f"Created: {output_path}")
+
 
 if __name__ == "__main__":
     create_header_image()

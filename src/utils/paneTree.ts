@@ -126,8 +126,10 @@ export function applyPreset(name: PresetName, terminalIds: string[]): PaneNode {
       const left = createLeaf(terminalIds[0]);
       const right = createLeaf(terminalIds[1] || terminalIds[0]);
       return {
-        type: 'split', id: nextId('split'),
-        direction: 'vertical', ratio: 0.5,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'vertical',
+        ratio: 0.5,
         children: [left, right],
       };
     }
@@ -136,8 +138,10 @@ export function applyPreset(name: PresetName, terminalIds: string[]): PaneNode {
       const top = createLeaf(terminalIds[0]);
       const bottom = createLeaf(terminalIds[1] || terminalIds[0]);
       return {
-        type: 'split', id: nextId('split'),
-        direction: 'horizontal', ratio: 0.5,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'horizontal',
+        ratio: 0.5,
         children: [top, bottom],
       };
     }
@@ -148,18 +152,24 @@ export function applyPreset(name: PresetName, terminalIds: string[]): PaneNode {
       const bl = createLeaf(terminalIds[2] || terminalIds[0]);
       const br = createLeaf(terminalIds[3] || terminalIds[0]);
       const topRow: PaneSplit = {
-        type: 'split', id: nextId('split'),
-        direction: 'vertical', ratio: 0.5,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'vertical',
+        ratio: 0.5,
         children: [tl, tr],
       };
       const bottomRow: PaneSplit = {
-        type: 'split', id: nextId('split'),
-        direction: 'vertical', ratio: 0.5,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'vertical',
+        ratio: 0.5,
         children: [bl, br],
       };
       return {
-        type: 'split', id: nextId('split'),
-        direction: 'horizontal', ratio: 0.5,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'horizontal',
+        ratio: 0.5,
         children: [topRow, bottomRow],
       };
     }
@@ -168,8 +178,10 @@ export function applyPreset(name: PresetName, terminalIds: string[]): PaneNode {
       const main = createLeaf(terminalIds[0]);
       const side = createLeaf(terminalIds[1] || terminalIds[0]);
       return {
-        type: 'split', id: nextId('split'),
-        direction: 'vertical', ratio: 0.7,
+        type: 'split',
+        id: nextId('split'),
+        direction: 'vertical',
+        ratio: 0.7,
         children: [main, side],
       };
     }

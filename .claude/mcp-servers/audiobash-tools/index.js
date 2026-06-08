@@ -2,10 +2,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { readFile } from 'fs/promises';
@@ -34,19 +31,19 @@ async function runCommand(command, options = {}) {
     const { stdout, stderr } = await execAsync(command, {
       cwd: PROJECT_ROOT,
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-      ...options
+      ...options,
     });
     return {
       success: true,
       stdout: stdout.trim(),
-      stderr: stderr.trim()
+      stderr: stderr.trim(),
     };
   } catch (error) {
     return {
       success: false,
       stdout: error.stdout?.trim() || '',
       stderr: error.stderr?.trim() || '',
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -67,19 +64,19 @@ async function listIpcHandlers() {
     while ((match = handlePattern.exec(content)) !== null) {
       handlers.push({
         type: match[1], // 'handle' or 'on'
-        channel: match[2]
+        channel: match[2],
       });
     }
 
     return {
       success: true,
       handlers,
-      count: handlers.length
+      count: handlers.length,
     };
   } catch (error) {
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -91,7 +88,7 @@ async function checkDependencies() {
   const result = await runCommand('npm outdated --json', {
     encoding: 'utf-8',
     // npm outdated returns exit code 1 when there are outdated packages
-    shell: true
+    shell: true,
   });
 
   try {
@@ -102,20 +99,20 @@ async function checkDependencies() {
         current: info.current,
         wanted: info.wanted,
         latest: info.latest,
-        location: info.location
+        location: info.location,
       }));
 
       return {
         success: true,
         outdated: packages,
-        count: packages.length
+        count: packages.length,
       };
     } else {
       return {
         success: true,
         outdated: [],
         count: 0,
-        message: 'All dependencies are up to date!'
+        message: 'All dependencies are up to date!',
       };
     }
   } catch (error) {
@@ -124,7 +121,7 @@ async function checkDependencies() {
       success: true,
       message: 'All dependencies are up to date!',
       outdated: [],
-      count: 0
+      count: 0,
     };
   }
 }
@@ -143,7 +140,7 @@ class AudioBashToolsServer {
         capabilities: {
           tools: {},
         },
-      }
+      },
     );
 
     this.setupToolHandlers();
@@ -166,8 +163,8 @@ class AudioBashToolsServer {
           inputSchema: {
             type: 'object',
             properties: {},
-            required: []
-          }
+            required: [],
+          },
         },
         {
           name: 'audiobash_run_tests',
@@ -177,15 +174,15 @@ class AudioBashToolsServer {
             properties: {
               filter: {
                 type: 'string',
-                description: 'Optional test file pattern to filter tests (e.g., "Terminal")'
+                description: 'Optional test file pattern to filter tests (e.g., "Terminal")',
               },
               verbose: {
                 type: 'boolean',
                 description: 'Run tests in verbose mode',
-                default: false
-              }
-            }
-          }
+                default: false,
+              },
+            },
+          },
         },
         {
           name: 'audiobash_list_ipc',
@@ -193,8 +190,8 @@ class AudioBashToolsServer {
           inputSchema: {
             type: 'object',
             properties: {},
-            required: []
-          }
+            required: [],
+          },
         },
         {
           name: 'audiobash_build',
@@ -206,10 +203,10 @@ class AudioBashToolsServer {
                 type: 'string',
                 enum: ['mac', 'mac:arm64', 'mac:x64', 'win', 'linux'],
                 description: 'Target platform for the build',
-                default: 'mac:arm64'
-              }
-            }
-          }
+                default: 'mac:arm64',
+              },
+            },
+          },
         },
         {
           name: 'audiobash_check_deps',
@@ -217,10 +214,10 @@ class AudioBashToolsServer {
           inputSchema: {
             type: 'object',
             properties: {},
-            required: []
-          }
-        }
-      ]
+            required: [],
+          },
+        },
+      ],
     }));
 
     // Handle tool calls
@@ -231,20 +228,24 @@ class AudioBashToolsServer {
         switch (name) {
           case 'audiobash_launch_dev': {
             const result = await runCommand('npm run electron:dev', {
-              timeout: 5000 // Kill after 5s since it runs indefinitely
+              timeout: 5000, // Kill after 5s since it runs indefinitely
             });
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({
-                    message: 'Development server launched. Process will run in background.',
-                    note: 'Use Ctrl+C in the terminal to stop the dev server',
-                    ...result
-                  }, null, 2)
-                }
-              ]
+                  text: JSON.stringify(
+                    {
+                      message: 'Development server launched. Process will run in background.',
+                      note: 'Use Ctrl+C in the terminal to stop the dev server',
+                      ...result,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
             };
           }
 
@@ -273,18 +274,22 @@ class AudioBashToolsServer {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({
-                    success: result.success,
-                    summary: {
-                      passed: passMatch ? parseInt(passMatch[1]) : 0,
-                      failed: failMatch ? parseInt(failMatch[1]) : 0,
-                      total: totalMatch ? totalMatch[1] : 'unknown'
+                  text: JSON.stringify(
+                    {
+                      success: result.success,
+                      summary: {
+                        passed: passMatch ? parseInt(passMatch[1]) : 0,
+                        failed: failMatch ? parseInt(failMatch[1]) : 0,
+                        total: totalMatch ? totalMatch[1] : 'unknown',
+                      },
+                      output: testOutput,
+                      filter: args?.filter || 'none',
                     },
-                    output: testOutput,
-                    filter: args?.filter || 'none'
-                  }, null, 2)
-                }
-              ]
+                    null,
+                    2,
+                  ),
+                },
+              ],
             };
           }
 
@@ -302,14 +307,18 @@ class AudioBashToolsServer {
                 content: [
                   {
                     type: 'text',
-                    text: JSON.stringify({
-                      success: true,
-                      totalHandlers: result.count,
-                      handlers: handlersByType,
-                      details: result.handlers
-                    }, null, 2)
-                  }
-                ]
+                    text: JSON.stringify(
+                      {
+                        success: true,
+                        totalHandlers: result.count,
+                        handlers: handlersByType,
+                        details: result.handlers,
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
               };
             } else {
               throw new Error(result.error);
@@ -326,15 +335,19 @@ class AudioBashToolsServer {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({
-                    success: result.success,
-                    platform,
-                    command: buildCommand,
-                    output: result.stdout,
-                    errors: result.stderr
-                  }, null, 2)
-                }
-              ]
+                  text: JSON.stringify(
+                    {
+                      success: result.success,
+                      platform,
+                      command: buildCommand,
+                      output: result.stdout,
+                      errors: result.stderr,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
             };
           }
 
@@ -345,14 +358,18 @@ class AudioBashToolsServer {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify({
-                    success: result.success,
-                    outdatedCount: result.count,
-                    outdated: result.outdated,
-                    message: result.message
-                  }, null, 2)
-                }
-              ]
+                  text: JSON.stringify(
+                    {
+                      success: result.success,
+                      outdatedCount: result.count,
+                      outdated: result.outdated,
+                      message: result.message,
+                    },
+                    null,
+                    2,
+                  ),
+                },
+              ],
             };
           }
 
@@ -364,14 +381,18 @@ class AudioBashToolsServer {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: error.message,
-                tool: name
-              }, null, 2)
-            }
+              text: JSON.stringify(
+                {
+                  success: false,
+                  error: error.message,
+                  tool: name,
+                },
+                null,
+                2,
+              ),
+            },
           ],
-          isError: true
+          isError: true,
         };
       }
     });

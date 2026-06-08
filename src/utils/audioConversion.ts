@@ -25,30 +25,43 @@ export function float32ToWavBlob(float32: Float32Array, sampleRate: number = 160
   let offset = 0;
 
   // "RIFF" chunk descriptor
-  writeString(view, offset, 'RIFF'); offset += 4;
-  view.setUint32(offset, bufferSize - 8, true); offset += 4; // File size - 8
-  writeString(view, offset, 'WAVE'); offset += 4;
+  writeString(view, offset, 'RIFF');
+  offset += 4;
+  view.setUint32(offset, bufferSize - 8, true);
+  offset += 4; // File size - 8
+  writeString(view, offset, 'WAVE');
+  offset += 4;
 
   // "fmt " sub-chunk
-  writeString(view, offset, 'fmt '); offset += 4;
-  view.setUint32(offset, 16, true); offset += 4; // Subchunk1Size (16 for PCM)
-  view.setUint16(offset, 1, true); offset += 2;  // AudioFormat (1 for PCM)
-  view.setUint16(offset, numChannels, true); offset += 2;
-  view.setUint32(offset, sampleRate, true); offset += 4;
-  view.setUint32(offset, byteRate, true); offset += 4;
-  view.setUint16(offset, blockAlign, true); offset += 2;
-  view.setUint16(offset, bitDepth, true); offset += 2;
+  writeString(view, offset, 'fmt ');
+  offset += 4;
+  view.setUint32(offset, 16, true);
+  offset += 4; // Subchunk1Size (16 for PCM)
+  view.setUint16(offset, 1, true);
+  offset += 2; // AudioFormat (1 for PCM)
+  view.setUint16(offset, numChannels, true);
+  offset += 2;
+  view.setUint32(offset, sampleRate, true);
+  offset += 4;
+  view.setUint32(offset, byteRate, true);
+  offset += 4;
+  view.setUint16(offset, blockAlign, true);
+  offset += 2;
+  view.setUint16(offset, bitDepth, true);
+  offset += 2;
 
   // "data" sub-chunk
-  writeString(view, offset, 'data'); offset += 4;
-  view.setUint32(offset, dataSize, true); offset += 4;
+  writeString(view, offset, 'data');
+  offset += 4;
+  view.setUint32(offset, dataSize, true);
+  offset += 4;
 
   // Write audio data (convert Float32 to Int16)
   for (let i = 0; i < float32.length; i++) {
     // Clamp to -1.0 to 1.0 range
     const sample = Math.max(-1, Math.min(1, float32[i]));
     // Convert to 16-bit integer
-    const int16Sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+    const int16Sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
     view.setInt16(offset, int16Sample, true);
     offset += 2;
   }
@@ -89,7 +102,7 @@ export async function wavToWebmBlob(wavBlob: Blob): Promise<Blob> {
 
         // Record using MediaRecorder
         const mediaRecorder = new MediaRecorder(destination.stream, {
-          mimeType: 'audio/webm'
+          mimeType: 'audio/webm',
         });
         const chunks: Blob[] = [];
 
@@ -141,7 +154,10 @@ export async function wavToWebmBlob(wavBlob: Blob): Promise<Blob> {
  * @param sampleRate Sample rate in Hz (typically 16000 for VAD)
  * @returns Promise<Blob> WebM Blob ready for transcription
  */
-export async function float32ToWebmBlob(float32: Float32Array, sampleRate: number = 16000): Promise<Blob> {
+export async function float32ToWebmBlob(
+  float32: Float32Array,
+  sampleRate: number = 16000,
+): Promise<Blob> {
   const wavBlob = float32ToWavBlob(float32, sampleRate);
   return wavToWebmBlob(wavBlob);
 }

@@ -1,0 +1,22 @@
+# Ruff config for AudioBash's Python tooling: screenshot capture (scripts/) and
+# installer image generation (build/). The security-lab tree is a separate,
+# local-only research sandbox and is excluded from project linting.
+target-version = "py311"
+line-length = 100
+
+extend-exclude = ["security-lab"]
+
+[format]
+# Pin LF to match Prettier (endOfLine: lf) and .gitattributes, so format-check
+# is deterministic across Windows/macOS/Linux and CI.
+line-ending = "lf"
+
+[lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "W",  # pycodestyle warnings
+  "I",  # isort (import ordering)
+  "UP", # pyupgrade
+  "B",  # flake8-bugbear
+]

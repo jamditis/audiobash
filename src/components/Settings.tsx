@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { transcriptionService, MODELS, ModelId, CustomInstructions, VocabularyEntry } from '../services/transcriptionService';
+import {
+  transcriptionService,
+  MODELS,
+  ModelId,
+  CustomInstructions,
+  VocabularyEntry,
+} from '../services/transcriptionService';
 import { useTheme } from '../themes';
 import { Shortcuts, ShellType, SHELL_TYPES, isShellType } from '../types';
 
@@ -10,7 +16,14 @@ interface SettingsProps {
 }
 
 const CloseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className="w-5 h-5"
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
@@ -90,14 +103,16 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   const [debugNotifications, setDebugNotifications] = useState(false);
 
   // Local Whisper models state
-  const [localModels, setLocalModels] = useState<{
-    id: string;
-    size: string;
-    speed: string;
-    accuracy: string;
-    description: string;
-    downloaded: boolean;
-  }[]>([]);
+  const [localModels, setLocalModels] = useState<
+    {
+      id: string;
+      size: string;
+      speed: string;
+      accuracy: string;
+      description: string;
+      downloaded: boolean;
+    }[]
+  >([]);
   const [downloadingModel, setDownloadingModel] = useState<string | null>(null);
   const [whisperInstalled, setWhisperInstalled] = useState(false);
   const [isSettingUp, setIsSettingUp] = useState(false);
@@ -130,7 +145,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     if (savedShell && isShellType(savedShell)) setShell(savedShell);
     if (savedModel) setModel(savedModel as ModelId);
     if (savedAutoSend !== null) setAutoSend(savedAutoSend === 'true');
-    if (savedPreviewBeforeExecute !== null) setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
+    if (savedPreviewBeforeExecute !== null)
+      setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
     if (savedScanlines !== null) setScanlines(savedScanlines === 'true');
 
     // Load custom instructions
@@ -148,7 +164,8 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
         console.warn('Failed to parse vocabulary:', e);
       }
     }
-    if (savedCliNotifications !== null) setCliNotificationsEnabled(savedCliNotifications === 'true');
+    if (savedCliNotifications !== null)
+      setCliNotificationsEnabled(savedCliNotifications === 'true');
     const savedDebugNotifications = localStorage.getItem('audiobash-debug-notifications');
     if (savedDebugNotifications !== null) setDebugNotifications(savedDebugNotifications === 'true');
 
@@ -171,58 +188,60 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
         setShortcutsInput(savedShortcuts);
       }
     });
-
   }, [isOpen]);
 
   // Handle keyboard shortcut recording
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!recordingShortcut) return;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!recordingShortcut) return;
 
-    e.preventDefault();
-    e.stopPropagation();
+      e.preventDefault();
+      e.stopPropagation();
 
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push('Control');
-    if (e.altKey) parts.push('Alt');
-    if (e.shiftKey) parts.push('Shift');
-    if (e.metaKey) parts.push('Super');
+      const parts: string[] = [];
+      if (e.ctrlKey) parts.push('Control');
+      if (e.altKey) parts.push('Alt');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.metaKey) parts.push('Super');
 
-    // Only record if a modifier is pressed
-    if (parts.length === 0) return;
+      // Only record if a modifier is pressed
+      if (parts.length === 0) return;
 
-    // Map e.key to Electron accelerator format
-    const keyMap: Record<string, string> = {
-      ' ': 'Space',
-      'ARROWUP': 'Up',
-      'ARROWDOWN': 'Down',
-      'ARROWLEFT': 'Left',
-      'ARROWRIGHT': 'Right',
-      'ESCAPE': 'Escape',
-      'ENTER': 'Return',
-      'BACKSPACE': 'Backspace',
-      'DELETE': 'Delete',
-      'TAB': 'Tab',
-      'HOME': 'Home',
-      'END': 'End',
-      'PAGEUP': 'PageUp',
-      'PAGEDOWN': 'PageDown',
-      'INSERT': 'Insert',
-    };
+      // Map e.key to Electron accelerator format
+      const keyMap: Record<string, string> = {
+        ' ': 'Space',
+        ARROWUP: 'Up',
+        ARROWDOWN: 'Down',
+        ARROWLEFT: 'Left',
+        ARROWRIGHT: 'Right',
+        ESCAPE: 'Escape',
+        ENTER: 'Return',
+        BACKSPACE: 'Backspace',
+        DELETE: 'Delete',
+        TAB: 'Tab',
+        HOME: 'Home',
+        END: 'End',
+        PAGEUP: 'PageUp',
+        PAGEDOWN: 'PageDown',
+        INSERT: 'Insert',
+      };
 
-    // Add the main key (if it's not just a modifier)
-    const rawKey = e.key.toUpperCase();
-    if (!['CONTROL', 'ALT', 'SHIFT', 'META'].includes(rawKey)) {
-      // Convert to Electron accelerator format
-      const key = keyMap[rawKey] || rawKey;
-      parts.push(key);
+      // Add the main key (if it's not just a modifier)
+      const rawKey = e.key.toUpperCase();
+      if (!['CONTROL', 'ALT', 'SHIFT', 'META'].includes(rawKey)) {
+        // Convert to Electron accelerator format
+        const key = keyMap[rawKey] || rawKey;
+        parts.push(key);
 
-      const shortcut = parts.join('+');
-      console.log('[AudioBash] Captured shortcut:', shortcut);
-      setShortcutsInput(prev => ({ ...prev, [recordingShortcut]: shortcut }));
-      setRecordingShortcut(null);
-      setShortcutError(null);
-    }
-  }, [recordingShortcut]);
+        const shortcut = parts.join('+');
+        console.log('[AudioBash] Captured shortcut:', shortcut);
+        setShortcutsInput((prev) => ({ ...prev, [recordingShortcut]: shortcut }));
+        setRecordingShortcut(null);
+        setShortcutError(null);
+      }
+    },
+    [recordingShortcut],
+  );
 
   useEffect(() => {
     if (recordingShortcut) {
@@ -323,7 +342,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
     // Save keyboard shortcuts if changed
     const shortcutsChanged = Object.keys(shortcutsInput).some(
-      key => shortcutsInput[key as keyof Shortcuts] !== shortcuts[key as keyof Shortcuts]
+      (key) => shortcutsInput[key as keyof Shortcuts] !== shortcuts[key as keyof Shortcuts],
     );
     if (shortcutsChanged) {
       const result = await window.electron?.setShortcuts(shortcutsInput);
@@ -341,16 +360,20 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
   };
 
   // Get the provider for the selected model
-  const selectedModelInfo = MODELS.find(m => m.id === model);
+  const selectedModelInfo = MODELS.find((m) => m.id === model);
   const selectedProvider = selectedModelInfo?.provider || 'gemini';
 
   // Check if selected model has required API key
   const hasRequiredKey = () => {
     switch (selectedProvider) {
-      case 'gemini': return !!geminiKeyInput;
-      case 'elevenlabs': return !!elevenlabsKeyInput;
-      case 'local': return true;
-      default: return false;
+      case 'gemini':
+        return !!geminiKeyInput;
+      case 'elevenlabs':
+        return !!elevenlabsKeyInput;
+      case 'local':
+        return true;
+      default:
+        return false;
     }
   };
 
@@ -435,9 +458,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                   onClick={() => setTheme(t.id)}
                   className={`
                     p-2 rounded border transition-all
-                    ${theme.id === t.id
-                      ? 'border-accent ring-1 ring-accent'
-                      : 'border-void-300 hover:border-void-200'
+                    ${
+                      theme.id === t.id
+                        ? 'border-accent ring-1 ring-accent'
+                        : 'border-void-300 hover:border-void-200'
                     }
                   `}
                   title={t.name}
@@ -457,9 +481,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                       />
                     </div>
                   </div>
-                  <div className="text-[9px] text-center text-crt-white/60 truncate">
-                    {t.name}
-                  </div>
+                  <div className="text-[9px] text-center text-crt-white/60 truncate">{t.name}</div>
                 </button>
               ))}
             </div>
@@ -495,10 +517,13 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               Transcription model
             </label>
             <div className="space-y-1.5">
-              {MODELS.filter(m => !m.id.startsWith('whisper-local-')).map((m) => {
-                const needsKey = m.provider === 'gemini' ? !geminiKeyInput :
-                  m.provider === 'elevenlabs' ? !elevenlabsKeyInput :
-                  false;
+              {MODELS.filter((m) => !m.id.startsWith('whisper-local-')).map((m) => {
+                const needsKey =
+                  m.provider === 'gemini'
+                    ? !geminiKeyInput
+                    : m.provider === 'elevenlabs'
+                      ? !elevenlabsKeyInput
+                      : false;
 
                 return (
                   <label
@@ -520,9 +545,11 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                       disabled={needsKey}
                       className="sr-only"
                     />
-                    <div className={`w-3 h-3 rounded-full border-2 ${
-                      model === m.id ? 'border-accent bg-accent' : 'border-void-300'
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full border-2 ${
+                        model === m.id ? 'border-accent bg-accent' : 'border-void-300'
+                      }`}
+                    />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono">{m.name}</span>
@@ -559,7 +586,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
             {/* Status indicator */}
             <div className="flex items-center gap-2 p-2 rounded border border-void-300 bg-void-100">
-              <div className={`w-2 h-2 rounded-full ${whisperInstalled ? 'bg-green-400' : 'bg-yellow-500'}`} />
+              <div
+                className={`w-2 h-2 rounded-full ${whisperInstalled ? 'bg-green-400' : 'bg-yellow-500'}`}
+              />
               <span className="text-[10px] text-crt-white/60">
                 {whisperInstalled ? 'Whisper.cpp installed' : 'Whisper.cpp not installed'}
               </span>
@@ -573,9 +602,25 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               )}
               {isSettingUp && (
                 <span className="ml-auto text-[9px] text-accent uppercase flex items-center gap-1">
-                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-3 w-3"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Setting up...
                 </span>
@@ -623,9 +668,15 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                       disabled={!canSelect}
                       className="sr-only"
                     />
-                    <div className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
-                      isSelected ? 'border-sky-400 bg-sky-400' : canSelect ? 'border-void-300' : 'border-void-400'
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full border-2 flex-shrink-0 ${
+                        isSelected
+                          ? 'border-sky-400 bg-sky-400'
+                          : canSelect
+                            ? 'border-void-300'
+                            : 'border-void-400'
+                      }`}
+                    />
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -651,7 +702,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                         onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const confirmed = window.confirm(`Delete ${m.id} model? This will free up ${m.size} of disk space.`);
+                          const confirmed = window.confirm(
+                            `Delete ${m.id} model? This will free up ${m.size} of disk space.`,
+                          );
                           if (confirmed) {
                             try {
                               const result = await window.electron?.whisperDeleteModel(m.id);
@@ -676,15 +729,42 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                         className="p-1.5 text-red-400/60 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                         title={`Delete ${m.id} model`}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-3.5 h-3.5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                          />
                         </svg>
                       </button>
                     ) : downloadingModel === m.id ? (
                       <span className="text-[9px] text-accent uppercase flex items-center gap-1">
-                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-3 w-3"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         {isSettingUp ? 'Setting up...' : 'Downloading...'}
                       </span>
@@ -727,9 +807,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
                 </button>
               ))}
             </div>
-            <div className="text-[10px] text-crt-white/30 mt-1">
-              Restart app to change shell
-            </div>
+            <div className="text-[10px] text-crt-white/30 mt-1">Restart app to change shell</div>
           </div>
 
           {/* Auto-send toggle */}
@@ -892,7 +970,10 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               <button
                 onClick={() => {
                   if (newVocabSpoken.trim() && newVocabWritten.trim()) {
-                    setVocabulary([...vocabulary, { spoken: newVocabSpoken.trim(), written: newVocabWritten.trim() }]);
+                    setVocabulary([
+                      ...vocabulary,
+                      { spoken: newVocabSpoken.trim(), written: newVocabWritten.trim() },
+                    ]);
                     setNewVocabSpoken('');
                     setNewVocabWritten('');
                   }
@@ -933,11 +1014,15 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             </label>
 
             {/* Voice shortcuts */}
-            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-2">Voice</div>
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-2">
+              Voice
+            </div>
             <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Start/stop recording</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+S</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+S
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Cancel recording</span>
@@ -945,67 +1030,97 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Toggle raw/agent mode</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+M</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+M
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Resend last command</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+R</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+R
+                </span>
               </div>
             </div>
 
             {/* Window shortcuts */}
-            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Window</div>
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">
+              Window
+            </div>
             <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Show/hide window</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+H</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+H
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Cycle layout</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+L</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+L
+                </span>
               </div>
             </div>
 
             {/* Terminal shortcuts */}
-            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Terminal</div>
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">
+              Terminal
+            </div>
             <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Clear terminal</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+C</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+C
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Focus next pane</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+→</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+→
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Focus prev pane</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+←</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+←
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Bookmark directory</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+B</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+B
+                </span>
               </div>
             </div>
 
             {/* Tab shortcuts */}
-            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Tabs</div>
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">
+              Tabs
+            </div>
             <div className="bg-void-200 rounded p-2 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Switch to tab 1-4</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+1-4</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+1-4
+                </span>
               </div>
             </div>
 
             {/* Preview shortcuts */}
-            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">Preview</div>
+            <div className="text-[9px] text-crt-white/40 uppercase tracking-wider mb-1 mt-3">
+              Preview
+            </div>
             <div className="bg-void-200 rounded p-2 space-y-1.5 text-[11px]">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Toggle preview pane</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+P</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+P
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-mono text-crt-white/50">Screenshot preview</span>
-                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">Alt+Shift+P</span>
+                <span className="px-2 py-1 rounded font-mono bg-void-300 text-crt-amber">
+                  Alt+Shift+P
+                </span>
               </div>
             </div>
           </div>
@@ -1026,7 +1141,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
 
         {/* Footer */}
         <div className="px-4 py-3 border-t border-void-300 flex justify-between items-center">
-          <span className={`text-[10px] font-mono transition-opacity ${saved ? 'text-crt-green' : 'opacity-0'}`}>
+          <span
+            className={`text-[10px] font-mono transition-opacity ${saved ? 'text-crt-green' : 'opacity-0'}`}
+          >
             Settings saved
           </span>
           <div className="flex gap-2">

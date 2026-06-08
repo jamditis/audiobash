@@ -23,7 +23,7 @@ function adHocSign(filePath) {
   execFileSync('codesign', ['--force', '--sign', '-', filePath], { stdio: 'pipe' });
 }
 
-exports.default = async function(context) {
+exports.default = async function (context) {
   // Only run on macOS builds
   if (process.platform !== 'darwin' && context.electronPlatformName !== 'darwin') {
     return;
@@ -40,13 +40,7 @@ exports.default = async function(context) {
   const architectures = ['darwin-arm64', 'darwin-x64'];
 
   for (const arch of architectures) {
-    const prebuildsDir = path.join(
-      unpackedDir,
-      'node_modules',
-      'node-pty',
-      'prebuilds',
-      arch
-    );
+    const prebuildsDir = path.join(unpackedDir, 'node_modules', 'node-pty', 'prebuilds', arch);
 
     // Fix spawn-helper permissions (always needed)
     const spawnHelperPath = path.join(prebuildsDir, 'spawn-helper');
@@ -58,7 +52,9 @@ exports.default = async function(context) {
           adHocSign(spawnHelperPath);
           console.log(`[afterPack] Fixed permissions and ad-hoc signed ${arch}/spawn-helper`);
         } else {
-          console.log(`[afterPack] Fixed permissions for ${arch}/spawn-helper (real signing will follow)`);
+          console.log(
+            `[afterPack] Fixed permissions for ${arch}/spawn-helper (real signing will follow)`,
+          );
         }
       } catch (err) {
         console.error(`[afterPack] Failed to fix ${arch}/spawn-helper:`, err.message);
