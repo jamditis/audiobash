@@ -58,7 +58,12 @@ describe('PaneManager layout controls', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Split horizontal' }));
 
-    await waitFor(() => expect(screen.queryByText('ZOOMED')).not.toBeInTheDocument());
-    expect(screen.getAllByTestId('terminal')).toHaveLength(3);
+    // The split runs an async onCreateTerminal alongside the zoom-clear state update, so the
+    // ZOOMED label and the third pane can settle on different ticks. Wait for both conditions
+    // together to avoid asserting the pane count before the new pane has rendered.
+    await waitFor(() => {
+      expect(screen.queryByText('ZOOMED')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('terminal')).toHaveLength(3);
+    });
   });
 });
