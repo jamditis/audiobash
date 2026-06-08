@@ -344,8 +344,9 @@ describe('Transcription Service Configuration', () => {
     const servicePath = path.join(__dirname, '../../src/services/transcriptionService.ts');
     const content = fs.readFileSync(servicePath, 'utf-8');
 
-    // Check for error handling patterns
-    expect(content).toContain('throw new Error');
+    // Check for error handling patterns. The service throws typed TranscriptionError
+    // instances (a subclass of Error) for provider failures, and plain Error elsewhere.
+    expect(content).toMatch(/throw new (TranscriptionError|Error)/);
     expect(content).toContain('catch');
 
     // Check for API key validation

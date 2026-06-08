@@ -308,14 +308,14 @@ describe('Terminal Rendering Stress Tests', () => {
 describe('PTY Process Stress Tests', () => {
   describe('Process Lifecycle', () => {
     it('should validate shell command patterns', () => {
-      // Read main.cjs to verify shell detection logic
-      const mainPath = path.join(__dirname, '../../electron/main.cjs');
-      const mainContent = fs.readFileSync(mainPath, 'utf-8');
+      // Shell detection lives in shellQuote.cjs (extracted from main.cjs for unit testing).
+      const shellQuotePath = path.join(__dirname, '../../electron/shellQuote.cjs');
+      const shellQuoteContent = fs.readFileSync(shellQuotePath, 'utf-8');
 
       // Check for platform-specific shell handling
-      expect(mainContent).toContain("process.platform === 'win32'");
-      expect(mainContent).toContain('process.env.SHELL');
-      expect(mainContent).toContain('powershell');
+      expect(shellQuoteContent).toContain("process.platform === 'win32'");
+      expect(shellQuoteContent).toContain('process.env.SHELL');
+      expect(shellQuoteContent).toContain('powershell');
     });
 
     it('should handle PTY spawn failures gracefully', async () => {
