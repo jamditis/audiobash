@@ -26,10 +26,7 @@ describe('enableWaylandShortcuts', () => {
 describe('main process wiring', () => {
   // main.cjs is too coupled to load in jsdom, so guard the wiring with a source check (same approach
   // as startup-crash.test.ts). The flag must be applied at module load, before app.whenReady() runs.
-  const mainProcessCode = readFileSync(
-    join(__dirname, '..', '..', 'electron', 'main.cjs'),
-    'utf8',
-  );
+  const mainProcessCode = readFileSync(join(__dirname, '..', '..', 'electron', 'main.cjs'), 'utf8');
 
   it('calls enableWaylandShortcuts before app.whenReady so the switch is set before ready', () => {
     expect(mainProcessCode).toContain('enableWaylandShortcuts(app)');
