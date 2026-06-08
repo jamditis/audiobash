@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AudioBash for macOS - Now Available</title>
-    <meta name="description" content="AudioBash v2.1 brings ElevenLabs Scribe v2 real-time transcription! Voice-controlled terminal for developers, on Apple Silicon and Intel Macs.">
+    <meta name="description" content="AudioBash is a voice-controlled terminal for developers, with native Apple Silicon and Intel Mac builds. Speak commands, execute instantly.">
 
     <!-- Open Graph -->
     <meta property="og:title" content="AudioBash for macOS - Now Available">
@@ -215,7 +215,7 @@
             <!-- Badge -->
             <div class="inline-flex items-center gap-2 px-4 py-2 bg-appleDim border border-apple/30 text-apple text-sm font-mono mb-8">
                 <span class="w-2 h-2 bg-apple rounded-full animate-pulse-slow"></span>
-                <span data-version="v{version}">v2.4.0</span> — Electron 39 + Apple Silicon fix
+                <span data-version="v{version}">v3.2.0</span> — customizable pane colors
             </div>
 
             <!-- Apple Icon -->
@@ -290,7 +290,7 @@
                         <i data-lucide="keyboard" class="w-6 h-6 text-apple"></i>
                     </div>
                     <h3 class="font-display text-lg text-chrome mb-2">Mac shortcuts</h3>
-                    <p class="text-gray-400 text-sm"><code>Option+S</code> for push-to-talk. All 14 global shortcuts work with the Option key.</p>
+                    <p class="text-gray-400 text-sm"><code>Option+S</code> for push-to-talk. Every global shortcut works with the Option key.</p>
                 </div>
             </div>
         </section>
@@ -338,7 +338,7 @@
                         <div class="w-10 h-10 bg-signal text-black font-display font-bold flex items-center justify-center shrink-0">3</div>
                         <div class="min-w-0 flex-1">
                             <h4 class="font-display text-chrome text-lg mb-2">Bypass Gatekeeper (important!)</h4>
-                            <p class="text-gray-400 text-sm mb-3">AudioBash isn't yet signed with an Apple Developer certificate (code signing infrastructure is ready, pending activation). Bypass Gatekeeper on first launch:</p>
+                            <p class="text-gray-400 text-sm mb-3">AudioBash isn't code-signed yet. The signing infrastructure is in the repo and signed builds are planned; until then, bypass Gatekeeper on first launch:</p>
 
                             <div class="bg-void border border-signal/30 p-4 mb-3">
                                 <p class="text-signal font-display text-sm mb-2">Option A: Right-click method (easiest)</p>
@@ -448,12 +448,12 @@
                         <p class="text-gray-500 mt-1">Cycle layouts</p>
                     </div>
                     <div class="text-center">
-                        <code class="text-apple">Cmd+T</code>
-                        <p class="text-gray-500 mt-1">New tab</p>
+                        <code class="text-apple">Option+1-4</code>
+                        <p class="text-gray-500 mt-1">Switch tab</p>
                     </div>
                     <div class="text-center">
-                        <code class="text-apple">Cmd+W</code>
-                        <p class="text-gray-500 mt-1">Close tab</p>
+                        <code class="text-apple">Option+W</code>
+                        <p class="text-gray-500 mt-1">Close pane</p>
                     </div>
                 </div>
             </div>
@@ -495,7 +495,7 @@
                     <ul class="text-gray-400 text-sm space-y-2">
                         <li>• Push-to-talk with global hotkey</li>
                         <li>• ElevenLabs Scribe v2 real-time (~150ms)</li>
-                        <li>• Multiple AI providers: Gemini, ElevenLabs, local Whisper</li>
+                        <li>• Multiple AI providers: Gemini, ElevenLabs, and local Whisper or Parakeet (offline)</li>
                         <li>• Local Whisper for offline transcription (no API key)</li>
                         <li>• Raw mode (verbatim) or Agent mode (AI interprets intent)</li>
                         <li>• Custom vocabulary for technical terms</li>
@@ -537,9 +537,10 @@
                     <ul class="text-gray-400 text-sm space-y-2">
                         <li>• CLI notification chimes (approval prompts, etc.)</li>
                         <li>• System tray / menu bar integration</li>
-                        <li>• 5 themes: Void, Cyberpunk, Matrix, Amber, Ice</li>
+                        <li>• 5 themes: Void, Hacker, Amber, Midnight, Solarized</li>
                         <li>• CRT scanline effect (optional)</li>
                         <li>• Multi-terminal panes with 5 layout presets</li>
+                        <li>• Customizable pane colors with activity fade (8-color palette)</li>
                     </ul>
                 </div>
             </div>
@@ -582,7 +583,7 @@
                         <span class="px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-mono shrink-0">ALL</span>
                         <div>
                             <h4 class="text-chrome text-sm mb-1">Long recordings may delay</h4>
-                            <p class="text-gray-500 text-xs">Recordings over 30 seconds may take longer to transcribe. Keep recordings short for best experience.</p>
+                            <p class="text-gray-500 text-xs">Recordings more than 30 seconds may take longer to transcribe. Keep recordings short for best experience.</p>
                         </div>
                     </div>
                 </div>
