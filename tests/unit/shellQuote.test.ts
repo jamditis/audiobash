@@ -73,8 +73,25 @@ describe('buildCdCommand', () => {
       expect(command).toBe('cd /d "C:\\Users\\Joe"');
     });
 
-    it('rejects paths with shell metacharacters (no safe inline quoting)', () => {
-      for (const dir of ['C:\\a&b', 'C:\\a|b', 'C:\\a>b', 'C:\\a^b', "C:\\a'b", 'C:\\a%b%']) {
+    it('allows characters that are literal inside double quotes (e.g. Program Files (x86))', () => {
+      // ( ) & $ ^ ; ' are command metacharacters only OUTSIDE quotes; inside cd /d "..." they are
+      // literal and appear in real Windows paths, so they must not be rejected.
+      for (const dir of [
+        'C:\\Program Files (x86)\\App',
+        'C:\\Rock & Roll',
+        'C:\\$Recycle.Bin',
+        'C:\\a^b',
+        "C:\\a'b",
+      ]) {
+        const { command, error } = buildCdCommand('cmd.exe', dir);
+        expect(error).toBeUndefined();
+        expect(command).toBe(`cd /d "${dir}"`);
+      }
+    });
+
+    it('rejects characters that stay dangerous inside double quotes', () => {
+      // % (env expansion), ! (delayed expansion), a literal quote (breaks out), CR/LF (ends the line).
+      for (const dir of ['C:\\a%TEMP%b', 'C:\\a!b!', 'C:\\a"b', 'C:\\a\r\nb']) {
         const { command, error } = buildCdCommand('cmd.exe', dir);
         expect(command).toBeUndefined();
         expect(error).toMatch(/unsupported by cmd\.exe/);

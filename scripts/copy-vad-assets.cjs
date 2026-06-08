@@ -32,11 +32,9 @@ for (const [src, name] of assets) {
     missing++;
     continue;
   }
-  // Cheap idempotency: skip the copy if a same-size file is already in place.
-  if (fs.existsSync(to) && fs.statSync(to).size === fs.statSync(from).size) {
-    copied++;
-    continue;
-  }
+  // Always overwrite so public/vad is guaranteed to match the installed package versions. A
+  // size-only check could silently keep a stale or corrupted asset whose size happened to match,
+  // and these are security-sensitive runtime binaries, so a few small copies per build is cheap.
   fs.copyFileSync(from, to);
   copied++;
 }

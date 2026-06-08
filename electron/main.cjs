@@ -203,7 +203,11 @@ function createWindow() {
     try {
       const { protocol } = new URL(url);
       if (protocol === 'http:' || protocol === 'https:') {
-        shell.openExternal(url);
+        // openExternal returns a Promise; an unhandled rejection would surface as a noisy
+        // main-process warning, so log failures instead of letting them escape.
+        shell.openExternal(url).catch((openErr) => {
+          appLog.warn('Failed to open external URL', { error: openErr.message });
+        });
       } else {
         appLog.warn('Blocked window-open for non-http(s) scheme', { protocol });
       }
@@ -1082,8 +1086,14 @@ function setupIPC() {
   // If secure storage is available, transparently migrate a legacy plaintext key file to the
   // encrypted store and delete the plaintext copy so secrets don't linger on disk.
   function migratePlaintextKey(provider, key, plainPath) {
+    if (!key) {
+      return;
+    }
+    // Cache the migrated key so the rest of this session reuses it instead of re-reading disk
+    // on every get-api-key / getApiKeyInternal call (the latter is on the transcription hot path).
+    apiKeyMemoryCache[provider] = key;
     try {
-      if (key && safeStorage.isEncryptionAvailable()) {
+      if (safeStorage.isEncryptionAvailable()) {
         const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
         fs.writeFileSync(encryptedPath, safeStorage.encryptString(key));
         fs.unlinkSync(plainPath);
@@ -1110,8 +1120,12 @@ function setupIPC() {
       if (fs.existsSync(encryptedPath)) {
         try {
           const encrypted = fs.readFileSync(encryptedPath);
-          const decrypted = safeStorage.decryptString(encrypted);
-          return decrypted.trim();
+          const decrypted = safeStorage.decryptString(encrypted).trim();
+          // Cache so subsequent calls this session skip the synchronous read + decrypt.
+          if (decrypted) {
+            apiKeyMemoryCache[provider] = decrypted;
+          }
+          return decrypted;
         } catch (decryptErr) {
           console.error(`[AudioBash] Failed to decrypt ${provider} API key:`, decryptErr);
           // Fall through to try plain text
@@ -1220,8 +1234,12 @@ function setupIPC() {
       if (fs.existsSync(encryptedPath)) {
         try {
           const encrypted = fs.readFileSync(encryptedPath);
-          const decrypted = safeStorage.decryptString(encrypted);
-          return decrypted.trim();
+          const decrypted = safeStorage.decryptString(encrypted).trim();
+          // Cache so subsequent calls this session skip the synchronous read + decrypt.
+          if (decrypted) {
+            apiKeyMemoryCache[provider] = decrypted;
+          }
+          return decrypted;
         } catch (decryptErr) {
           console.error(`[AudioBash] Failed to decrypt ${provider} API key:`, decryptErr);
           // Fall through to try plain text

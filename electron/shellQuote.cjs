@@ -25,10 +25,13 @@ function buildCdCommand(shell, dir) {
     return { command: `Set-Location -LiteralPath '${dir.replace(/'/g, "''")}'` };
   }
 
-  // cmd.exe has no inline quoting that neutralizes & | < > ^, so there is no safe way to embed an
-  // arbitrary path. Reject paths containing shell metacharacters before interpolating.
+  // cmd.exe: wrap the path in double quotes (cd /d "..."). Inside double quotes, command
+  // metacharacters (& | < > ^ ; ( ) $ `) are literal, so paths like "C:\Program Files (x86)\App"
+  // are safe. The characters that remain dangerous inside quotes are: % (environment expansion),
+  // ! (delayed expansion), a literal double quote (breaks out of the quoting), and CR/LF (would
+  // terminate the command line). Reject only those.
   if (name === 'cmd' || name === 'cmd.exe') {
-    if (/["'`$;&|<>^%!()]/.test(dir)) {
+    if (/["%!\r\n]/.test(dir)) {
       return { error: 'Directory path contains characters unsupported by cmd.exe' };
     }
     return { command: `cd /d "${dir}"` };

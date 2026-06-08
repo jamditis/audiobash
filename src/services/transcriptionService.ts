@@ -291,7 +291,7 @@ export class TranscriptionService {
     if (m.includes('rate limit') || m.includes('429') || m.includes('quota') || m.includes('resource_exhausted')) {
       return new TranscriptionError(msg, provider, 'RATE_LIMIT');
     }
-    if (m.includes('invalid') && m.includes('key') || m.includes('401') || m.includes('403')) {
+    if ((m.includes('invalid') && m.includes('key')) || m.includes('401') || m.includes('403')) {
       return new TranscriptionError(msg, provider, 'INVALID_API_KEY');
     }
     if (m.includes('network') || m.includes('fetch') || m.includes('econn') || m.includes('etimedout')) {
