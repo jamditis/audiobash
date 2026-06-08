@@ -9,22 +9,30 @@ import { join } from 'path';
 
 const rootDir = join(__dirname, '..');
 const mainProcessCode = readFileSync(join(rootDir, 'electron', 'main.cjs'), 'utf8');
+// Shell selection lives in shellQuote.cjs (extracted for unit testing); behavioral coverage is in
+// tests/unit/shellQuote.test.ts. These text assertions guard the platform branches structurally.
+const shellQuoteCode = readFileSync(join(rootDir, 'electron', 'shellQuote.cjs'), 'utf8');
 
 describe('shell detection', () => {
   it('uses platform-appropriate shell', () => {
     // Check that the code handles both Windows and Unix shells
-    expect(mainProcessCode).toContain("process.platform === 'win32'");
-    expect(mainProcessCode).toContain("'powershell.exe'");
-    expect(mainProcessCode).toContain("process.env.SHELL || 'bash'");
+    expect(shellQuoteCode).toContain("process.platform === 'win32'");
+    expect(shellQuoteCode).toContain("'powershell.exe'");
+    expect(shellQuoteCode).toContain("process.env.SHELL || 'bash'");
   });
 
   it('selects correct shell per platform', () => {
-    // The ternary should select PowerShell for Windows, $SHELL for others
-    const shellLine = mainProcessCode.match(/const shell = .+/);
+    // getDefaultShell() selects PowerShell for Windows, $SHELL for others
+    const shellLine = shellQuoteCode.match(/return process\.platform === 'win32'.+/);
     expect(shellLine).toBeTruthy();
     expect(shellLine![0]).toContain("win32");
     expect(shellLine![0]).toContain("powershell");
     expect(shellLine![0]).toContain("SHELL");
+  });
+
+  it('main process delegates shell selection to getDefaultShell', () => {
+    expect(mainProcessCode).toContain("require('./shellQuote.cjs')");
+    expect(mainProcessCode).toContain("getDefaultShell()");
   });
 });
 

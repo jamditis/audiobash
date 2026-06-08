@@ -1190,7 +1190,7 @@ const { start, pause, listening } = useVoiceActivityDetection(
 ### AudioBash Files
 - `/home/user/audiobash/electron/whisperService.cjs` - Current implementation
 - `/home/user/audiobash/src/services/transcriptionService.ts` - Multi-provider service
-- `/home/user/audiobash/docs/VOICE_DICTATION_RESEARCH.md` - Prior research
+- `/home/user/audiobash/dev-docs/VOICE_DICTATION_RESEARCH.md` - Prior research
 
 ---
 
