@@ -798,7 +798,7 @@ cd audiobash</code></pre>
                                 <li><strong class="text-accent">Gemini 2.5 Flash</strong> - Latest Gemini with audio support</li>
                                 <li><strong class="text-ice">ElevenLabs Scribe</strong> - High-quality batch speech-to-text</li>
                                 <li><strong class="text-ice">ElevenLabs Scribe v2</strong> - Real-time WebSocket streaming (~150ms latency)</li>
-                                <li><strong>Parakeet (local)</strong> - Free offline transcription, requires an NVIDIA GPU</li>
+                                <li><strong>Parakeet (local)</strong> - Offline transcription on an NVIDIA GPU. Advanced: it sends audio to a separate Parakeet server you run yourself at <code>localhost:8003</code>. Unlike Whisper, no server is bundled, so you must start one before selecting this provider.</li>
                                 <li><strong>Local Whisper</strong> - Offline transcription via whisper.cpp (small.en, 466 MB), no API key required</li>
                             </ul>
                             <p class="text-gray-500 text-sm mt-3">Click the model name in the voice overlay to cycle between providers without opening settings.</p>
