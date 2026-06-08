@@ -97,3 +97,33 @@ describe('docs/releases.html version freezing', () => {
     }
   });
 });
+
+// Regression guard for the recurring "hardened transcription" overstatement. The v3.3.0 security
+// work moved the batch (request/response) cloud transcription path into the main process, but the
+// real-time ElevenLabs path still builds a browser WebSocket with xi-api-key in the renderer
+// (src/services/elevenLabsRealtimeService.ts). So an unqualified "cloud transcription now runs in
+// the main process" claim is false for that path. Every v3.3.0 doc page must scope the claim to
+// batch. This was flagged three separate times before it stuck.
+describe('docs do not overstate the transcription hardening', () => {
+  // Matches the sentence-level claim that transcription requests now run/moved in(to) the main
+  // process. Each occurrence must be qualified with "batch" in its immediate lead-in.
+  const claimRe = /transcription requests (?:now run|moved) (?:in|into) the main process/g;
+
+  for (const name of ['releases.html', 'index.html', 'latest.html']) {
+    it(`scopes the main-process transcription claim to batch in ${name}`, () => {
+      const html = readFileSync(join(__dirname, '..', '..', 'docs', name), 'utf8').toLowerCase();
+      const matches = [...html.matchAll(claimRe)];
+      expect(
+        matches.length,
+        `expected at least one main-process transcription claim in ${name}`,
+      ).toBeGreaterThan(0);
+      for (const m of matches) {
+        const leadIn = html.slice(Math.max(0, m.index - 30), m.index);
+        expect(
+          leadIn,
+          `unqualified transcription claim in ${name}: "...${html.slice(Math.max(0, m.index - 30), m.index + 50)}..."`,
+        ).toContain('batch');
+      }
+    });
+  }
+});
