@@ -261,7 +261,7 @@ claude /resume docs-update
 - ARM64 build optimization
 
 **Key files:**
-- `/home/user/audiobash/docs/MACOS_BUILD.md`
+- `/home/user/audiobash/dev-docs/MACOS_BUILD.md`
 - `/home/user/audiobash/electron/main.cjs` - Shell detection
 - `/home/user/audiobash/.github/workflows/build.yml` - macOS CI
 

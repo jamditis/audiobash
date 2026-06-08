@@ -1,17 +1,6 @@
 # AudioBash - Voice-controlled terminal for Claude Code
 
 
-## GitHub Actions suspended (account-wide)
-
-GitHub Actions are disabled on the entire `jamditis` GitHub account until further notice. This means:
-- **No CI/CD pipelines will run** — builds, tests, deploys all fail silently
-- **GitHub Pages deploys won't work** — even "legacy" static deploys that used Actions under the hood
-- **No automated workflows** — PR checks, scheduled jobs, release automation are all dead
-
-**For any project that previously deployed via GitHub Actions or GitHub Pages, you must use an alternative** (manual deploy, Cloudflare Pages, Firebase Hosting, direct FTP, etc.). Do not create or rely on `.github/workflows/` files.
-
----
-
 ## 📖 Documentation & websites (2026-02-14)
 
 AudioBash has a custom domain and web documentation:
@@ -109,7 +98,7 @@ Code signing infrastructure is in place, pending Apple Developer Program activat
 - `SKIP_NOTARIZE=true` — Skip notarization for local dev builds
 
 ### Relevant files for macOS
-- `docs/MACOS_BUILD.md` - Full build guide
+- `dev-docs/MACOS_BUILD.md` - Full build guide
 - `.github/workflows/build.yml` - CI/CD for multi-platform builds
 - `tests/` - 721 tests for cross-platform compatibility
 
