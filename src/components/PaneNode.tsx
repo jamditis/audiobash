@@ -52,8 +52,8 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
   }
 
   const isHorizontal = node.direction === 'horizontal';
-  const firstSize = `${node.ratio * 100}%`;
-  const secondSize = `${(1 - node.ratio) * 100}%`;
+  const firstFlex = `${node.ratio} 1 0`;
+  const secondFlex = `${1 - node.ratio} 1 0`;
 
   const handleResize = (delta: number) => {
     if (!containerRef.current) return;
@@ -67,7 +67,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
       ref={containerRef}
       className={`h-full w-full flex ${isHorizontal ? 'flex-col' : 'flex-row'}`}
     >
-      <div style={{ [isHorizontal ? 'height' : 'width']: firstSize }} className="overflow-hidden">
+      <div style={{ flex: firstFlex }} className="min-w-0 min-h-0 overflow-hidden">
         <PaneNodeComponent
           node={node.children[0]}
           focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}
@@ -81,7 +81,7 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
         onResize={handleResize}
         onEqualize={() => onEqualize(node.id)}
       />
-      <div style={{ [isHorizontal ? 'height' : 'width']: secondSize }} className="overflow-hidden">
+      <div style={{ flex: secondFlex }} className="min-w-0 min-h-0 overflow-hidden">
         <PaneNodeComponent
           node={node.children[1]}
           focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}

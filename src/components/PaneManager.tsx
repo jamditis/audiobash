@@ -62,6 +62,7 @@ const PaneManager = forwardRef<PaneManagerHandle, PaneManagerProps>(({
     const newTabId = await onCreateTerminal();
     terminalPoolRef.current.push(newTabId);
     setPaneRoot(prev => splitPane(prev, focusedPaneId, direction, newTabId));
+    setZoomedPaneId(null);
   }, [focusedPaneId, paneRoot, onCreateTerminal]);
 
   const handleClose = useCallback((paneId: string) => {
