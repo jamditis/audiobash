@@ -164,7 +164,8 @@
       ],
       "artifactName": "${productName}-${version}.${ext}",
       "icon": "audiobash-logo.png",
-      "category": "Development"
+      "category": "Development",
+      "maintainer": "Joe Amditis <amditisj@montclair.edu>"
     }
   }
 }

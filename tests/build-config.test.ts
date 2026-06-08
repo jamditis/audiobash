@@ -114,6 +114,21 @@ describe('Linux build configuration', () => {
     expect(buildConfig.linux.target).toContain('AppImage');
     expect(buildConfig.linux.target).toContain('deb');
   });
+
+  // Regression guard for the v3.3.0 tag build: electron-builder's .deb (fpm) target fails the whole
+  // build with "Please specify author 'email' ... required to set Linux .deb package maintainer"
+  // unless package.json author is an object with an email, or build.linux.maintainer is set.
+  // author was a bare "Joe Amditis" string, so the deb step failed in CI and blocked the release job.
+  it('provides a maintainer email for the deb target', () => {
+    const targets = buildConfig.linux.target ?? [];
+    if (!targets.includes('deb')) return;
+    const author = packageJson.author;
+    const authorEmail = author && typeof author === 'object' ? author.email : undefined;
+    const source = buildConfig.linux.maintainer || authorEmail || '';
+    expect(source, 'deb target needs author.email or build.linux.maintainer').toMatch(
+      /[^\s@]+@[^\s@]+\.[^\s@]+/,
+    );
+  });
 });
 
 describe('npm scripts', () => {
