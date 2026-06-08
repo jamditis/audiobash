@@ -3,11 +3,12 @@
  * Supports multiple providers: Gemini, OpenAI, Claude, and local Parakeet
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 import { blobToBase64 } from "../utils/audioUtils";
 import { transcriptionLog as log } from "../utils/logger";
+
+// Cloud transcription runs in the Electron main process via IPC. The renderer never holds a
+// browser SDK client (no `dangerouslyAllowBrowser`) and never sends API keys over the network
+// itself — it forwards audio to main, which owns the keys and the provider SDKs.
 
 /**
  * Type guard to check if an unknown error has a message property
@@ -260,10 +261,10 @@ Convert the following speech to a ${shell} command:`;
 const AGENT_PROMPT = buildAgentPrompt();
 
 export class TranscriptionService {
-  private genAI: GoogleGenerativeAI | null = null;
-  private openai: OpenAI | null = null;
-  private anthropic: Anthropic | null = null;
-
+  // Tracks which providers have a key configured (for the model picker and config checks).
+  // The actual cloud calls happen in the main process, so the renderer does not construct
+  // any provider SDK client. The ElevenLabs key is the one exception held in the renderer
+  // because real-time streaming uses a raw WebSocket from the renderer (see getElevenLabsApiKey).
   private apiKeys: Record<string, string> = {
     gemini: '',
     openai: '',
@@ -275,25 +276,53 @@ export class TranscriptionService {
 
   public setApiKey(key: string, provider: 'gemini' | 'openai' | 'anthropic' | 'elevenlabs' = 'gemini') {
     this.apiKeys[provider] = key;
+  }
 
-    if (provider === 'gemini' && key) {
-      this.genAI = new GoogleGenerativeAI(key);
-    } else if (provider === 'gemini') {
-      this.genAI = null;
+  /**
+   * Map an error string returned by a main-process transcription handler back into a
+   * TranscriptionError with a code, so the UI can show a friendly, provider-specific message.
+   */
+  private mapIpcError(message: string | undefined, provider: string): TranscriptionError {
+    const msg = message || 'Transcription failed';
+    const m = msg.toLowerCase();
+    if (m.includes('no ') && m.includes('api key')) {
+      return new TranscriptionError(msg, provider, 'NO_API_KEY');
     }
+    if (m.includes('rate limit') || m.includes('429') || m.includes('quota') || m.includes('resource_exhausted')) {
+      return new TranscriptionError(msg, provider, 'RATE_LIMIT');
+    }
+    if (m.includes('invalid') && m.includes('key') || m.includes('401') || m.includes('403')) {
+      return new TranscriptionError(msg, provider, 'INVALID_API_KEY');
+    }
+    if (m.includes('network') || m.includes('fetch') || m.includes('econn') || m.includes('etimedout')) {
+      return new TranscriptionError(msg, provider, 'NETWORK_ERROR');
+    }
+    if (m.includes('500') || m.includes('502') || m.includes('503') || m.includes('server error')) {
+      return new TranscriptionError(msg, provider, 'SERVER_ERROR');
+    }
+    return new TranscriptionError(msg, provider, 'UNKNOWN');
+  }
 
-    if (provider === 'openai' && key) {
-      this.openai = new OpenAI({ apiKey: key, dangerouslyAllowBrowser: true });
-    } else if (provider === 'openai') {
-      this.openai = null;
-    }
+  /**
+   * Validate a recorded audio blob before transcription. Guards against empty recordings and
+   * oversized payloads (which would be rejected by the main process / provider anyway), and
+   * checks the MIME type is an audio container we support.
+   */
+  private validateAudioBlob(blob: Blob, provider: string): void {
+    const MAX_AUDIO_BYTES = 25 * 1024 * 1024; // 25MB, matches the main-process limit
+    const ALLOWED_PREFIXES = ['audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/mpeg'];
 
-    if (provider === 'anthropic' && key) {
-      this.anthropic = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
-    } else if (provider === 'anthropic') {
-      this.anthropic = null;
+    if (!blob || blob.size === 0) {
+      throw new TranscriptionError('Audio recording is empty', provider, 'AUDIO_TOO_SHORT');
     }
-    // ElevenLabs doesn't need a client initialization, we use fetch directly
+    if (blob.size > MAX_AUDIO_BYTES) {
+      throw new TranscriptionError('Audio recording is too large', provider, 'AUDIO_TOO_LONG');
+    }
+    // MediaRecorder reports types like "audio/webm;codecs=opus"; match on the prefix. Some
+    // browsers report an empty type for short blobs, which we allow through to the provider.
+    if (blob.type && !ALLOWED_PREFIXES.some(prefix => blob.type.startsWith(prefix))) {
+      throw new TranscriptionError(`Unsupported audio format: ${blob.type}`, provider, 'UNSUPPORTED_FORMAT');
+    }
   }
 
   public getModelInfo(modelId: ModelId): ModelInfo | undefined {
@@ -376,6 +405,10 @@ export class TranscriptionService {
       throw new TranscriptionError(`Unknown model: ${modelId}`, 'unknown', 'UNKNOWN_MODEL', { modelId });
     }
 
+    // Validate the audio blob before doing any work or sending it across IPC. The main-process
+    // handlers re-validate the base64 payload, but checking here gives a faster, friendlier error.
+    this.validateAudioBlob(audioBlob, modelInfo.provider);
+
     log.info('Starting transcription', {
       model: modelId,
       provider: modelInfo.provider,
@@ -452,12 +485,8 @@ export class TranscriptionService {
     modelId: string,
     durationMs: number
   ): Promise<TranscribeResult> {
-    if (!this.genAI) {
-      throw new TranscriptionError(
-        "No Gemini API key configured",
-        "Gemini",
-        "NO_API_KEY"
-      );
+    if (!this.hasApiKey('gemini')) {
+      throw new TranscriptionError("No Gemini API key configured", "Gemini", "NO_API_KEY");
     }
 
     try {
@@ -472,24 +501,14 @@ export class TranscriptionService {
         ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
         : `Transcribe this audio exactly as spoken. If the audio contains only silence or background noise, return an empty string.${vocabularySection}${rawInstructions ? `\n\nADDITIONAL INSTRUCTIONS:\n${rawInstructions}` : ''}`;
 
-      // Map model ID to actual Gemini model name (stable versions only)
-      const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
-      const model = this.genAI.getGenerativeModel({ model: geminiModel });
+      log.debug('Sending request to Gemini (via main process)', { modelId, mode });
 
-      log.debug('Sending request to Gemini', { model: geminiModel, mode });
+      const result = await window.electron.transcribeWithGemini({ audioBase64: base64Audio, prompt, modelId });
+      if (!result.success) {
+        throw this.mapIpcError(result.error, 'Gemini');
+      }
 
-      const result = await model.generateContent([
-        { text: prompt },
-        {
-          inlineData: {
-            mimeType: 'audio/webm',
-            data: base64Audio
-          }
-        }
-      ]);
-
-      const response = await result.response;
-      const text = response.text()?.trim() || "";
+      const text = (result.text || "").trim();
 
       // Calculate cost (32 tokens/sec, ~$0.10 per 1M tokens for flash)
       const seconds = durationMs / 1000;
@@ -498,23 +517,8 @@ export class TranscriptionService {
 
       return { text, cost: `$${cost.toFixed(6)}` };
     } catch (error: unknown) {
-      // Parse Gemini-specific errors
-      const message = getErrorMessage(error);
-
-      if (message.includes('API key')) {
-        throw new TranscriptionError(message, 'Gemini', 'INVALID_API_KEY', error);
-      }
-      if (message.includes('quota') || message.includes('429')) {
-        throw new TranscriptionError(message, 'Gemini', 'RATE_LIMIT', error);
-      }
-      if (message.includes('network') || message.includes('fetch')) {
-        throw new TranscriptionError(message, 'Gemini', 'NETWORK_ERROR', error);
-      }
-      if (message.includes('500') || message.includes('503')) {
-        throw new TranscriptionError(message, 'Gemini', 'SERVER_ERROR', error);
-      }
-
-      throw new TranscriptionError(message, 'Gemini', 'UNKNOWN', error);
+      if (error instanceof TranscriptionError) throw error;
+      throw new TranscriptionError(getErrorMessage(error), 'Gemini', 'UNKNOWN', error);
     }
   }
 
@@ -524,35 +528,29 @@ export class TranscriptionService {
     modelId: ModelId,
     durationMs: number
   ): Promise<TranscribeResult> {
-    if (!this.openai) {
-      throw new Error("No OpenAI API key configured.");
+    if (!this.hasApiKey('openai')) {
+      throw new TranscriptionError("No OpenAI API key configured.", "OpenAI", "NO_API_KEY");
     }
 
-    // First, use Whisper for transcription
-    const file = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+    const base64Audio = await blobToBase64(audioBlob);
 
-    const transcription = await this.openai.audio.transcriptions.create({
-      file: file,
-      model: 'whisper-1',
-    });
+    // In agent mode with GPT-4, main runs Whisper then GPT-4 with this prompt as the system
+    // message. For raw mode (or non-gpt4 models) we send no prompt so main only runs Whisper.
+    const prompt = (mode === 'agent' && modelId === 'openai-gpt4')
+      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+      : '';
 
-    let text = transcription.text?.trim() || "";
+    const result = await window.electron.transcribeWithOpenAI({ audioBase64: base64Audio, prompt, modelId });
+    if (!result.success) {
+      throw this.mapIpcError(result.error, 'OpenAI');
+    }
 
-    // Apply vocabulary corrections to raw transcription
-    text = this.applyVocabularyCorrections(text);
+    let text = (result.text || "").trim();
 
-    // If agent mode and using GPT-4, process the transcription
-    if (mode === 'agent' && modelId === 'openai-gpt4' && text) {
-      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined, this.customInstructions);
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
-        messages: [
-          { role: 'system', content: contextAwarePrompt },
-          { role: 'user', content: text }
-        ],
-        max_tokens: 200,
-      });
-      text = completion.choices[0]?.message?.content?.trim() || text;
+    // Apply vocabulary corrections to raw transcriptions. In agent mode the vocabulary is
+    // already supplied to the model inside the prompt, so don't double-apply it to a command.
+    if (mode !== 'agent') {
+      text = this.applyVocabularyCorrections(text);
     }
 
     // Calculate cost
@@ -573,46 +571,33 @@ export class TranscriptionService {
     modelId: ModelId,
     durationMs: number
   ): Promise<TranscribeResult> {
-    // Claude doesn't support audio directly, so we need OpenAI Whisper for transcription
-    if (!this.openai) {
-      throw new Error("OpenAI API key required for audio transcription with Claude.");
+    // Claude doesn't support audio directly, so main uses OpenAI Whisper first, then Claude.
+    if (!this.hasApiKey('openai')) {
+      throw new TranscriptionError("OpenAI API key required for audio transcription with Claude.", "OpenAI", "NO_API_KEY");
     }
-    if (!this.anthropic) {
-      throw new Error("No Anthropic API key configured.");
+    if (!this.hasApiKey('anthropic')) {
+      throw new TranscriptionError("No Anthropic API key configured.", "Anthropic", "NO_API_KEY");
     }
 
-    // First, use Whisper for transcription
-    const file = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+    const base64Audio = await blobToBase64(audioBlob);
 
-    const transcription = await this.openai.audio.transcriptions.create({
-      file: file,
-      model: 'whisper-1',
-    });
+    // In agent mode, main passes this prompt to Claude to convert the transcript to a command.
+    // For raw mode we send no prompt so main returns the plain Whisper transcript.
+    const prompt = (mode === 'agent')
+      ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
+      : '';
 
-    let text = transcription.text?.trim() || "";
+    const result = await window.electron.transcribeWithAnthropic({ audioBase64: base64Audio, prompt, modelId });
+    if (!result.success) {
+      throw this.mapIpcError(result.error, 'Claude');
+    }
 
-    // Apply vocabulary corrections to raw transcription
-    text = this.applyVocabularyCorrections(text);
+    let text = (result.text || "").trim();
 
-    // Use Claude for agent mode conversion
-    if (mode === 'agent' && text) {
-      const claudeModel = modelId === 'claude-haiku'
-        ? 'claude-3-haiku-20240307'
-        : 'claude-sonnet-4-20250514';
-
-      const contextAwarePrompt = buildAgentPrompt(this.terminalContext || undefined, this.customInstructions);
-      const message = await this.anthropic.messages.create({
-        model: claudeModel,
-        max_tokens: 200,
-        messages: [
-          { role: 'user', content: `${contextAwarePrompt}\n\n${text}` }
-        ],
-      });
-
-      const content = message.content[0];
-      if (content.type === 'text') {
-        text = content.text.trim();
-      }
+    // Apply vocabulary corrections only to raw transcripts; in agent mode the vocabulary is
+    // already part of the prompt sent to Claude.
+    if (mode !== 'agent') {
+      text = this.applyVocabularyCorrections(text);
     }
 
     // Calculate cost
@@ -630,31 +615,17 @@ export class TranscriptionService {
     audioBlob: Blob,
     durationMs: number
   ): Promise<TranscribeResult> {
-    const apiKey = this.apiKeys.elevenlabs;
-    if (!apiKey) {
-      throw new Error("No ElevenLabs API key configured.");
+    if (!this.hasApiKey('elevenlabs')) {
+      throw new TranscriptionError("No ElevenLabs API key configured.", "ElevenLabs", "NO_API_KEY");
     }
 
-    // ElevenLabs Speech-to-Text API
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'audio.webm');
-    formData.append('model_id', 'scribe_v1');
-
-    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+    const base64Audio = await blobToBase64(audioBlob);
+    const result = await window.electron.transcribeWithElevenLabs({ audioBase64: base64Audio });
+    if (!result.success) {
+      throw this.mapIpcError(result.error, 'ElevenLabs');
     }
 
-    const data = await response.json();
-    const text = data.text?.trim() || "";
+    const text = (result.text || "").trim();
 
     // ElevenLabs Scribe pricing: ~$0.40 per hour = $0.0067 per minute
     const minutes = durationMs / 60000;

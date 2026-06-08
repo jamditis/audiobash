@@ -94,6 +94,19 @@ export interface PaneSession {
   timestamp: number;
 }
 
+// Cloud transcription IPC request/response shapes
+export interface TranscribeIpcRequest {
+  audioBase64: string;
+  prompt?: string;
+  modelId: string;
+}
+
+export interface TranscribeIpcResult {
+  success: boolean;
+  text?: string;
+  error?: string;
+}
+
 export interface ElectronAPI {
   // Window controls
   minimize: () => void;
@@ -138,6 +151,12 @@ export interface ElectronAPI {
   // API key management
   getApiKey: (provider?: ApiProvider) => Promise<string>;
   setApiKey: (key: string, provider?: ApiProvider) => Promise<boolean>;
+
+  // Cloud transcription (runs in main process so API keys never reach a browser SDK client)
+  transcribeWithGemini: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
+  transcribeWithOpenAI: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
+  transcribeWithAnthropic: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
+  transcribeWithElevenLabs: (data: { audioBase64: string }) => Promise<TranscribeIpcResult>;
 
   // Directory management
   getDirectories: () => Promise<DirectoriesResult>;

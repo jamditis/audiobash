@@ -27,6 +27,11 @@ export function useVAD(options: UseVADOptions) {
       setVadError(null);
 
       const vad = await MicVAD.new({
+        // Load the model, audio worklet, and ONNX Runtime WASM from the app's own bundled
+        // copies (public/vad, populated by scripts/copy-vad-assets.cjs) instead of letting the
+        // library fetch them from a remote CDN at runtime. Removes a runtime supply-chain vector.
+        baseAssetPath: './vad/',
+        onnxWASMBasePath: './vad/',
         positiveSpeechThreshold: 0.5,
         negativeSpeechThreshold: 0.35,
         redemptionMs: 300,

@@ -7,6 +7,9 @@ dist-electron/
 *.exe
 *.blockmap
 
+# VAD runtime assets copied from node_modules at build time (scripts/copy-vad-assets.cjs)
+public/vad/
+
 # Local env files
 .env
 .env.local
@@ -37,6 +40,9 @@ test-output.txt
 
 # Security analysis (local only)
 security-lab/
+
+# Local review artifacts (Codex review dumps, audit findings)
+.audit/
 
 # Claude local settings
 .claude/settings.local.json

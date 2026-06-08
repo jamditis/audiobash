@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage, screen, session, shell } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -65,9 +65,13 @@ const store = {
 };
 store.load();
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
+const ptyShells = new Map(); // Map of tabId -> shell path the PTY was spawned with
 const terminalOutputBuffers = new Map(); // Map of tabId -> recent output (last ~2000 chars)
 const terminalCwds = new Map(); // Map of tabId -> current working directory
 const terminalReady = new Set(); // Set of tabIds whose renderer xterm is mounted and listening
+
+// Shell selection + safe cd-command quoting (extracted so it can be unit-tested in isolation).
+const { getDefaultShell, buildCdCommand } = require('./shellQuote.cjs');
 let mainWindow = null;
 let tray = null;
 const MAX_OUTPUT_BUFFER = 2000; // Keep last 2000 characters of output
@@ -177,6 +181,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
     icon: path.join(__dirname, '../audiobash-logo.ico'),
   });
@@ -188,6 +193,32 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
+
+  // Security: never let a new BrowserWindow open inside the app (it would inherit the app's
+  // preload and privileges). Legitimate external links (help links in Settings, the GitHub
+  // issue link in ErrorBoundary, etc.) are handed to the OS default browser via openExternal,
+  // which runs in a separate, unprivileged process. Only http/https are allowed through; any
+  // other scheme (file:, javascript:, smb:, ...) is dropped because openExternal is an RCE sink.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { protocol } = new URL(url);
+      if (protocol === 'http:' || protocol === 'https:') {
+        shell.openExternal(url);
+      } else {
+        appLog.warn('Blocked window-open for non-http(s) scheme', { protocol });
+      }
+    } catch (err) {
+      appLog.warn('Blocked window-open for unparseable URL', { error: err.message });
+    }
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+    const isDevNav = isDev && navigationUrl.startsWith('http://localhost:9527');
+    if (!navigationUrl.startsWith('file://') && !isDevNav) {
+      event.preventDefault();
+      appLog.warn('Blocked navigation attempt', { url: navigationUrl });
+    }
+  });
 
   // Debounced save of window bounds on resize and move (skip when maximized)
   const saveWindowBounds = () => {
@@ -678,7 +709,7 @@ function spawnShell(tabId) {
   }
 
   // Determine shell
-  const shell = process.platform === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash';
+  const shell = getDefaultShell();
 
   try {
     // Spawn PTY process
@@ -694,6 +725,7 @@ function spawnShell(tabId) {
 
     // Store the process and initialize buffers
     ptyProcesses.set(tabId, ptyProcess);
+    ptyShells.set(tabId, shell);
     terminalOutputBuffers.set(tabId, '');
     terminalCwds.set(tabId, os.homedir());
 
@@ -734,6 +766,7 @@ function spawnShell(tabId) {
       try {
         ptyLog.info('Shell exited', { tabId, exitCode, signal });
         ptyProcesses.delete(tabId);
+        ptyShells.delete(tabId);
         terminalOutputBuffers.delete(tabId);
         terminalCwds.delete(tabId);
         terminalReady.delete(tabId);
@@ -757,6 +790,7 @@ function killShell(tabId) {
   if (ptyProcess) {
     ptyProcess.kill();
     ptyProcesses.delete(tabId);
+    ptyShells.delete(tabId);
     terminalReady.delete(tabId);
     console.log(`[AudioBash] Killed shell for tab ${tabId}`);
     return true;
@@ -943,11 +977,23 @@ function setupIPC() {
   ipcMain.handle('cd-to-directory', async (_, { tabId, dir }) => {
     const ptyProcess = ptyProcesses.get(tabId);
     if (!ptyProcess) return { success: false, error: 'No terminal' };
+    if (typeof dir !== 'string' || !dir.trim()) return { success: false, error: 'Invalid directory' };
+    // Reject only line terminators: the command is submitted to the PTY with a trailing \r, so an
+    // embedded \r/\n would split it into a second command line. Every other character (including
+    // quotes, $, &, spaces) is made safe by single-quote shell quoting below, so legitimate
+    // directory names with those characters (common on macOS/Linux) are accepted.
+    if (/[\r\n]/.test(dir)) {
+      return { success: false, error: 'Directory path contains line breaks' };
+    }
+    if (!path.isAbsolute(dir)) return { success: false, error: 'Directory must be an absolute path' };
     if (!fs.existsSync(dir)) return { success: false, error: 'Directory does not exist' };
 
-    // Send cd command
-    const cdCommand = process.platform === 'win32' ? `cd "${dir}"` : `cd "${dir}"`;
-    ptyProcess.write(cdCommand + '\r');
+    // Quote the path for the shell this PTY was actually spawned with (recorded in ptyShells), not
+    // a guess from process.platform, so the quoting can never mismatch the running shell.
+    const shell = ptyShells.get(tabId) || getDefaultShell();
+    const { command, error } = buildCdCommand(shell, dir);
+    if (error) return { success: false, error };
+    ptyProcess.write(`${command}\r`);
     return { success: true };
   });
 
@@ -1019,8 +1065,43 @@ function setupIPC() {
     }
   });
 
-  // API key storage (supports multiple providers) with encryption
+  // API key storage (supports multiple providers) with encryption.
+  // The provider string is interpolated into the on-disk filename (api-key-<provider>.enc),
+  // so it MUST be validated against an allowlist — otherwise a compromised renderer could
+  // read/write/delete arbitrary paths via a traversal value (e.g. "../../something").
+  const API_KEY_PROVIDERS = new Set(['gemini', 'openai', 'anthropic', 'elevenlabs']);
+  function isValidProvider(provider) {
+    return typeof provider === 'string' && API_KEY_PROVIDERS.has(provider);
+  }
+
+  // In-memory key cache. Lets the main process use a key for the current session without a
+  // disk read, and lets keys work even when secure storage is unavailable (so we never have
+  // to fall back to writing plaintext to disk).
+  const apiKeyMemoryCache = {};
+
+  // If secure storage is available, transparently migrate a legacy plaintext key file to the
+  // encrypted store and delete the plaintext copy so secrets don't linger on disk.
+  function migratePlaintextKey(provider, key, plainPath) {
+    try {
+      if (key && safeStorage.isEncryptionAvailable()) {
+        const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
+        fs.writeFileSync(encryptedPath, safeStorage.encryptString(key));
+        fs.unlinkSync(plainPath);
+        console.log(`[AudioBash] Migrated plaintext ${provider} API key to encrypted storage`);
+      }
+    } catch (migrateErr) {
+      console.warn(`[AudioBash] Failed to migrate plaintext ${provider} API key:`, migrateErr);
+    }
+  }
+
   ipcMain.handle('get-api-key', async (_, provider = 'gemini') => {
+    if (!isValidProvider(provider)) {
+      ipcLog.warn('get-api-key: invalid provider', { provider: String(provider) });
+      return '';
+    }
+    if (apiKeyMemoryCache[provider]) {
+      return apiKeyMemoryCache[provider];
+    }
     try {
       const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
       const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
@@ -1037,10 +1118,10 @@ function setupIPC() {
         }
       }
 
-      // Fall back to plain text files (for migration)
+      // Fall back to plain text files (legacy migration); re-encrypt and remove immediately.
       if (fs.existsSync(plainPath)) {
         const plainKey = fs.readFileSync(plainPath, 'utf8').trim();
-        console.log(`[AudioBash] Found plain text ${provider} API key, will migrate to encrypted on next save`);
+        migratePlaintextKey(provider, plainKey, plainPath);
         return plainKey;
       }
 
@@ -1049,7 +1130,7 @@ function setupIPC() {
         const oldPath = path.join(app.getPath('userData'), 'api-key.txt');
         if (fs.existsSync(oldPath)) {
           const oldKey = fs.readFileSync(oldPath, 'utf8').trim();
-          console.log(`[AudioBash] Found legacy api-key.txt, will migrate to encrypted on next save`);
+          migratePlaintextKey(provider, oldKey, oldPath);
           return oldKey;
         }
       }
@@ -1060,6 +1141,10 @@ function setupIPC() {
   });
 
   ipcMain.handle('set-api-key', async (_, key, provider = 'gemini') => {
+    if (!isValidProvider(provider)) {
+      ipcLog.warn('set-api-key: invalid provider', { provider: String(provider) });
+      return false;
+    }
     try {
       const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
       const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
@@ -1090,9 +1175,16 @@ function setupIPC() {
           // Non-fatal, continue
         }
       } else {
-        // Fall back to plain text if encryption is not available
-        console.warn(`[AudioBash] Encryption not available, saving ${provider} API key as plain text`);
-        fs.writeFileSync(plainPath, key, 'utf8');
+        // Secure storage unavailable (e.g. Linux without a keyring): NEVER write the key to
+        // disk in plain text. Hold it in memory for this session only (see cache below).
+        ipcLog.warn('set-api-key: secure storage unavailable; key held in memory for this session only, not persisted', { provider });
+      }
+
+      // Cache in memory so the key is usable this session regardless of disk persistence.
+      if (key) {
+        apiKeyMemoryCache[provider] = key;
+      } else {
+        delete apiKeyMemoryCache[provider];
       }
 
       // Reinitialize the corresponding AI client when key changes
@@ -1113,6 +1205,13 @@ function setupIPC() {
 
   // Helper function to get API key internally (supports encrypted keys)
   async function getApiKeyInternal(provider = 'gemini') {
+    if (!isValidProvider(provider)) {
+      return '';
+    }
+    // Prefer the in-memory cache (also covers systems without secure storage).
+    if (apiKeyMemoryCache[provider]) {
+      return apiKeyMemoryCache[provider];
+    }
     try {
       const encryptedPath = path.join(app.getPath('userData'), `api-key-${provider}.enc`);
       const plainPath = path.join(app.getPath('userData'), `api-key-${provider}.txt`);
@@ -1129,16 +1228,20 @@ function setupIPC() {
         }
       }
 
-      // Fall back to plain text files (for migration)
+      // Fall back to plain text files (legacy migration); re-encrypt and remove immediately.
       if (fs.existsSync(plainPath)) {
-        return fs.readFileSync(plainPath, 'utf8').trim();
+        const plainKey = fs.readFileSync(plainPath, 'utf8').trim();
+        migratePlaintextKey(provider, plainKey, plainPath);
+        return plainKey;
       }
 
       // Fallback: check old api-key.txt for gemini (migration from very old versions)
       if (provider === 'gemini') {
         const oldPath = path.join(app.getPath('userData'), 'api-key.txt');
         if (fs.existsSync(oldPath)) {
-          return fs.readFileSync(oldPath, 'utf8').trim();
+          const oldKey = fs.readFileSync(oldPath, 'utf8').trim();
+          migratePlaintextKey(provider, oldKey, oldPath);
+          return oldKey;
         }
       }
     } catch (err) {
@@ -1649,9 +1752,29 @@ function setupIPC() {
   ipcMain.handle('capture-preview', async (_, url, cwd) => {
     const { clipboard, nativeImage, BrowserWindow: BW } = require('electron');
 
+    // Only capture web/local content. The URL is loaded into a real (offscreen) browser
+    // window, so reject schemes like javascript:/data:/vbscript: that could execute attacker
+    // payloads in that window's context.
+    const ALLOWED_CAPTURE_SCHEMES = new Set(['http:', 'https:', 'file:']);
+    if (typeof url !== 'string' || !url.trim()) {
+      return { success: false, error: 'Invalid URL' };
+    }
+    let parsedScheme;
     try {
-      // Create hidden browser window for capture
-      const captureWin = new BW({
+      parsedScheme = new URL(url).protocol;
+    } catch {
+      return { success: false, error: 'Malformed URL' };
+    }
+    if (!ALLOWED_CAPTURE_SCHEMES.has(parsedScheme)) {
+      ipcLog.warn('capture-preview: blocked disallowed URL scheme', { scheme: parsedScheme });
+      return { success: false, error: `Unsupported URL scheme: ${parsedScheme}` };
+    }
+
+    let captureWin = null;
+    try {
+      // Create hidden browser window for capture. Locked down: no preload, sandboxed, web
+      // security on, no Node — it only ever renders untrusted preview content for a screenshot.
+      captureWin = new BW({
         width: 1280,
         height: 720,
         show: false,
@@ -1659,8 +1782,13 @@ function setupIPC() {
           offscreen: true,
           nodeIntegration: false,
           contextIsolation: true,
+          sandbox: true,
+          webSecurity: true,
         },
       });
+
+      // The capture window never needs to open new windows; deny any attempt.
+      captureWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
       // Load the URL
       await captureWin.loadURL(url);
@@ -1702,12 +1830,15 @@ function setupIPC() {
       clipboard.writeImage(nativeImage.createFromBuffer(pngBuffer));
       console.log('[AudioBash] Screenshot copied to clipboard');
 
-      captureWin.close();
-
       return { success: true, path: fullPath, filename };
     } catch (err) {
       console.error('[AudioBash] Screenshot capture failed:', err);
       return { success: false, error: err.message };
+    } finally {
+      // Always destroy the capture window, even if loadURL/capture threw, so it can't leak.
+      if (captureWin && !captureWin.isDestroyed()) {
+        captureWin.destroy();
+      }
     }
   });
 
@@ -1771,6 +1902,46 @@ app.whenReady().then(async () => {
 
   loadShortcuts();
   loadDirectories();
+
+  // Enforce a strict Content-Security-Policy on the app's own document in production.
+  // index.html ships a <meta> CSP that must keep 'unsafe-inline' in script-src so Vite's dev
+  // HMR preamble (an inline module script) works. The packaged build has no inline scripts, so
+  // here we add a response-header CSP whose script-src omits 'unsafe-inline'. The browser enforces
+  // every delivered CSP, so the effective policy is the intersection: inline/injected scripts are
+  // blocked in the shipped app.
+  //
+  // The hook is scoped to ONLY the app's own document URL. The offscreen capture-preview window
+  // also runs on defaultSession and loads arbitrary user-chosen http(s) pages for screenshots;
+  // applying the app CSP to those would break legitimate remote pages, so they are left untouched.
+  if (!isDev) {
+    const { pathToFileURL } = require('url');
+    const appDocumentUrl = pathToFileURL(path.join(__dirname, '../dist/index.html')).href.toLowerCase();
+    const CSP_HEADER = [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob:",
+      "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* wss://api.elevenlabs.io https://api.elevenlabs.io",
+      "media-src 'self' blob:",
+    ].join('; ');
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      const requestUrl = (details.url || '').split('#')[0].split('?')[0].toLowerCase();
+      if (details.resourceType !== 'mainFrame' || requestUrl !== appDocumentUrl) {
+        callback({ cancel: false });
+        return;
+      }
+      const responseHeaders = { ...(details.responseHeaders || {}) };
+      for (const key of Object.keys(responseHeaders)) {
+        if (key.toLowerCase() === 'content-security-policy') {
+          delete responseHeaders[key];
+        }
+      }
+      responseHeaders['Content-Security-Policy'] = [CSP_HEADER];
+      callback({ responseHeaders });
+    });
+  }
+
   createWindow();
   createTray();
   registerShortcuts();
