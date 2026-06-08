@@ -226,7 +226,7 @@
             <div class="mb-12">
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/30 text-accent text-xs font-mono mb-4">
                     <span class="w-2 h-2 bg-accent rounded-full"></span>
-                    <span data-version="v{version}">v3.2.0</span>
+                    <span data-version="v{version}">v3.3.0</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
                 <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows, macOS, and Linux.</p>
@@ -411,17 +411,23 @@
                         <div class="bg-panel border border-white/10 p-6 mb-6">
                             <h4 class="font-display text-chrome mb-3">System requirements</h4>
                             <ul class="text-gray-400 space-y-1 text-sm">
-                                <li>A 64-bit Linux distribution (AppImage and .deb supported)</li>
-                                <li>Node.js 20 or newer and npm</li>
-                                <li>Build tools for native modules (build-essential and python3, to compile node-pty)</li>
+                                <li>A 64-bit Linux distribution (the AppImage runs on most; the .deb is for Debian/Ubuntu)</li>
+                                <li>A glibc-based distro (most mainstream distributions)</li>
                                 <li>4GB RAM minimum (8GB recommended)</li>
                                 <li>Microphone for voice input</li>
                             </ul>
                         </div>
 
-                        <p class="text-gray-400 text-sm mb-4">Prebuilt Linux binaries aren't posted on the releases page yet, so build from source. The repo ships an electron-builder Linux target that produces an AppImage and a .deb.</p>
+                        <h4 class="font-display text-chrome mb-3">Download</h4>
+                        <p class="text-gray-400 text-sm mb-4">Grab a prebuilt build from the releases page: the portable AppImage or a Debian/Ubuntu .deb.</p>
+                        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                            <a href="#" data-download="linux-appimage" class="px-6 py-3 bg-chrome text-black font-display font-bold text-center text-sm tracking-wider hover:bg-chrome/80 transition-all">DOWNLOAD .APPIMAGE</a>
+                            <a href="#" data-download="linux-deb" class="px-6 py-3 border border-chrome text-chrome font-display font-bold text-center text-sm tracking-wider hover:bg-chrome/10 transition-all">DOWNLOAD .DEB</a>
+                        </div>
+                        <p class="text-gray-400 text-sm mb-8">Make the AppImage executable with <code>chmod +x AudioBash-*.AppImage</code> and run it, or install the .deb with <code>sudo dpkg -i AudioBash-*.deb</code>. Grant microphone access when prompted.</p>
 
-                        <h4 class="font-display text-chrome mb-3">Build steps</h4>
+                        <h4 class="font-display text-chrome mb-3">Or build from source</h4>
+                        <p class="text-gray-400 text-sm mb-4">Prefer to build it yourself? You'll need Node.js 20 or newer and the native build tools (build-essential and python3) to compile node-pty.</p>
                         <ol class="space-y-4 text-gray-400">
                             <li class="flex gap-3">
                                 <span class="w-6 h-6 bg-chrome text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
@@ -918,7 +924,7 @@ cd audiobash</code></pre>
             <!-- FOOTER -->
             <div class="mt-16 pt-8 border-t border-white/10">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v3.2.0 - Voice-controlled terminal for Claude Code</div>
+                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v3.3.0 - Voice-controlled terminal for Claude Code</div>
                     <div class="flex items-center gap-4">
                         <a href="about.html" class="hover:text-accent transition-colors">About</a>
                         <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>
