@@ -88,8 +88,9 @@ class MainLogger {
 
         // Keep only last 5 rotated logs
         const logsDir = path.dirname(this.logFilePath);
-        const logFiles = fs.readdirSync(logsDir)
-          .filter(f => f.startsWith('audiobash-') && f.endsWith('.log'))
+        const logFiles = fs
+          .readdirSync(logsDir)
+          .filter((f) => f.startsWith('audiobash-') && f.endsWith('.log'))
           .sort()
           .reverse();
 
@@ -170,10 +171,14 @@ class MainLogger {
     if (!this.enableConsole) return;
 
     const prefix = `[${category}]`;
-    const consoleMethod = level === 'error' || level === 'fatal' ? console.error
-      : level === 'warn' ? console.warn
-      : level === 'debug' ? console.debug
-      : console.log;
+    const consoleMethod =
+      level === 'error' || level === 'fatal'
+        ? console.error
+        : level === 'warn'
+          ? console.warn
+          : level === 'debug'
+            ? console.debug
+            : console.log;
 
     // Format output for readability
     if (error && data) {
@@ -305,7 +310,7 @@ class MainLogger {
     try {
       const content = fs.readFileSync(this.logFilePath, 'utf8');
       const lines = content.trim().split('\n').slice(-count);
-      return lines.map(line => {
+      return lines.map((line) => {
         try {
           return JSON.parse(line);
         } catch {
@@ -323,11 +328,11 @@ class MainLogger {
    */
   getErrorSummary() {
     const logs = this.getRecentLogs(500);
-    const errors = logs.filter(l => l.level === 'ERROR' || l.level === 'FATAL');
+    const errors = logs.filter((l) => l.level === 'ERROR' || l.level === 'FATAL');
     return {
       total: errors.length,
       recent: errors.slice(-10),
-      categories: [...new Set(errors.map(e => e.category))],
+      categories: [...new Set(errors.map((e) => e.category))],
     };
   }
 
@@ -379,7 +384,7 @@ class MainLogger {
     if (this.logsDir) {
       const crashFile = path.join(
         this.logsDir,
-        `crash-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+        `crash-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
       );
 
       try {

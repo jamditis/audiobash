@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { transcriptionService, ModelId, MODELS, TranscriptionError } from '../services/transcriptionService';
+import {
+  transcriptionService,
+  ModelId,
+  MODELS,
+  TranscriptionError,
+} from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
 import { useVAD } from '../hooks/useVAD';
 import { useElevenLabsRealtime } from '../hooks/useElevenLabsRealtime';
@@ -22,26 +27,66 @@ interface VoiceOverlayProps {
 }
 
 const MicIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className="w-6 h-6"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+    />
   </svg>
 );
 
 const PinIcon = ({ filled }: { filled: boolean }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill={filled ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill={filled ? 'currentColor' : 'none'}
+    viewBox="0 0 24 24"
+    strokeWidth={1.5}
+    stroke="currentColor"
+    className="w-4 h-4"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+    />
   </svg>
 );
 
 const CloseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className="w-4 h-4"
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
 
 const SendIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    className="w-4 h-4"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+    />
   </svg>
 );
 
@@ -78,7 +123,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
 
   // Check if current model is ElevenLabs real-time
   const isRealtimeModel = useMemo(() => {
-    const modelInfo = MODELS.find(m => m.id === model);
+    const modelInfo = MODELS.find((m) => m.id === model);
     return modelInfo?.isRealtime === true;
   }, [model]);
 
@@ -101,61 +146,70 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     console.log('[VoiceOverlay] VAD detected speech start');
   }, []);
 
-  const handleVADSpeechEnd = useCallback(async (audioFloat32: Float32Array) => {
-    log.info('VAD detected speech end, processing audio', {
-      audioSamples: audioFloat32.length,
-      durationMs: (audioFloat32.length / 16000) * 1000,
-    });
-    setStatus('processing');
+  const handleVADSpeechEnd = useCallback(
+    async (audioFloat32: Float32Array) => {
+      log.info('VAD detected speech end, processing audio', {
+        audioSamples: audioFloat32.length,
+        durationMs: (audioFloat32.length / 16000) * 1000,
+      });
+      setStatus('processing');
 
-    try {
-      // Convert Float32Array to WebM Blob
-      const audioBlob = await float32ToWebmBlob(audioFloat32);
-      const durationMs = (audioFloat32.length / 16000) * 1000; // VAD uses 16kHz
+      try {
+        // Convert Float32Array to WebM Blob
+        const audioBlob = await float32ToWebmBlob(audioFloat32);
+        const durationMs = (audioFloat32.length / 16000) * 1000; // VAD uses 16kHz
 
-      // Fetch terminal context before transcription (for agent mode)
-      if (mode === 'agent') {
-        const context = await window.electron?.getTerminalContext(activeTabId);
-        if (context) {
-          transcriptionService.setTerminalContext(context);
-          log.debug('Terminal context set for agent mode', { cwd: context.cwd });
+        // Fetch terminal context before transcription (for agent mode)
+        if (mode === 'agent') {
+          const context = await window.electron?.getTerminalContext(activeTabId);
+          if (context) {
+            transcriptionService.setTerminalContext(context);
+            log.debug('Terminal context set for agent mode', { cwd: context.cwd });
+          }
         }
-      }
 
-      const result = await transcriptionService.transcribeAudio(audioBlob, mode, model, durationMs);
-      if (result.text) {
-        onTranscript(result.text, mode);
-        audioFeedback.playSuccess();
-        log.info('Transcription successful', { textLength: result.text.length, mode });
-      } else {
-        log.debug('Empty transcription result');
-      }
+        const result = await transcriptionService.transcribeAudio(
+          audioBlob,
+          mode,
+          model,
+          durationMs,
+        );
+        if (result.text) {
+          onTranscript(result.text, mode);
+          audioFeedback.playSuccess();
+          log.info('Transcription successful', { textLength: result.text.length, mode });
+        } else {
+          log.debug('Empty transcription result');
+        }
 
-      // In continuous mode, restart VAD after processing
-      if (recordingModeRef.current === 'continuous') {
-        setStatus('recording');
-        // VAD will automatically continue listening
-      } else {
-        // In vad mode, stop after processing
+        // In continuous mode, restart VAD after processing
+        if (recordingModeRef.current === 'continuous') {
+          setStatus('recording');
+          // VAD will automatically continue listening
+        } else {
+          // In vad mode, stop after processing
+          setStatus('idle');
+          setIsRecording(false);
+          vadStopRef.current?.();
+        }
+      } catch (err: unknown) {
+        log.error('Voice transcription failed', err);
+        // Use user-friendly error message if available
+        const errorMessage =
+          err instanceof TranscriptionError
+            ? err.toUserMessage()
+            : err instanceof Error
+              ? err.message
+              : 'An unknown error occurred';
+        setError(errorMessage);
+        audioFeedback.playError();
         setStatus('idle');
         setIsRecording(false);
         vadStopRef.current?.();
       }
-    } catch (err: unknown) {
-      log.error('Voice transcription failed', err);
-      // Use user-friendly error message if available
-      const errorMessage = err instanceof TranscriptionError
-        ? err.toUserMessage()
-        : err instanceof Error
-          ? err.message
-          : 'An unknown error occurred';
-      setError(errorMessage);
-      audioFeedback.playError();
-      setStatus('idle');
-      setIsRecording(false);
-      vadStopRef.current?.();
-    }
-  }, [mode, model, activeTabId, onTranscript, setIsRecording]);
+    },
+    [mode, model, activeTabId, onTranscript, setIsRecording],
+  );
 
   const vadInstance = useVAD({
     onSpeechStart: handleVADSpeechStart,
@@ -163,21 +217,27 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   });
 
   // ElevenLabs real-time transcription hook
-  const handleRealtimeTranscript = useCallback((text: string) => {
-    log.info('ElevenLabs real-time transcript received', { textLength: text.length });
-    onTranscript(text, mode);
-    audioFeedback.playSuccess();
-    setStatus('idle');
-    setIsRecording(false);
-  }, [mode, onTranscript, setIsRecording]);
+  const handleRealtimeTranscript = useCallback(
+    (text: string) => {
+      log.info('ElevenLabs real-time transcript received', { textLength: text.length });
+      onTranscript(text, mode);
+      audioFeedback.playSuccess();
+      setStatus('idle');
+      setIsRecording(false);
+    },
+    [mode, onTranscript, setIsRecording],
+  );
 
-  const handleRealtimeError = useCallback((err: Error) => {
-    log.error('ElevenLabs real-time error', err);
-    setError(err.message);
-    audioFeedback.playError();
-    setStatus('idle');
-    setIsRecording(false);
-  }, [setIsRecording]);
+  const handleRealtimeError = useCallback(
+    (err: Error) => {
+      log.error('ElevenLabs real-time error', err);
+      setError(err.message);
+      audioFeedback.playError();
+      setStatus('idle');
+      setIsRecording(false);
+    },
+    [setIsRecording],
+  );
 
   const elevenLabsRealtime = useElevenLabsRealtime({
     apiKey: elevenLabsApiKey,
@@ -225,16 +285,23 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
 
       // Check if current model has required key
-      const savedModel = localStorage.getItem('audiobash-model') as ModelId || 'gemini-2.0-flash';
+      const savedModel = (localStorage.getItem('audiobash-model') as ModelId) || 'gemini-2.0-flash';
       setModel(savedModel);
 
-      const modelInfo = MODELS.find(m => m.id === savedModel);
+      const modelInfo = MODELS.find((m) => m.id === savedModel);
       if (modelInfo) {
-        const hasKey = modelInfo.provider === 'gemini' ? !!geminiKey :
-          modelInfo.provider === 'openai' ? !!openaiKey :
-          modelInfo.provider === 'anthropic' ? (!!openaiKey && !!anthropicKey) :
-          modelInfo.provider === 'elevenlabs' ? !!elevenlabsKey :
-          modelInfo.provider === 'local' ? true : false;
+        const hasKey =
+          modelInfo.provider === 'gemini'
+            ? !!geminiKey
+            : modelInfo.provider === 'openai'
+              ? !!openaiKey
+              : modelInfo.provider === 'anthropic'
+                ? !!openaiKey && !!anthropicKey
+                : modelInfo.provider === 'elevenlabs'
+                  ? !!elevenlabsKey
+                  : modelInfo.provider === 'local'
+                    ? true
+                    : false;
         setHasApiKey(hasKey);
       }
     };
@@ -252,7 +319,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         setModel(savedModel);
 
         // Check if new model has required key - only fetch what we need
-        const modelInfo = MODELS.find(m => m.id === savedModel);
+        const modelInfo = MODELS.find((m) => m.id === savedModel);
         if (modelInfo) {
           let hasKey = false;
           switch (modelInfo.provider) {
@@ -265,7 +332,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             case 'openai':
               hasKey = !!(await window.electron?.getApiKey('openai'));
               break;
-            case 'anthropic':
+            case 'anthropic': {
               // Claude models need both OpenAI (for Whisper) and Anthropic keys
               const [openaiKey, anthropicKey] = await Promise.all([
                 window.electron?.getApiKey('openai'),
@@ -273,11 +340,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
               ]);
               hasKey = !!openaiKey && !!anthropicKey;
               break;
-            case 'elevenlabs':
+            }
+            case 'elevenlabs': {
               const elevenlabsKey = await window.electron?.getApiKey('elevenlabs');
               hasKey = !!elevenlabsKey;
               if (elevenlabsKey) setElevenLabsApiKey(elevenlabsKey);
               break;
+            }
           }
           setHasApiKey(hasKey);
         }
@@ -323,7 +392,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
 
-        const barWidth = canvas.width / bufferLength * 2.5;
+        const barWidth = (canvas.width / bufferLength) * 2.5;
         let x = 0;
 
         for (let i = 0; i < bufferLength; i++) {
@@ -354,7 +423,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   }, [isOpen]);
 
   const startRecording = useCallback(async () => {
-    const modelInfo = MODELS.find(m => m.id === model);
+    const modelInfo = MODELS.find((m) => m.id === model);
     if (!hasApiKey && modelInfo?.provider !== 'local') {
       setError('No API key configured for selected model');
       return;
@@ -440,7 +509,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         }
         analyserRef.current = null;
         if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current.getTracks().forEach((track) => track.stop());
           streamRef.current = null;
         }
 
@@ -466,11 +535,12 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         } catch (err: unknown) {
           log.error('Transcription failed', err);
           // Use user-friendly error message if available
-          const errorMessage = err instanceof TranscriptionError
-            ? err.toUserMessage()
-            : err instanceof Error
-              ? err.message
-              : 'An unknown error occurred';
+          const errorMessage =
+            err instanceof TranscriptionError
+              ? err.toUserMessage()
+              : err instanceof Error
+                ? err.message
+                : 'An unknown error occurred';
           setError(errorMessage);
           audioFeedback.playError();
         }
@@ -482,20 +552,30 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       setIsRecording(true);
       setStatus('recording');
       audioFeedback.playStart();
-
     } catch (err: unknown) {
       log.error('Failed to start recording', err);
       const errName = err instanceof Error ? err.name : '';
       const errMessage = err instanceof Error ? err.message : String(err);
-      const errorMessage = errName === 'NotAllowedError'
-        ? 'Microphone access denied. Please allow microphone access in your browser settings.'
-        : errName === 'NotFoundError'
-        ? 'No microphone found. Please connect a microphone and try again.'
-        : `Failed to start recording: ${errMessage}`;
+      const errorMessage =
+        errName === 'NotAllowedError'
+          ? 'Microphone access denied. Please allow microphone access in your browser settings.'
+          : errName === 'NotFoundError'
+            ? 'No microphone found. Please connect a microphone and try again.'
+            : `Failed to start recording: ${errMessage}`;
       setError(errorMessage);
       audioFeedback.playError();
     }
-  }, [mode, model, hasApiKey, onTranscript, setIsRecording, recordingMode, vadInstance, isRealtimeModel, elevenLabsRealtime]);
+  }, [
+    mode,
+    model,
+    hasApiKey,
+    onTranscript,
+    setIsRecording,
+    recordingMode,
+    vadInstance,
+    isRealtimeModel,
+    elevenLabsRealtime,
+  ]);
 
   const stopRecording = useCallback(() => {
     // Stop ElevenLabs real-time if using streaming model
@@ -512,7 +592,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
       analyserRef.current = null;
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
       return;
@@ -530,7 +610,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
       analyserRef.current = null;
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
     } else {
@@ -571,7 +651,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     }
     analyserRef.current = null;
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
@@ -657,19 +737,24 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           <button
             onClick={() => {
               // Get available models (ones with API keys or local models)
-              const availableModels = MODELS.filter(m => {
+              const availableModels = MODELS.filter((m) => {
                 if (m.provider === 'local') return true;
                 if (m.provider === 'gemini') return transcriptionService.hasApiKey('gemini');
                 if (m.provider === 'openai') return transcriptionService.hasApiKey('openai');
-                if (m.provider === 'anthropic') return transcriptionService.hasApiKey('openai') && transcriptionService.hasApiKey('anthropic');
-                if (m.provider === 'elevenlabs') return transcriptionService.hasApiKey('elevenlabs');
+                if (m.provider === 'anthropic')
+                  return (
+                    transcriptionService.hasApiKey('openai') &&
+                    transcriptionService.hasApiKey('anthropic')
+                  );
+                if (m.provider === 'elevenlabs')
+                  return transcriptionService.hasApiKey('elevenlabs');
                 return false;
               });
 
               if (availableModels.length === 0) return;
 
               // Find current index and cycle to next
-              const currentIndex = availableModels.findIndex(m => m.id === model);
+              const currentIndex = availableModels.findIndex((m) => m.id === model);
               const nextIndex = (currentIndex + 1) % availableModels.length;
               const nextModel = availableModels[nextIndex];
 
@@ -683,11 +768,22 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-[9px] text-crt-white/40 uppercase">Model</span>
               <span className="text-[10px] font-mono text-crt-amber truncate">
-                {MODELS.find(m => m.id === model)?.name || model}
+                {MODELS.find((m) => m.id === model)?.name || model}
               </span>
             </div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 text-crt-white/30 group-hover:text-crt-white/50 transition-colors">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-3 h-3 text-crt-white/30 group-hover:text-crt-white/50 transition-colors"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+              />
             </svg>
           </button>
         </div>
@@ -710,18 +806,22 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         <div className="flex items-center justify-center gap-4 pb-3">
           <button
             onClick={toggleRecording}
-            disabled={ccVoiceActive || (!hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local')}
+            disabled={
+              ccVoiceActive ||
+              (!hasApiKey && MODELS.find((m) => m.id === model)?.provider !== 'local')
+            }
             className={`
               w-14 h-14 rounded-full border-2
               flex items-center justify-center
               transition-all duration-200
-              ${isRecording
-                ? 'bg-accent/20 border-accent text-accent glow-recording'
-                : ccVoiceActive
-                  ? 'bg-void-200 border-crt-amber text-crt-amber cursor-not-allowed'
-                  : !hasApiKey && MODELS.find(m => m.id === model)?.provider !== 'local'
-                    ? 'bg-void-200 border-void-400 text-crt-white/20 cursor-not-allowed'
-                    : 'bg-void-200 border-void-300 text-crt-white/50 hover:border-accent hover:text-accent'
+              ${
+                isRecording
+                  ? 'bg-accent/20 border-accent text-accent glow-recording'
+                  : ccVoiceActive
+                    ? 'bg-void-200 border-crt-amber text-crt-amber cursor-not-allowed'
+                    : !hasApiKey && MODELS.find((m) => m.id === model)?.provider !== 'local'
+                      ? 'bg-void-200 border-void-400 text-crt-white/20 cursor-not-allowed'
+                      : 'bg-void-200 border-void-300 text-crt-white/50 hover:border-accent hover:text-accent'
               }
             `}
           >
@@ -729,18 +829,30 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           </button>
 
           <div className="text-left">
-            <div className={`
+            <div
+              className={`
               text-xs font-mono uppercase tracking-wider
-              ${status === 'recording' ? 'text-accent' :
-                status === 'processing' ? 'text-crt-amber' : 'text-crt-white/40'}
-            `}>
-              {status === 'idle' && (hasApiKey || MODELS.find(m => m.id === model)?.provider === 'local' ? 'Ready' : 'No API key')}
+              ${
+                status === 'recording'
+                  ? 'text-accent'
+                  : status === 'processing'
+                    ? 'text-crt-amber'
+                    : 'text-crt-white/40'
+              }
+            `}
+            >
+              {status === 'idle' &&
+                (hasApiKey || MODELS.find((m) => m.id === model)?.provider === 'local'
+                  ? 'Ready'
+                  : 'No API key')}
               {status === 'recording' && 'Listening...'}
               {status === 'processing' && 'Processing...'}
             </div>
             <div className="text-[10px] text-crt-white/30 mt-0.5">
               {status === 'recording'
-                ? (recordingMode === 'manual' ? 'Alt+S send · Alt+A cancel' : 'Speak now · Alt+A cancel')
+                ? recordingMode === 'manual'
+                  ? 'Alt+S send · Alt+A cancel'
+                  : 'Speak now · Alt+A cancel'
                 : 'Alt+S to start'}
             </div>
             {ccVoiceActive && (
@@ -753,11 +865,23 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         {(error || vadInstance.vadError) && (
           <div className="mx-3 mb-3 p-2 bg-accent/10 border border-accent/30 rounded">
             <div className="flex items-start gap-2">
-              <svg className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-4 h-4 text-accent flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               <div className="flex-1">
-                <p className="text-[10px] text-accent font-mono leading-relaxed">{error || vadInstance.vadError}</p>
+                <p className="text-[10px] text-accent font-mono leading-relaxed">
+                  {error || vadInstance.vadError}
+                </p>
                 <button
                   onClick={() => setError(null)}
                   className="text-[9px] text-crt-white/40 hover:text-crt-white/60 mt-1 transition-colors"

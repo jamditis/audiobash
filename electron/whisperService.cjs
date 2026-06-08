@@ -20,7 +20,7 @@ const MODEL_CONFIGS = {
     size: '466 MB',
     speed: 'Fast',
     accuracy: 'Best',
-    description: 'High accuracy local transcription'
+    description: 'High accuracy local transcription',
   },
 };
 
@@ -36,16 +36,24 @@ const WHISPER_CPP_VERSION = '1.5.5';
 async function convertToWav(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
     // Use ffmpeg to convert to 16kHz mono WAV
-    const ffmpeg = spawn('ffmpeg', [
-      '-i', inputPath,
-      '-ar', '16000',    // 16kHz sample rate (required by whisper.cpp)
-      '-ac', '1',        // Mono audio
-      '-c:a', 'pcm_s16le', // 16-bit PCM
-      '-y',              // Overwrite output file
-      outputPath
-    ], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
+    const ffmpeg = spawn(
+      'ffmpeg',
+      [
+        '-i',
+        inputPath,
+        '-ar',
+        '16000', // 16kHz sample rate (required by whisper.cpp)
+        '-ac',
+        '1', // Mono audio
+        '-c:a',
+        'pcm_s16le', // 16-bit PCM
+        '-y', // Overwrite output file
+        outputPath,
+      ],
+      {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      },
+    );
 
     let stderr = '';
     ffmpeg.stderr.on('data', (data) => {
@@ -96,7 +104,7 @@ async function fallbackExtractZip(zipPath, destDir) {
     console.log('[WhisperService] Trying unzip command...');
     execSync(`unzip -o "${zipPath}" -d "${destDir}"`, {
       stdio: 'pipe',
-      windowsHide: true
+      windowsHide: true,
     });
     console.log('[WhisperService] Fallback extraction successful (unzip)');
     return { success: true };
@@ -109,7 +117,7 @@ async function fallbackExtractZip(zipPath, destDir) {
     console.log('[WhisperService] Trying tar command...');
     execSync(`tar -xf "${zipPath}" -C "${destDir}"`, {
       stdio: 'pipe',
-      windowsHide: true
+      windowsHide: true,
     });
     console.log('[WhisperService] Fallback extraction successful (tar)');
     return { success: true };
@@ -120,7 +128,7 @@ async function fallbackExtractZip(zipPath, destDir) {
   // Method 3: Try 7-Zip if installed
   const sevenZipPaths = [
     'C:\\Program Files\\7-Zip\\7z.exe',
-    'C:\\Program Files (x86)\\7-Zip\\7z.exe'
+    'C:\\Program Files (x86)\\7-Zip\\7z.exe',
   ];
   for (const szPath of sevenZipPaths) {
     if (fs.existsSync(szPath)) {
@@ -128,7 +136,7 @@ async function fallbackExtractZip(zipPath, destDir) {
         console.log('[WhisperService] Trying 7-Zip...');
         execSync(`"${szPath}" x "${zipPath}" -o"${destDir}" -y`, {
           stdio: 'pipe',
-          windowsHide: true
+          windowsHide: true,
         });
         console.log('[WhisperService] Fallback extraction successful (7-Zip)');
         return { success: true };
@@ -140,7 +148,8 @@ async function fallbackExtractZip(zipPath, destDir) {
 
   return {
     success: false,
-    error: 'All extraction methods failed. Please install 7-Zip, Git Bash, or update Windows to 10 1803+.'
+    error:
+      'All extraction methods failed. Please install 7-Zip, Git Bash, or update Windows to 10 1803+.',
   };
 }
 
@@ -255,7 +264,7 @@ class WhisperService {
             console.error('[WhisperService] Fallback extraction failed:', fallbackResult.error);
             return {
               success: false,
-              error: `Installation failed. ${fallbackResult.error || error.message}`
+              error: `Installation failed. ${fallbackResult.error || error.message}`,
             };
           }
         }
@@ -338,7 +347,9 @@ class WhisperService {
 
       // Ensure model is downloaded
       if (!this.isModelDownloaded(this.currentModel)) {
-        throw new Error(`Model ${this.currentModel} is not downloaded. Please download it first in Settings.`);
+        throw new Error(
+          `Model ${this.currentModel} is not downloaded. Please download it first in Settings.`,
+        );
       }
 
       // Convert to WAV if not already a WAV file
@@ -357,15 +368,21 @@ class WhisperService {
       console.log(`[WhisperService] Running: ${binaryPath} -m ${modelPath} -f ${inputPath}`);
 
       const text = await new Promise((resolve, reject) => {
-        const whisperProcess = spawn(binaryPath, [
-          '-m', modelPath,
-          '-f', inputPath,
-          '-nt',  // No timestamps
-          '-np',  // No prints (cleaner output)
-        ], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          windowsHide: true
-        });
+        const whisperProcess = spawn(
+          binaryPath,
+          [
+            '-m',
+            modelPath,
+            '-f',
+            inputPath,
+            '-nt', // No timestamps
+            '-np', // No prints (cleaner output)
+          ],
+          {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            windowsHide: true,
+          },
+        );
 
         let stdout = '';
         let stderr = '';
@@ -382,17 +399,20 @@ class WhisperService {
           if (code === 0) {
             // Clean up the output - remove whisper.cpp log lines
             const lines = stdout.split('\n');
-            const textLines = lines.filter(line =>
-              !line.startsWith('whisper_') &&
-              !line.startsWith('main:') &&
-              !line.includes('system_info') &&
-              line.trim().length > 0
+            const textLines = lines.filter(
+              (line) =>
+                !line.startsWith('whisper_') &&
+                !line.startsWith('main:') &&
+                !line.includes('system_info') &&
+                line.trim().length > 0,
             );
             const transcribedText = textLines.join(' ').trim();
             resolve(transcribedText);
           } else {
             console.error('[WhisperService] whisper.cpp stderr:', stderr);
-            reject(new Error(`Whisper transcription failed with code ${code}: ${stderr.slice(-500)}`));
+            reject(
+              new Error(`Whisper transcription failed with code ${code}: ${stderr.slice(-500)}`),
+            );
           }
         });
 
@@ -407,14 +427,16 @@ class WhisperService {
         }, 60000);
       });
 
-      console.log(`[WhisperService] Transcription complete: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+      console.log(
+        `[WhisperService] Transcription complete: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
+      );
 
       return { text };
     } catch (error) {
       console.error('[WhisperService] Transcription error:', error);
       return {
         text: '',
-        error: error.message || 'Unknown transcription error'
+        error: error.message || 'Unknown transcription error',
       };
     } finally {
       // Clean up temporary WAV file

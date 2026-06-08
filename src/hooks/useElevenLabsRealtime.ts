@@ -4,14 +4,17 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ElevenLabsRealtimeService, ElevenLabsRealtimeConfig } from '../services/elevenLabsRealtimeService';
+import {
+  ElevenLabsRealtimeService,
+  ElevenLabsRealtimeConfig,
+} from '../services/elevenLabsRealtimeService';
 import { usePCMCapture } from './usePCMCapture';
 
 export interface UseElevenLabsRealtimeOptions {
   apiKey: string;
-  language?: string;           // 'eng' or null for auto-detect
-  keyterms?: string[];         // Up to 100 vocabulary terms
-  deviceId?: string;           // Specific microphone device ID
+  language?: string; // 'eng' or null for auto-detect
+  keyterms?: string[]; // Up to 100 vocabulary terms
+  deviceId?: string; // Specific microphone device ID
   onFinalTranscript: (text: string) => void;
   onError: (error: Error) => void;
   onSessionStart?: () => void;
@@ -21,7 +24,7 @@ export interface UseElevenLabsRealtimeOptions {
 export interface UseElevenLabsRealtimeResult {
   start: () => Promise<void>;
   stop: () => void;
-  commit: () => void;          // Force commit / manual stop
+  commit: () => void; // Force commit / manual stop
   isConnected: boolean;
   isListening: boolean;
   error: string | null;
@@ -30,7 +33,9 @@ export interface UseElevenLabsRealtimeResult {
 /**
  * Hook for real-time speech-to-text with ElevenLabs Scribe v2
  */
-export function useElevenLabsRealtime(options: UseElevenLabsRealtimeOptions): UseElevenLabsRealtimeResult {
+export function useElevenLabsRealtime(
+  options: UseElevenLabsRealtimeOptions,
+): UseElevenLabsRealtimeResult {
   const {
     apiKey,
     language,
@@ -57,10 +62,13 @@ export function useElevenLabsRealtime(options: UseElevenLabsRealtimeOptions): Us
   }, []);
 
   // Handle PCM capture errors
-  const handleCaptureError = useCallback((err: Error) => {
-    setError(err.message);
-    onError(err);
-  }, [onError]);
+  const handleCaptureError = useCallback(
+    (err: Error) => {
+      setError(err.message);
+      onError(err);
+    },
+    [onError],
+  );
 
   // Set up PCM capture
   const pcmCapture = usePCMCapture({
@@ -143,7 +151,17 @@ export function useElevenLabsRealtime(options: UseElevenLabsRealtimeOptions): Us
       setIsConnected(false);
       setIsListening(false);
     }
-  }, [apiKey, language, keyterms, isListening, pcmCapture, onFinalTranscript, onError, onSessionStart, onSessionEnd]);
+  }, [
+    apiKey,
+    language,
+    keyterms,
+    isListening,
+    pcmCapture,
+    onFinalTranscript,
+    onError,
+    onSessionStart,
+    onSessionEnd,
+  ]);
 
   // Stop real-time transcription
   const stop = useCallback(() => {

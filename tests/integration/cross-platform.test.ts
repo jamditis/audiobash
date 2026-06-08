@@ -106,11 +106,7 @@ describe('Path Separator Handling', () => {
   });
 
   it('should normalize paths correctly', () => {
-    const testPaths = [
-      '/home/user/../user/project',
-      '/home/user/./project',
-      '/home/user//project',
-    ];
+    const testPaths = ['/home/user/../user/project', '/home/user/./project', '/home/user//project'];
 
     for (const testPath of testPaths) {
       const normalized = path.normalize(testPath);

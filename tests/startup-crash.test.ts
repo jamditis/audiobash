@@ -32,13 +32,13 @@ describe('startup crash prevention (#29)', () => {
       // The whenReady handler should have a try-catch to prevent
       // unhandled promise rejections from crashing the process
       const whenReadyMatch = mainProcessCode.match(
-        /app\.whenReady\(\)\.then\(async\s*\(\)\s*=>\s*\{/
+        /app\.whenReady\(\)\.then\(async\s*\(\)\s*=>\s*\{/,
       );
       expect(whenReadyMatch).toBeTruthy();
 
       // Find the code after whenReady and verify it has a try block
       const afterWhenReady = mainProcessCode.slice(
-        mainProcessCode.indexOf('app.whenReady().then(async () => {')
+        mainProcessCode.indexOf('app.whenReady().then(async () => {'),
       );
       // The try should appear near the start of the handler (within first 200 chars)
       const tryIndex = afterWhenReady.indexOf('try {');
@@ -51,11 +51,12 @@ describe('startup crash prevention (#29)', () => {
     it('guards tray creation against empty icon on macOS', () => {
       // Creating a Tray with an empty NativeImage can throw on macOS.
       // The code should skip tray creation or provide a fallback.
-      const hasTrayGuard = mainProcessCode.includes('icon.isEmpty()') &&
+      const hasTrayGuard =
+        mainProcessCode.includes('icon.isEmpty()') &&
         (mainProcessCode.includes('skip') ||
-         mainProcessCode.includes('without tray') ||
-         mainProcessCode.includes('tray creation') ||
-         mainProcessCode.includes('Cannot create tray'));
+          mainProcessCode.includes('without tray') ||
+          mainProcessCode.includes('tray creation') ||
+          mainProcessCode.includes('Cannot create tray'));
       expect(hasTrayGuard).toBe(true);
     });
   });
@@ -68,7 +69,7 @@ describe('startup crash prevention (#29)', () => {
       const ptyRequireIndex = mainProcessCode.indexOf("pty = require('node-pty')");
       const precedingCode = mainProcessCode.slice(
         Math.max(0, ptyRequireIndex - 100),
-        ptyRequireIndex
+        ptyRequireIndex,
       );
       expect(precedingCode).toContain('try');
     });

@@ -1,0 +1,19 @@
+# Build output and dependencies
+dist
+dist-electron
+coverage
+node_modules
+
+# Lockfiles and generated data
+package-lock.json
+
+# Prose docs are not auto-formatted (reflow fights the project's writing style)
+*.md
+
+# Marketing site, standalone companion bundles, and static assets are out of scope
+docs
+public
+vantage-design-library.html
+
+# Local-only research sandbox
+security-lab

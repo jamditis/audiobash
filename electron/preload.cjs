@@ -892,7 +892,8 @@ contextBridge.exposeInMainWorld('electron', {
    * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
    * @returns {Promise<{success: boolean, downloaded: boolean}>}
    */
-  whisperIsModelDownloaded: (modelName) => ipcRenderer.invoke('whisper-is-model-downloaded', modelName),
+  whisperIsModelDownloaded: (modelName) =>
+    ipcRenderer.invoke('whisper-is-model-downloaded', modelName),
 
   /**
    * Deletes a downloaded local Whisper model.
@@ -995,7 +996,6 @@ contextBridge.exposeInMainWorld('electron', {
     return () => ipcRenderer.removeListener('zoom-reset', handler);
   },
 
-
   // ═══════════════════════════════════════════════════════════════════════════
   // PANE MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1035,5 +1035,4 @@ contextBridge.exposeInMainWorld('electron', {
   loadPaneSession: (name) => ipcRenderer.invoke('load-pane-session', name),
   listPaneSessions: () => ipcRenderer.invoke('list-pane-sessions'),
   deletePaneSession: (name) => ipcRenderer.invoke('delete-pane-session', name),
-
 });

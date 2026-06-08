@@ -24,7 +24,7 @@ function renderTerminal(props: Partial<Parameters<typeof Terminal>[0]> = {}) {
   return render(
     <ThemeProvider>
       <Terminal {...defaultProps} {...props} />
-    </ThemeProvider>
+    </ThemeProvider>,
   );
 }
 
@@ -168,7 +168,7 @@ describe('Terminal Component', () => {
       const { container } = render(
         <ThemeProvider>
           <Terminal tabId="test" isActive={true} />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       expect((container.firstChild as HTMLElement).style.display).toBe('block');
@@ -182,7 +182,7 @@ describe('Terminal Component', () => {
       rerender(
         <ThemeProvider>
           <Terminal tabId="tab-2" isActive={true} />
-        </ThemeProvider>
+        </ThemeProvider>,
       );
 
       // No error thrown - component handles prop changes gracefully

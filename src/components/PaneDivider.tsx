@@ -10,46 +10,52 @@ const PaneDivider: React.FC<PaneDividerProps> = ({ direction, onResize, onEquali
   const startPos = useRef(0);
   const isHorizontal = direction === 'horizontal';
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    startPos.current = isHorizontal ? e.clientY : e.clientX;
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      startPos.current = isHorizontal ? e.clientY : e.clientX;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const current = isHorizontal ? e.clientY : e.clientX;
-      const delta = current - startPos.current;
-      startPos.current = current;
-      onResize(delta);
-    };
+      const handleMouseMove = (e: MouseEvent) => {
+        const current = isHorizontal ? e.clientY : e.clientX;
+        const delta = current - startPos.current;
+        startPos.current = current;
+        onResize(delta);
+      };
 
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [isHorizontal, onResize]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [isHorizontal, onResize],
+  );
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    startPos.current = isHorizontal ? touch.clientY : touch.clientX;
-
-    const handleTouchMove = (e: TouchEvent) => {
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
       const touch = e.touches[0];
-      const current = isHorizontal ? touch.clientY : touch.clientX;
-      const delta = current - startPos.current;
-      startPos.current = current;
-      onResize(delta);
-    };
+      startPos.current = isHorizontal ? touch.clientY : touch.clientX;
 
-    const handleTouchEnd = () => {
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
+      const handleTouchMove = (e: TouchEvent) => {
+        const touch = e.touches[0];
+        const current = isHorizontal ? touch.clientY : touch.clientX;
+        const delta = current - startPos.current;
+        startPos.current = current;
+        onResize(delta);
+      };
 
-    document.addEventListener('touchmove', handleTouchMove);
-    document.addEventListener('touchend', handleTouchEnd);
-  }, [isHorizontal, onResize]);
+      const handleTouchEnd = () => {
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
+    },
+    [isHorizontal, onResize],
+  );
 
   return (
     <div

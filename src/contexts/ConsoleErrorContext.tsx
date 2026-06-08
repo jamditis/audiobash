@@ -59,19 +59,21 @@ export const ConsoleErrorProvider: React.FC<{ children: React.ReactNode }> = ({ 
       originalError.apply(console, args);
 
       // Capture error
-      const message = args.map((arg) => {
-        if (arg instanceof Error) {
-          return arg.message;
-        }
-        if (typeof arg === 'object') {
-          try {
-            return JSON.stringify(arg, null, 2);
-          } catch {
-            return String(arg);
+      const message = args
+        .map((arg) => {
+          if (arg instanceof Error) {
+            return arg.message;
           }
-        }
-        return String(arg);
-      }).join(' ');
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg, null, 2);
+            } catch {
+              return String(arg);
+            }
+          }
+          return String(arg);
+        })
+        .join(' ');
 
       const stack = args.find((arg) => arg instanceof Error)?.stack;
 
@@ -87,16 +89,18 @@ export const ConsoleErrorProvider: React.FC<{ children: React.ReactNode }> = ({ 
       originalWarn.apply(console, args);
 
       // Capture warning (but don't set hasUnreadErrors for warnings)
-      const message = args.map((arg) => {
-        if (typeof arg === 'object') {
-          try {
-            return JSON.stringify(arg, null, 2);
-          } catch {
-            return String(arg);
+      const message = args
+        .map((arg) => {
+          if (typeof arg === 'object') {
+            try {
+              return JSON.stringify(arg, null, 2);
+            } catch {
+              return String(arg);
+            }
           }
-        }
-        return String(arg);
-      }).join(' ');
+          return String(arg);
+        })
+        .join(' ');
 
       addError({
         type: 'warn',
@@ -135,7 +139,9 @@ export const ConsoleErrorProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [addError]);
 
   return (
-    <ConsoleErrorContext.Provider value={{ errors, hasUnreadErrors, addError, clearErrors, markAsRead }}>
+    <ConsoleErrorContext.Provider
+      value={{ errors, hasUnreadErrors, addError, clearErrors, markAsRead }}
+    >
       {children}
     </ConsoleErrorContext.Provider>
   );

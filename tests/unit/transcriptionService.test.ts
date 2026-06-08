@@ -209,9 +209,7 @@ describe('TranscriptionService', () => {
       service.setCustomInstructions({
         rawModeInstructions: '',
         agentModeInstructions: '',
-        vocabulary: [
-          { spoken: 'ts', written: 'TypeScript', context: 'programming' },
-        ],
+        vocabulary: [{ spoken: 'ts', written: 'TypeScript', context: 'programming' }],
       });
 
       const instructions = service.getCustomInstructions();
@@ -224,9 +222,9 @@ describe('TranscriptionService', () => {
       const blob = createMockAudioBlob();
 
       // No API key set, so it should fail
-      await expect(
-        service.transcribeAudio(blob, 'raw', 'gemini-2.0-flash')
-      ).rejects.toThrow(TranscriptionError);
+      await expect(service.transcribeAudio(blob, 'raw', 'gemini-2.0-flash')).rejects.toThrow(
+        TranscriptionError,
+      );
     });
   });
 

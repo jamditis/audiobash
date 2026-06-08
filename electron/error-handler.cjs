@@ -34,7 +34,8 @@ const ErrorCodes = {
     code: 'E1002',
     category: ErrorCategory.NETWORK,
     message: 'WebSocket connection failed',
-    userMessage: 'Could not connect to the remote server. Make sure AudioBash is running on the desktop.',
+    userMessage:
+      'Could not connect to the remote server. Make sure AudioBash is running on the desktop.',
     recovery: 'reconnect',
   },
   E1003: {
@@ -50,7 +51,8 @@ const ErrorCodes = {
     code: 'E2001',
     category: ErrorCategory.AUDIO,
     message: 'Microphone access denied',
-    userMessage: 'Microphone access was denied. Please allow microphone access in your system settings.',
+    userMessage:
+      'Microphone access was denied. Please allow microphone access in your system settings.',
     recovery: 'permissions',
   },
   E2002: {
@@ -273,12 +275,16 @@ async function handleError(error, context = {}) {
   const classified = error instanceof AudioBashError ? error : classifyError(error, context);
 
   // Log the error
-  errorLog.error(classified.message, new Error(classified.originalError?.message || classified.message), {
-    code: classified.code,
-    category: classified.category,
-    recovery: classified.recovery,
-    ...classified.context,
-  });
+  errorLog.error(
+    classified.message,
+    new Error(classified.originalError?.message || classified.message),
+    {
+      code: classified.code,
+      category: classified.category,
+      recovery: classified.recovery,
+      ...classified.context,
+    },
+  );
 
   // Attempt recovery based on type
   let recovered = false;
@@ -292,7 +298,11 @@ async function handleError(error, context = {}) {
       recoveryResult = { action: 'reconnect', message: 'Attempting to reconnect...' };
       break;
     case 'backoff':
-      recoveryResult = { action: 'wait', delay: 5000, message: 'Please wait 5 seconds before trying again.' };
+      recoveryResult = {
+        action: 'wait',
+        delay: 5000,
+        message: 'Please wait 5 seconds before trying again.',
+      };
       break;
     case 'reset':
       recoveryResult = { action: 'reset', message: 'Resetting component...' };
@@ -304,7 +314,10 @@ async function handleError(error, context = {}) {
       recoveryResult = { action: 'openSettings', message: 'Please update your settings.' };
       break;
     case 'permissions':
-      recoveryResult = { action: 'requestPermissions', message: 'Please grant the required permissions.' };
+      recoveryResult = {
+        action: 'requestPermissions',
+        message: 'Please grant the required permissions.',
+      };
       break;
     case 'restart':
       recoveryResult = { action: 'restart', message: 'Please restart the application.' };
@@ -314,7 +327,10 @@ async function handleError(error, context = {}) {
       recovered = true;
       break;
     default:
-      recoveryResult = { action: 'unknown', message: 'Please try again or restart the application.' };
+      recoveryResult = {
+        action: 'unknown',
+        message: 'Please try again or restart the application.',
+      };
   }
 
   return {
@@ -396,15 +412,27 @@ function validateInput(value, name, validators = {}) {
   }
 
   if (validators.type && typeof value !== validators.type) {
-    throw new AudioBashError('E7001', null, { field: name, issue: 'type', expected: validators.type });
+    throw new AudioBashError('E7001', null, {
+      field: name,
+      issue: 'type',
+      expected: validators.type,
+    });
   }
 
   if (validators.minLength && value?.length < validators.minLength) {
-    throw new AudioBashError('E7001', null, { field: name, issue: 'minLength', expected: validators.minLength });
+    throw new AudioBashError('E7001', null, {
+      field: name,
+      issue: 'minLength',
+      expected: validators.minLength,
+    });
   }
 
   if (validators.maxLength && value?.length > validators.maxLength) {
-    throw new AudioBashError('E7001', null, { field: name, issue: 'maxLength', expected: validators.maxLength });
+    throw new AudioBashError('E7001', null, {
+      field: name,
+      issue: 'maxLength',
+      expected: validators.maxLength,
+    });
   }
 
   if (validators.pattern && !validators.pattern.test(value)) {

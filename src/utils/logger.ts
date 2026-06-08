@@ -99,7 +99,7 @@ class Logger {
     category: string,
     message: string,
     data?: unknown,
-    error?: unknown
+    error?: unknown,
   ): LogEntry {
     return {
       timestamp: new Date().toISOString(),
@@ -116,7 +116,7 @@ class Logger {
     category: string,
     message: string,
     data?: unknown,
-    error?: unknown
+    error?: unknown,
   ): void {
     if (!this.shouldLog(level)) return;
 
@@ -126,10 +126,14 @@ class Logger {
 
     if (this.config.enableConsole) {
       const prefix = `[${category}]`;
-      const consoleMethod = level === 'error' ? console.error
-        : level === 'warn' ? console.warn
-        : level === 'debug' ? console.debug
-        : console.log;
+      const consoleMethod =
+        level === 'error'
+          ? console.error
+          : level === 'warn'
+            ? console.warn
+            : level === 'debug'
+              ? console.debug
+              : console.log;
 
       if (error) {
         consoleMethod(prefix, message, data ?? '', error);
@@ -170,12 +174,12 @@ class Logger {
 
   // Get logs filtered by level
   getLogsByLevel(level: LogLevel): LogEntry[] {
-    return this.logs.filter(l => l.level === level);
+    return this.logs.filter((l) => l.level === level);
   }
 
   // Get logs filtered by category
   getLogsByCategory(category: string): LogEntry[] {
-    return this.logs.filter(l => l.category === category);
+    return this.logs.filter((l) => l.category === category);
   }
 
   // Get recent logs
@@ -226,7 +230,7 @@ class Logger {
 class CategoryLogger {
   constructor(
     private logger: Logger,
-    private categoryName: string
+    private categoryName: string,
   ) {}
 
   debug(message: string, data?: unknown): void {

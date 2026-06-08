@@ -44,6 +44,9 @@ security-lab/
 # Local review artifacts (Codex review dumps, audit findings)
 .audit/
 
+# Local session handoff notes (may contain private, unfiled findings)
+HANDOFF.md
+
 # Claude local settings
 .claude/settings.local.json
 

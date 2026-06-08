@@ -107,7 +107,7 @@ export class MockTerminal {
 
   // Test helpers
   simulateInput(data: string): void {
-    this.onDataCallbacks.forEach(cb => cb(data));
+    this.onDataCallbacks.forEach((cb) => cb(data));
   }
 
   getBuffer(): string[] {
@@ -288,16 +288,22 @@ window.MediaRecorder = MockMediaRecorder as unknown as typeof MediaRecorder;
 
 // Mock MediaDevices
 const mockMediaDevices = {
-  getUserMedia: vi.fn(() => Promise.resolve({
-    getTracks: () => [{
-      stop: vi.fn(),
-      kind: 'audio',
-    }],
-  } as unknown as MediaStream)),
-  enumerateDevices: vi.fn(() => Promise.resolve([
-    { deviceId: 'default', kind: 'audioinput', label: 'Default Microphone', groupId: '1' },
-    { deviceId: 'mic-2', kind: 'audioinput', label: 'External Microphone', groupId: '2' },
-  ])),
+  getUserMedia: vi.fn(() =>
+    Promise.resolve({
+      getTracks: () => [
+        {
+          stop: vi.fn(),
+          kind: 'audio',
+        },
+      ],
+    } as unknown as MediaStream),
+  ),
+  enumerateDevices: vi.fn(() =>
+    Promise.resolve([
+      { deviceId: 'default', kind: 'audioinput', label: 'Default Microphone', groupId: '1' },
+      { deviceId: 'mic-2', kind: 'audioinput', label: 'External Microphone', groupId: '2' },
+    ]),
+  ),
 };
 
 Object.defineProperty(navigator, 'mediaDevices', {
@@ -367,14 +373,14 @@ export function createMockTerminalContext() {
  * Wait for async effects
  */
 export function waitForEffects(ms = 0): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Flush all pending promises
  */
 export async function flushPromises(): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 // =============================================================================
@@ -479,8 +485,4 @@ vi.mock('../src/utils/notificationSound', () => ({
 // Export mocks for direct usage in tests
 // =============================================================================
 
-export {
-  mockElectronAPI,
-  localStorageMock,
-  mockMediaDevices,
-};
+export { mockElectronAPI, localStorageMock, mockMediaDevices };

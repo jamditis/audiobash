@@ -4,9 +4,10 @@ Process manually captured screenshots:
 2. Create web-optimized versions (800px max width)
 """
 
-from pathlib import Path
-from PIL import Image
 import shutil
+from pathlib import Path
+
+from PIL import Image
 
 SCREENSHOTS_DIR = Path(__file__).parent.parent / "docs" / "screenshots"
 
@@ -22,6 +23,7 @@ RENAME_MAP = {
     "2026-01-02 15_08_34-Telegram.png": ("voice-and-nav", "Voice input with quick nav open"),
 }
 
+
 def create_web_optimized(source_path: Path, max_width: int = 800) -> Path:
     """Create web-optimized version of image."""
     img = Image.open(source_path)
@@ -35,6 +37,7 @@ def create_web_optimized(source_path: Path, max_width: int = 800) -> Path:
     img.save(web_path, optimize=True)
 
     return web_path
+
 
 def main():
     print("Processing screenshots...")
@@ -68,6 +71,7 @@ def main():
     for f in sorted(SCREENSHOTS_DIR.glob("*.png")):
         if not f.stem.startswith("0"):  # Skip old numbered ones
             print(f"  {f.name}")
+
 
 if __name__ == "__main__":
     main()

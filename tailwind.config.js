@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -26,7 +23,7 @@ export default {
           green: '#33ff33',
           amber: '#ffaa00',
           white: '#f0f0f0',
-        }
+        },
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Berkeley Mono', 'Consolas', 'monospace'],
@@ -49,4 +46,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

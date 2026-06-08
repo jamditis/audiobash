@@ -3,10 +3,10 @@ Automated screenshot capture for AudioBash documentation.
 Captures the main window and various UI states.
 """
 
-import time
 import ctypes
 import ctypes.wintypes
 import sys
+import time
 from pathlib import Path
 
 import pyautogui
@@ -30,6 +30,7 @@ EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes
 # Store found windows globally (ctypes callback limitation)
 _found_windows = []
 
+
 def _enum_callback(hwnd, lParam):
     """Callback for EnumWindows."""
     if user32.IsWindowVisible(hwnd):
@@ -39,6 +40,7 @@ def _enum_callback(hwnd, lParam):
             user32.GetWindowTextW(hwnd, buffer, length + 1)
             _found_windows.append((hwnd, buffer.value))
     return True
+
 
 def find_window_by_title(title_part: str):
     """Find window handle by partial title match."""
@@ -52,11 +54,13 @@ def find_window_by_title(title_part: str):
     matches = [(h, t) for h, t in _found_windows if title_part.lower() in t.lower()]
     return matches
 
+
 def get_window_rect(hwnd):
     """Get window rectangle."""
     rect = ctypes.wintypes.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+
 
 def bring_to_front(hwnd):
     """Bring window to front."""
@@ -64,6 +68,7 @@ def bring_to_front(hwnd):
     user32.ShowWindow(hwnd, 9)  # SW_RESTORE
     user32.SetForegroundWindow(hwnd)
     time.sleep(0.3)
+
 
 def capture_window_by_hwnd(hwnd, name: str, description: str = ""):
     """Capture a window screenshot by handle."""
@@ -107,8 +112,10 @@ def capture_window_by_hwnd(hwnd, name: str, description: str = ""):
     except Exception as e:
         print(f"[ERROR] {name}: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def send_hotkey(*keys, delay=0.3):
     """Send a hotkey combination."""
@@ -116,11 +123,13 @@ def send_hotkey(*keys, delay=0.3):
     pyautogui.hotkey(*keys)
     time.sleep(0.5)
 
+
 def click_at(x, y, delay=0.3):
     """Click at absolute position."""
     time.sleep(delay)
     pyautogui.click(x, y)
     time.sleep(0.3)
+
 
 def click_window_relative(hwnd, x_ratio, y_ratio, delay=0.3):
     """Click at a position relative to window (0-1 ratios)."""
@@ -128,6 +137,7 @@ def click_window_relative(hwnd, x_ratio, y_ratio, delay=0.3):
     x = left + int(width * x_ratio)
     y = top + int(height * y_ratio)
     click_at(x, y, delay)
+
 
 def main():
     print("=" * 60)
@@ -161,14 +171,14 @@ def main():
         print("Make sure AudioBash is running (npm run electron:dev)")
         print("\nAvailable windows:")
         find_window_by_title("")
-        for hwnd, title in _found_windows[:20]:
+        for _hwnd, title in _found_windows[:20]:
             print(f"  - {title[:60]}")
         sys.exit(1)
 
     hwnd, title = windows[0]
     left, top, width, height = get_window_rect(hwnd)
     # Clean title for printing (remove non-ASCII chars)
-    clean_title = title.encode('ascii', 'ignore').decode('ascii')
+    clean_title = title.encode("ascii", "ignore").decode("ascii")
     print(f"Found window: {clean_title}")
     print(f"Handle: {hwnd}")
     print(f"Position: {left}, {top}")
@@ -189,34 +199,34 @@ def main():
     capture_window_by_hwnd(hwnd, "02-settings-panel", "Settings panel open")
 
     # Close settings by pressing Escape
-    send_hotkey('escape')
+    send_hotkey("escape")
     time.sleep(0.3)
 
     # 3. Voice recording - press Alt+S
     print("\nTriggering voice recording (Alt+S)...")
     bring_to_front(hwnd)
-    send_hotkey('alt', 's')
+    send_hotkey("alt", "s")
     time.sleep(0.5)
     capture_window_by_hwnd(hwnd, "03-voice-recording", "Voice recording active")
 
     # Stop recording
-    send_hotkey('alt', 's')
+    send_hotkey("alt", "s")
     time.sleep(0.5)
 
     # 4. Create a new tab for split view
     print("\nCreating new tab (Ctrl+T)...")
     bring_to_front(hwnd)
-    send_hotkey('ctrl', 't')
+    send_hotkey("ctrl", "t")
     time.sleep(0.5)
 
     # 5. Cycle to split layout (Alt+L)
     print("\nSwitching to split layout (Alt+L)...")
-    send_hotkey('alt', 'l')
+    send_hotkey("alt", "l")
     time.sleep(0.5)
     capture_window_by_hwnd(hwnd, "04-split-view-horizontal", "Horizontal split view")
 
     # Try another layout
-    send_hotkey('alt', 'l')
+    send_hotkey("alt", "l")
     time.sleep(0.5)
     capture_window_by_hwnd(hwnd, "05-split-view-vertical", "Vertical split view")
 
@@ -227,13 +237,13 @@ def main():
     capture_window_by_hwnd(hwnd, "06-quick-nav", "Quick navigation panel")
 
     # Close nav
-    send_hotkey('escape')
+    send_hotkey("escape")
     time.sleep(0.3)
 
     # 7. Back to single view
     print("\nReturning to single layout...")
     for _ in range(4):
-        send_hotkey('alt', 'l')
+        send_hotkey("alt", "l")
         time.sleep(0.2)
 
     # 8. Clean terminal state
@@ -251,6 +261,7 @@ def main():
     for f in sorted(SCREENSHOTS_DIR.glob("*.png")):
         size_kb = f.stat().st_size / 1024
         print(f"  {f.name:35} {size_kb:6.1f} KB")
+
 
 if __name__ == "__main__":
     main()

@@ -91,7 +91,8 @@ describe('Browser Detection', () => {
 
   describe('Desktop browsers', () => {
     it('should detect Microsoft Edge (Windows)', () => {
-      const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
+      const ua =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Edge');
       expect(info.mobile).toBe(false);
@@ -99,21 +100,24 @@ describe('Browser Detection', () => {
     });
 
     it('should detect Microsoft Edge (macOS)', () => {
-      const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
+      const ua =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Edge');
       expect(info.mobile).toBe(false);
     });
 
     it('should detect Chrome', () => {
-      const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+      const ua =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Chrome');
       expect(info.engine).toBe('Blink');
     });
 
     it('should detect Safari', () => {
-      const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+      const ua =
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Safari');
       expect(info.engine).toBe('WebKit');
@@ -129,36 +133,41 @@ describe('Browser Detection', () => {
 
   describe('Mobile browsers', () => {
     it('should detect Edge Mobile (Android)', () => {
-      const ua = 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 EdgA/120.0.0.0';
+      const ua =
+        'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 EdgA/120.0.0.0';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Edge');
       expect(info.mobile).toBe(true);
     });
 
     it('should detect Edge Mobile (iOS)', () => {
-      const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 EdgiOS/120.0.0.0 Mobile/15E148 Safari/604.1';
+      const ua =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 EdgiOS/120.0.0.0 Mobile/15E148 Safari/604.1';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Edge');
       expect(info.mobile).toBe(true);
-      expect(info.engine).toBe('WebKit');  // iOS forces WebKit
+      expect(info.engine).toBe('WebKit'); // iOS forces WebKit
     });
 
     it('should detect Samsung Internet', () => {
-      const ua = 'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0 Chrome/115.0.0.0 Mobile Safari/537.36';
+      const ua =
+        'Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/23.0 Chrome/115.0.0.0 Mobile Safari/537.36';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Samsung Internet');
       expect(info.mobile).toBe(true);
     });
 
     it('should detect Chrome Mobile', () => {
-      const ua = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
+      const ua =
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Chrome');
       expect(info.mobile).toBe(true);
     });
 
     it('should detect Safari Mobile', () => {
-      const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+      const ua =
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
       const info = detectBrowser(ua);
       expect(info.name).toBe('Safari');
       expect(info.mobile).toBe(true);
@@ -186,20 +195,70 @@ describe('Viewport Detection', () => {
 
   const devices: DeviceProfile[] = [
     // Samsung
-    { name: 'Samsung S24 Ultra', viewport: { width: 412, height: 892, devicePixelRatio: 3.5 }, physicalWidth: 3120, physicalHeight: 1440 },
-    { name: 'Samsung S24+', viewport: { width: 384, height: 832, devicePixelRatio: 3 }, physicalWidth: 3120, physicalHeight: 1440 },
-    { name: 'Samsung S24', viewport: { width: 360, height: 780, devicePixelRatio: 3 }, physicalWidth: 2340, physicalHeight: 1080 },
-    { name: 'Samsung Galaxy Fold (folded)', viewport: { width: 280, height: 653, devicePixelRatio: 3 }, physicalWidth: 840, physicalHeight: 1959 },
-    { name: 'Samsung Galaxy Fold (unfolded)', viewport: { width: 586, height: 820, devicePixelRatio: 2.625 }, physicalWidth: 1536, physicalHeight: 2152 },
+    {
+      name: 'Samsung S24 Ultra',
+      viewport: { width: 412, height: 892, devicePixelRatio: 3.5 },
+      physicalWidth: 3120,
+      physicalHeight: 1440,
+    },
+    {
+      name: 'Samsung S24+',
+      viewport: { width: 384, height: 832, devicePixelRatio: 3 },
+      physicalWidth: 3120,
+      physicalHeight: 1440,
+    },
+    {
+      name: 'Samsung S24',
+      viewport: { width: 360, height: 780, devicePixelRatio: 3 },
+      physicalWidth: 2340,
+      physicalHeight: 1080,
+    },
+    {
+      name: 'Samsung Galaxy Fold (folded)',
+      viewport: { width: 280, height: 653, devicePixelRatio: 3 },
+      physicalWidth: 840,
+      physicalHeight: 1959,
+    },
+    {
+      name: 'Samsung Galaxy Fold (unfolded)',
+      viewport: { width: 586, height: 820, devicePixelRatio: 2.625 },
+      physicalWidth: 1536,
+      physicalHeight: 2152,
+    },
 
     // iPhone
-    { name: 'iPhone 15 Pro Max', viewport: { width: 430, height: 932, devicePixelRatio: 3 }, physicalWidth: 1290, physicalHeight: 2796 },
-    { name: 'iPhone 15 Pro', viewport: { width: 393, height: 852, devicePixelRatio: 3 }, physicalWidth: 1179, physicalHeight: 2556 },
-    { name: 'iPhone SE', viewport: { width: 375, height: 667, devicePixelRatio: 2 }, physicalWidth: 750, physicalHeight: 1334 },
+    {
+      name: 'iPhone 15 Pro Max',
+      viewport: { width: 430, height: 932, devicePixelRatio: 3 },
+      physicalWidth: 1290,
+      physicalHeight: 2796,
+    },
+    {
+      name: 'iPhone 15 Pro',
+      viewport: { width: 393, height: 852, devicePixelRatio: 3 },
+      physicalWidth: 1179,
+      physicalHeight: 2556,
+    },
+    {
+      name: 'iPhone SE',
+      viewport: { width: 375, height: 667, devicePixelRatio: 2 },
+      physicalWidth: 750,
+      physicalHeight: 1334,
+    },
 
     // Tablets
-    { name: 'iPad Pro 12.9"', viewport: { width: 1024, height: 1366, devicePixelRatio: 2 }, physicalWidth: 2048, physicalHeight: 2732 },
-    { name: 'Samsung Galaxy Tab S9', viewport: { width: 753, height: 1205, devicePixelRatio: 2.25 }, physicalWidth: 1600, physicalHeight: 2560 },
+    {
+      name: 'iPad Pro 12.9"',
+      viewport: { width: 1024, height: 1366, devicePixelRatio: 2 },
+      physicalWidth: 2048,
+      physicalHeight: 2732,
+    },
+    {
+      name: 'Samsung Galaxy Tab S9',
+      viewport: { width: 753, height: 1205, devicePixelRatio: 2.25 },
+      physicalWidth: 1600,
+      physicalHeight: 2560,
+    },
   ];
 
   const getDeviceCategory = (width: number): 'phone' | 'phablet' | 'tablet' | 'desktop' => {
@@ -209,7 +268,9 @@ describe('Viewport Detection', () => {
     return 'desktop';
   };
 
-  const getAuxKeySize = (viewportWidth: number): { minWidth: number; height: number; gap: number } => {
+  const getAuxKeySize = (
+    viewportWidth: number,
+  ): { minWidth: number; height: number; gap: number } => {
     // S24 Ultra optimizations (400-450px range)
     if (viewportWidth >= 400 && viewportWidth <= 450) {
       return { minWidth: 44, height: 38, gap: 8 };
@@ -228,34 +289,34 @@ describe('Viewport Detection', () => {
 
   describe('Device categorization', () => {
     it('should categorize Samsung S24 Ultra as phablet', () => {
-      const device = devices.find(d => d.name === 'Samsung S24 Ultra')!;
+      const device = devices.find((d) => d.name === 'Samsung S24 Ultra')!;
       expect(getDeviceCategory(device.viewport.width)).toBe('phablet');
     });
 
     it('should categorize iPhone SE as phone', () => {
-      const device = devices.find(d => d.name === 'iPhone SE')!;
-      expect(getDeviceCategory(device.viewport.width)).toBe('phablet');  // 375px is phablet
+      const device = devices.find((d) => d.name === 'iPhone SE')!;
+      expect(getDeviceCategory(device.viewport.width)).toBe('phablet'); // 375px is phablet
     });
 
     it('should categorize Galaxy Fold (folded) as phone', () => {
-      const device = devices.find(d => d.name === 'Samsung Galaxy Fold (folded)')!;
+      const device = devices.find((d) => d.name === 'Samsung Galaxy Fold (folded)')!;
       expect(getDeviceCategory(device.viewport.width)).toBe('phone');
     });
 
     it('should categorize iPad Pro as tablet', () => {
-      const device = devices.find(d => d.name === 'iPad Pro 12.9"')!;
-      expect(getDeviceCategory(device.viewport.width)).toBe('desktop');  // 1024 is desktop threshold
+      const device = devices.find((d) => d.name === 'iPad Pro 12.9"')!;
+      expect(getDeviceCategory(device.viewport.width)).toBe('desktop'); // 1024 is desktop threshold
     });
 
     it('should categorize Galaxy Tab as tablet', () => {
-      const device = devices.find(d => d.name === 'Samsung Galaxy Tab S9')!;
+      const device = devices.find((d) => d.name === 'Samsung Galaxy Tab S9')!;
       expect(getDeviceCategory(device.viewport.width)).toBe('tablet');
     });
   });
 
   describe('Aux key sizing', () => {
     it('should use S24 Ultra optimized sizes', () => {
-      const sizes = getAuxKeySize(412);  // S24 Ultra width
+      const sizes = getAuxKeySize(412); // S24 Ultra width
       expect(sizes.minWidth).toBe(44);
       expect(sizes.height).toBe(38);
       expect(sizes.gap).toBe(8);
@@ -281,7 +342,7 @@ describe('Viewport Detection', () => {
     it('should meet minimum touch target for S24 Ultra', () => {
       const sizes = getAuxKeySize(412);
       expect(sizes.minWidth).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET);
-      expect(sizes.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET - 8);  // Allow slightly shorter
+      expect(sizes.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET - 8); // Allow slightly shorter
     });
 
     it('should have adequate spacing between keys', () => {
@@ -290,13 +351,15 @@ describe('Viewport Detection', () => {
       expect(sizes.gap).toBeGreaterThanOrEqual(6);
     });
 
-    devices.filter(d => d.viewport.width < 600).forEach(device => {
-      it(`should have adequate touch targets on ${device.name}`, () => {
-        const sizes = getAuxKeySize(device.viewport.width);
-        expect(sizes.minWidth).toBeGreaterThanOrEqual(38);  // Minimum acceptable
-        expect(sizes.height).toBeGreaterThanOrEqual(34);
+    devices
+      .filter((d) => d.viewport.width < 600)
+      .forEach((device) => {
+        it(`should have adequate touch targets on ${device.name}`, () => {
+          const sizes = getAuxKeySize(device.viewport.width);
+          expect(sizes.minWidth).toBeGreaterThanOrEqual(38); // Minimum acceptable
+          expect(sizes.height).toBeGreaterThanOrEqual(34);
+        });
       });
-    });
   });
 });
 
@@ -315,8 +378,8 @@ describe('Safe Area Handling', () => {
   const deviceSafeAreas: Record<string, SafeAreaInsets> = {
     'iPhone 15 Pro': { top: 59, right: 0, bottom: 34, left: 0 },
     'iPhone 15 Pro Max': { top: 59, right: 0, bottom: 34, left: 0 },
-    'iPhone SE': { top: 20, right: 0, bottom: 0, left: 0 },  // No notch
-    'Samsung S24 Ultra': { top: 0, right: 0, bottom: 0, left: 0 },  // Punch hole, not notch
+    'iPhone SE': { top: 20, right: 0, bottom: 0, left: 0 }, // No notch
+    'Samsung S24 Ultra': { top: 0, right: 0, bottom: 0, left: 0 }, // Punch hole, not notch
     'iPad Pro': { top: 24, right: 0, bottom: 20, left: 0 },
   };
 
@@ -330,14 +393,14 @@ describe('Safe Area Handling', () => {
   it('should add safe area to status bar on iPhone with notch', () => {
     const insets = deviceSafeAreas['iPhone 15 Pro'];
     const padding = calculatePadding(insets, 0);
-    expect(padding.top).toBe(59);  // Full notch height
+    expect(padding.top).toBe(59); // Full notch height
   });
 
   it('should add safe area to bottom bar on iPhone', () => {
     const insets = deviceSafeAreas['iPhone 15 Pro'];
     const baseInputPadding = 8;
     const padding = calculatePadding(insets, baseInputPadding);
-    expect(padding.bottom).toBe(42);  // 8 + 34 home indicator
+    expect(padding.bottom).toBe(42); // 8 + 34 home indicator
   });
 
   it('should not add extra padding on Samsung (no notch)', () => {
@@ -351,8 +414,8 @@ describe('Safe Area Handling', () => {
   it('should handle legacy iPhone without notch', () => {
     const insets = deviceSafeAreas['iPhone SE'];
     const padding = calculatePadding(insets, 0);
-    expect(padding.top).toBe(20);  // Status bar only
-    expect(padding.bottom).toBe(0);  // No home indicator
+    expect(padding.top).toBe(20); // Status bar only
+    expect(padding.bottom).toBe(0); // No home indicator
   });
 });
 
@@ -455,9 +518,9 @@ describe('CSS Feature Support', () => {
   // Simulate CSS.supports() checks
   const mockCSSSupports = (property: string, value: string): boolean => {
     const supported: Record<string, string[]> = {
-      'display': ['flex', 'grid', 'none', 'block'],
-      'gap': ['8px', '1rem'],
-      'padding': ['env(safe-area-inset-top)', '10px'],
+      display: ['flex', 'grid', 'none', 'block'],
+      gap: ['8px', '1rem'],
+      padding: ['env(safe-area-inset-top)', '10px'],
       '-webkit-overflow-scrolling': ['touch'],
       'overscroll-behavior': ['contain', 'none'],
       'touch-action': ['manipulation', 'none'],
@@ -500,7 +563,7 @@ describe('Microsoft Edge Specific', () => {
           // Try to access localStorage
           localStorage.setItem('__tp_test__', '1');
           localStorage.removeItem('__tp_test__');
-          return 'none';  // Or basic - hard to distinguish
+          return 'none'; // Or basic - hard to distinguish
         } catch (e) {
           // Storage blocked - likely strict mode
           return 'strict';
@@ -516,7 +579,7 @@ describe('Microsoft Edge Specific', () => {
       let connectionInfo = { ip: '', code: '' };
 
       const saveConnection = (ip: string, code: string, storage: Storage | null) => {
-        connectionInfo = { ip, code };  // Always save in memory
+        connectionInfo = { ip, code }; // Always save in memory
         if (storage) {
           try {
             storage.setItem('ip', ip);
@@ -535,9 +598,11 @@ describe('Microsoft Edge Specific', () => {
   describe('Edge PWA behavior', () => {
     it('should detect standalone mode', () => {
       const isStandalone = () => {
-        return window.matchMedia?.('(display-mode: standalone)')?.matches ||
-               (window.navigator as any).standalone ||
-               document.referrer.includes('android-app://');
+        return (
+          window.matchMedia?.('(display-mode: standalone)')?.matches ||
+          (window.navigator as any).standalone ||
+          document.referrer.includes('android-app://')
+        );
       };
 
       // Just verify the function doesn't throw

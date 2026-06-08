@@ -39,7 +39,7 @@ describe('Terminal Rendering Stress Tests', () => {
 
           expect(buffer.length).toBeLessThanOrEqual(maxBufferSize);
         },
-        { iterations: 200, cooldown: 1 }
+        { iterations: 200, cooldown: 1 },
       );
 
       results.push(result);
@@ -63,12 +63,12 @@ describe('Terminal Rendering Stress Tests', () => {
           // Truncate like real terminal (2000 char per-line limit mentioned in code)
           const lines = buffer.split('\n');
           const truncatedLines = lines.map((line) =>
-            line.length > 2000 ? line.slice(0, 2000) + '...' : line
+            line.length > 2000 ? line.slice(0, 2000) + '...' : line,
           );
 
           expect(truncatedLines[0].length).toBeLessThanOrEqual(2003);
         },
-        { iterations: 100, cooldown: 5 }
+        { iterations: 100, cooldown: 5 },
       );
 
       results.push(result);
@@ -93,7 +93,7 @@ describe('Terminal Rendering Stress Tests', () => {
           const stripped = output.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
           expect(stripped.length).toBeGreaterThan(0);
         },
-        { iterations: 200, cooldown: 1 }
+        { iterations: 200, cooldown: 1 },
       );
 
       results.push(result);
@@ -126,7 +126,7 @@ describe('Terminal Rendering Stress Tests', () => {
           expect(dim.cols).toBeGreaterThan(0);
           expect(dim.rows).toBeGreaterThan(0);
         },
-        { iterations: 100, cooldown: 10 }
+        { iterations: 100, cooldown: 10 },
       );
 
       results.push(result);
@@ -187,7 +187,7 @@ describe('Terminal Rendering Stress Tests', () => {
 
           expect(tabs.size).toBe(tabCount);
         },
-        { iterations: 50, cooldown: 10 }
+        { iterations: 50, cooldown: 10 },
       );
 
       results.push(result);
@@ -212,7 +212,7 @@ describe('Terminal Rendering Stress Tests', () => {
 
           expect(tabs.size).toBe(2);
         },
-        { iterations: 200, cooldown: 1 }
+        { iterations: 200, cooldown: 1 },
       );
 
       results.push(result);
@@ -236,7 +236,7 @@ describe('Terminal Rendering Stress Tests', () => {
           const batch = inputs.join('');
           expect(batch.length).toBe(100);
         },
-        { iterations: 200, cooldown: 1 }
+        { iterations: 200, cooldown: 1 },
       );
 
       results.push(result);
@@ -271,7 +271,7 @@ describe('Terminal Rendering Stress Tests', () => {
           // Simulate sending to PTY
           expect(key.length).toBeGreaterThan(0);
         },
-        { iterations: 200, cooldown: 1 }
+        { iterations: 200, cooldown: 1 },
       );
 
       results.push(result);
@@ -296,7 +296,7 @@ describe('Terminal Rendering Stress Tests', () => {
             expect(chunk.length).toBeLessThanOrEqual(chunkSize);
           }
         },
-        { iterations: 50, cooldown: 10 }
+        { iterations: 50, cooldown: 10 },
       );
 
       results.push(result);
@@ -350,7 +350,7 @@ describe('PTY Process Stress Tests', () => {
           const output = binaryData.toString('utf-8');
           expect(output.length).toBeGreaterThan(0);
         },
-        { iterations: 100, cooldown: 1 }
+        { iterations: 100, cooldown: 1 },
       );
 
       expect(result.passed).toBe(true);
@@ -373,7 +373,7 @@ describe('PTY Process Stress Tests', () => {
 
           expect(buffer.length).toBeLessThanOrEqual(maxBuffer);
         },
-        { iterations: 100, cooldown: 5 }
+        { iterations: 100, cooldown: 5 },
       );
 
       expect(result.passed).toBe(true);
@@ -398,7 +398,7 @@ describe('Terminal Context Detection', () => {
     for (const { output, isPrompt } of promptPatterns) {
       const matches = promptRegex.test(output);
       // Allow some false positives/negatives in edge cases
-      if (isPrompt && output.includes('$') || output.includes('>')) {
+      if ((isPrompt && output.includes('$')) || output.includes('>')) {
         expect(matches).toBe(true);
       }
     }
@@ -442,7 +442,7 @@ describe('Scrollback Buffer Stress', () => {
 
         expect(lines.length).toBeLessThanOrEqual(maxScrollback);
       },
-      { iterations: 150, cooldown: 1 }
+      { iterations: 150, cooldown: 1 },
     );
 
     expect(result.passed).toBe(true);

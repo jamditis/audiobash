@@ -20,8 +20,17 @@ interface PaneNodeProps {
 }
 
 const PaneNodeComponent: React.FC<PaneNodeProps> = ({
-  node, focusedId, zoomedId, isRecording, cliNotificationsEnabled, fontSize,
-  activityStates, paneColors, onFocus, onResize, onEqualize,
+  node,
+  focusedId,
+  zoomedId,
+  isRecording,
+  cliNotificationsEnabled,
+  fontSize,
+  activityStates,
+  paneColors,
+  onFocus,
+  onResize,
+  onEqualize,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -70,10 +79,16 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
       <div style={{ [isHorizontal ? 'height' : 'width']: firstSize }} className="overflow-hidden">
         <PaneNodeComponent
           node={node.children[0]}
-          focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}
-          cliNotificationsEnabled={cliNotificationsEnabled} fontSize={fontSize}
-          activityStates={activityStates} paneColors={paneColors}
-          onFocus={onFocus} onResize={onResize} onEqualize={onEqualize}
+          focusedId={focusedId}
+          zoomedId={zoomedId}
+          isRecording={isRecording}
+          cliNotificationsEnabled={cliNotificationsEnabled}
+          fontSize={fontSize}
+          activityStates={activityStates}
+          paneColors={paneColors}
+          onFocus={onFocus}
+          onResize={onResize}
+          onEqualize={onEqualize}
         />
       </div>
       <PaneDivider
@@ -84,10 +99,16 @@ const PaneNodeComponent: React.FC<PaneNodeProps> = ({
       <div style={{ [isHorizontal ? 'height' : 'width']: secondSize }} className="overflow-hidden">
         <PaneNodeComponent
           node={node.children[1]}
-          focusedId={focusedId} zoomedId={zoomedId} isRecording={isRecording}
-          cliNotificationsEnabled={cliNotificationsEnabled} fontSize={fontSize}
-          activityStates={activityStates} paneColors={paneColors}
-          onFocus={onFocus} onResize={onResize} onEqualize={onEqualize}
+          focusedId={focusedId}
+          zoomedId={zoomedId}
+          isRecording={isRecording}
+          cliNotificationsEnabled={cliNotificationsEnabled}
+          fontSize={fontSize}
+          activityStates={activityStates}
+          paneColors={paneColors}
+          onFocus={onFocus}
+          onResize={onResize}
+          onEqualize={onEqualize}
         />
       </div>
     </div>

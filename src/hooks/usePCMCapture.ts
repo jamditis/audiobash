@@ -7,10 +7,10 @@ import { useRef, useState, useCallback } from 'react';
 import { float32ArrayToBase64 } from '../utils/audioUtils';
 
 export interface UsePCMCaptureOptions {
-  sampleRate?: number;  // Default: 16000
+  sampleRate?: number; // Default: 16000
   onAudioData: (pcmBase64: string) => void;
   onError?: (error: Error) => void;
-  deviceId?: string;    // Specific microphone device ID
+  deviceId?: string; // Specific microphone device ID
 }
 
 export interface UsePCMCaptureResult {
@@ -25,12 +25,7 @@ export interface UsePCMCaptureResult {
  * Uses ScriptProcessorNode (deprecated but widely supported) or AudioWorklet
  */
 export function usePCMCapture(options: UsePCMCaptureOptions): UsePCMCaptureResult {
-  const {
-    sampleRate = 16000,
-    onAudioData,
-    onError,
-    deviceId,
-  } = options;
+  const { sampleRate = 16000, onAudioData, onError, deviceId } = options;
 
   const [isCapturing, setIsCapturing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +145,7 @@ export function usePCMCapture(options: UsePCMCaptureOptions): UsePCMCaptureResul
     }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 

@@ -7,8 +7,8 @@ import { transcriptionLog as log } from '../utils/logger';
 
 export interface ElevenLabsRealtimeConfig {
   apiKey: string;
-  language?: string;           // 'eng' or null for auto-detect
-  keyterms?: string[];         // Up to 100 vocabulary terms for better accuracy
+  language?: string; // 'eng' or null for auto-detect
+  keyterms?: string[]; // Up to 100 vocabulary terms for better accuracy
   onFinalTranscript: (text: string) => void;
   onError: (error: Error) => void;
   onSessionStart?: () => void;
@@ -173,21 +173,25 @@ export class ElevenLabsRealtimeService {
           break;
 
         case 'committed_transcript':
-        case 'committed_transcript_with_timestamps':
+        case 'committed_transcript_with_timestamps': {
           const text = message.text?.trim() || '';
           if (text) {
             log.info('Final transcript received', { textLength: text.length });
             this.config.onFinalTranscript(text);
           }
           break;
+        }
 
-        case 'error':
-          const error = new Error(message.error_message || 'Unknown ElevenLabs error') as ElevenLabsRealtimeError;
+        case 'error': {
+          const error = new Error(
+            message.error_message || 'Unknown ElevenLabs error',
+          ) as ElevenLabsRealtimeError;
           error.code = message.error_type || 'UNKNOWN';
           error.type = message.error_type;
           log.error('ElevenLabs error', error, { errorType: message.error_type });
           this.config.onError(error);
           break;
+        }
 
         default:
           log.debug('Unknown message type', { type: message.message_type });
@@ -279,7 +283,7 @@ export class ElevenLabsRealtimeService {
       delayMs: delay,
     });
 
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     try {
       await this.connect();

@@ -1,4 +1,16 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, safeStorage, screen, session, shell } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  globalShortcut,
+  Tray,
+  Menu,
+  nativeImage,
+  safeStorage,
+  screen,
+  session,
+  shell,
+} = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -10,12 +22,20 @@ const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
 // Global error handlers to prevent silent crashes (fixes #29)
 process.on('uncaughtException', (err) => {
   console.error('[AudioBash] Uncaught exception:', err);
-  try { appLog.error('Uncaught exception', err); } catch (_) { /* logger may not be initialized */ }
+  try {
+    appLog.error('Uncaught exception', err);
+  } catch (_) {
+    /* logger may not be initialized */
+  }
 });
 
 process.on('unhandledRejection', (reason) => {
   console.error('[AudioBash] Unhandled rejection:', reason);
-  try { appLog.error('Unhandled rejection', { reason: String(reason) }); } catch (_) { /* logger may not be initialized */ }
+  try {
+    appLog.error('Unhandled rejection', { reason: String(reason) });
+  } catch (_) {
+    /* logger may not be initialized */
+  }
 });
 
 // node-pty will be loaded dynamically after app ready
@@ -61,7 +81,7 @@ const store = {
   set(key, value) {
     this.data[key] = value;
     this.save();
-  }
+  },
 };
 store.load();
 const ptyProcesses = new Map(); // Map of tabId -> ptyProcess
@@ -269,7 +289,6 @@ function createWindow() {
     }
   });
 
-
   // Hide instead of close (tray mode)
   mainWindow.on('close', (event) => {
     if (!app.isQuitting) {
@@ -285,14 +304,16 @@ function createTray() {
   if (app.isPackaged) {
     // In production, icons are in resources folder
     const resourcesPath = process.resourcesPath;
-    iconPath = process.platform === 'win32'
-      ? path.join(resourcesPath, 'audiobash-logo.ico')
-      : path.join(resourcesPath, 'audiobash-logo.png');
+    iconPath =
+      process.platform === 'win32'
+        ? path.join(resourcesPath, 'audiobash-logo.ico')
+        : path.join(resourcesPath, 'audiobash-logo.png');
   } else {
     // In development, icons are in project root
-    iconPath = process.platform === 'win32'
-      ? path.join(__dirname, '../audiobash-logo.ico')
-      : path.join(__dirname, '../audiobash-logo.png');
+    iconPath =
+      process.platform === 'win32'
+        ? path.join(__dirname, '../audiobash-logo.ico')
+        : path.join(__dirname, '../audiobash-logo.png');
   }
 
   console.log('[AudioBash] Tray icon path:', iconPath);
@@ -387,10 +408,14 @@ function loadDirectories() {
 function saveDirectories() {
   try {
     const dirsPath = path.join(app.getPath('userData'), 'directories.json');
-    fs.writeFileSync(dirsPath, JSON.stringify({
-      recent: recentDirectories,
-      favorites: favoriteDirectories,
-    }), 'utf8');
+    fs.writeFileSync(
+      dirsPath,
+      JSON.stringify({
+        recent: recentDirectories,
+        favorites: favoriteDirectories,
+      }),
+      'utf8',
+    );
   } catch (err) {
     console.error('[AudioBash] Failed to save directories:', err);
   }
@@ -400,7 +425,7 @@ function addRecentDirectory(dir) {
   if (!dir || !fs.existsSync(dir)) return;
 
   // Remove if already exists
-  recentDirectories = recentDirectories.filter(d => d !== dir);
+  recentDirectories = recentDirectories.filter((d) => d !== dir);
   // Add to front
   recentDirectories.unshift(dir);
   // Trim to max
@@ -434,7 +459,9 @@ function registerShortcuts() {
       if (success) {
         console.log(`[AudioBash] Registered toggleRecording: ${currentShortcuts.toggleRecording}`);
       } else {
-        console.error(`[AudioBash] Failed to register toggleRecording: ${currentShortcuts.toggleRecording} (already in use)`);
+        console.error(
+          `[AudioBash] Failed to register toggleRecording: ${currentShortcuts.toggleRecording} (already in use)`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register ${currentShortcuts.toggleRecording}:`, err);
@@ -451,7 +478,9 @@ function registerShortcuts() {
       if (success) {
         console.log(`[AudioBash] Registered cancelRecording: ${currentShortcuts.cancelRecording}`);
       } else {
-        console.error(`[AudioBash] Failed to register cancelRecording: ${currentShortcuts.cancelRecording} (already in use)`);
+        console.error(
+          `[AudioBash] Failed to register cancelRecording: ${currentShortcuts.cancelRecording} (already in use)`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register ${currentShortcuts.cancelRecording}:`, err);
@@ -473,7 +502,9 @@ function registerShortcuts() {
       if (success) {
         console.log(`[AudioBash] Registered toggleWindow: ${currentShortcuts.toggleWindow}`);
       } else {
-        console.error(`[AudioBash] Failed to register toggleWindow: ${currentShortcuts.toggleWindow} (already in use)`);
+        console.error(
+          `[AudioBash] Failed to register toggleWindow: ${currentShortcuts.toggleWindow} (already in use)`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register ${currentShortcuts.toggleWindow}:`, err);
@@ -533,7 +564,9 @@ function registerShortcuts() {
         mainWindow?.webContents.send('focus-next-terminal');
       });
       if (success) {
-        console.log(`[AudioBash] Registered focusNextTerminal: ${currentShortcuts.focusNextTerminal}`);
+        console.log(
+          `[AudioBash] Registered focusNextTerminal: ${currentShortcuts.focusNextTerminal}`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register focusNextTerminal:`, err);
@@ -548,7 +581,9 @@ function registerShortcuts() {
         mainWindow?.webContents.send('focus-prev-terminal');
       });
       if (success) {
-        console.log(`[AudioBash] Registered focusPrevTerminal: ${currentShortcuts.focusPrevTerminal}`);
+        console.log(
+          `[AudioBash] Registered focusPrevTerminal: ${currentShortcuts.focusPrevTerminal}`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register focusPrevTerminal:`, err);
@@ -563,7 +598,9 @@ function registerShortcuts() {
         mainWindow?.webContents.send('bookmark-directory');
       });
       if (success) {
-        console.log(`[AudioBash] Registered bookmarkDirectory: ${currentShortcuts.bookmarkDirectory}`);
+        console.log(
+          `[AudioBash] Registered bookmarkDirectory: ${currentShortcuts.bookmarkDirectory}`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register bookmarkDirectory:`, err);
@@ -608,7 +645,9 @@ function registerShortcuts() {
         mainWindow?.webContents.send('capture-screenshot');
       });
       if (success) {
-        console.log(`[AudioBash] Registered captureScreenshot: ${currentShortcuts.captureScreenshot}`);
+        console.log(
+          `[AudioBash] Registered captureScreenshot: ${currentShortcuts.captureScreenshot}`,
+        );
       }
     } catch (err) {
       console.error(`[AudioBash] Failed to register captureScreenshot:`, err);
@@ -746,7 +785,9 @@ function spawnShell(tabId) {
 
         // Try to detect CWD changes from common shell prompts
         // This is a heuristic - works for PowerShell and most Unix shells
-        const cwdMatch = data.match(/(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/);
+        const cwdMatch = data.match(
+          /(?:PS\s+)?([A-Za-z]:\\[^\r\n>]*|\/[^\r\n$#>]*?)(?:\s*[>$#]|>)/,
+        );
         if (cwdMatch && cwdMatch[1]) {
           const newCwd = cwdMatch[1].trim();
           if (newCwd && newCwd !== terminalCwds.get(tabId)) {
@@ -760,7 +801,6 @@ function spawnShell(tabId) {
         if (terminalReady.has(tabId) && mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('terminal-data', { tabId, data });
         }
-
       } catch (err) {
         ptyLog.error('Error in PTY onData handler', err, { tabId });
       }
@@ -839,7 +879,11 @@ function setupIPC() {
 
   ipcMain.on('terminal-write', (_, { tabId, data }) => {
     if (typeof data !== 'string' || data.length > MAX_TERMINAL_INPUT) {
-      ipcLog.warn('terminal-write: invalid input', { tabId, type: typeof data, length: data?.length });
+      ipcLog.warn('terminal-write: invalid input', {
+        tabId,
+        type: typeof data,
+        length: data?.length,
+      });
       return;
     }
     const ptyProcess = ptyProcesses.get(tabId);
@@ -849,9 +893,14 @@ function setupIPC() {
   ipcMain.on('terminal-resize', (_, { tabId, cols, rows }) => {
     const numCols = Number(cols);
     const numRows = Number(rows);
-    if (!Number.isInteger(numCols) || !Number.isInteger(numRows) ||
-        numCols < MIN_COLS || numCols > MAX_COLS ||
-        numRows < MIN_ROWS || numRows > MAX_ROWS) {
+    if (
+      !Number.isInteger(numCols) ||
+      !Number.isInteger(numRows) ||
+      numCols < MIN_COLS ||
+      numCols > MAX_COLS ||
+      numRows < MIN_ROWS ||
+      numRows > MAX_ROWS
+    ) {
       ipcLog.warn('terminal-resize: invalid dimensions', { tabId, cols, rows });
       return;
     }
@@ -862,7 +911,11 @@ function setupIPC() {
   // Send text to terminal (from voice transcription)
   ipcMain.on('send-to-terminal', (_, { tabId, text }) => {
     if (typeof text !== 'string' || text.length === 0 || text.length > MAX_TERMINAL_INPUT) {
-      ipcLog.warn('send-to-terminal: invalid input', { tabId, type: typeof text, length: text?.length });
+      ipcLog.warn('send-to-terminal: invalid input', {
+        tabId,
+        type: typeof text,
+        length: text?.length,
+      });
       return;
     }
     const ptyProcess = ptyProcesses.get(tabId);
@@ -879,7 +932,11 @@ function setupIPC() {
   // Insert text to terminal WITHOUT executing (for raw mode)
   ipcMain.on('insert-to-terminal', (_, { tabId, text }) => {
     if (typeof text !== 'string' || text.length === 0 || text.length > MAX_TERMINAL_INPUT) {
-      ipcLog.warn('insert-to-terminal: invalid input', { tabId, type: typeof text, length: text?.length });
+      ipcLog.warn('insert-to-terminal: invalid input', {
+        tabId,
+        type: typeof text,
+        length: text?.length,
+      });
       return;
     }
     const ptyProcess = ptyProcesses.get(tabId);
@@ -973,7 +1030,7 @@ function setupIPC() {
   });
 
   ipcMain.handle('remove-favorite-directory', async (_, dir) => {
-    favoriteDirectories = favoriteDirectories.filter(d => d !== dir);
+    favoriteDirectories = favoriteDirectories.filter((d) => d !== dir);
     saveDirectories();
     return { success: true };
   });
@@ -981,7 +1038,8 @@ function setupIPC() {
   ipcMain.handle('cd-to-directory', async (_, { tabId, dir }) => {
     const ptyProcess = ptyProcesses.get(tabId);
     if (!ptyProcess) return { success: false, error: 'No terminal' };
-    if (typeof dir !== 'string' || !dir.trim()) return { success: false, error: 'Invalid directory' };
+    if (typeof dir !== 'string' || !dir.trim())
+      return { success: false, error: 'Invalid directory' };
     // Reject only line terminators: the command is submitted to the PTY with a trailing \r, so an
     // embedded \r/\n would split it into a second command line. Every other character (including
     // quotes, $, &, spaces) is made safe by single-quote shell quoting below, so legitimate
@@ -989,7 +1047,8 @@ function setupIPC() {
     if (/[\r\n]/.test(dir)) {
       return { success: false, error: 'Directory path contains line breaks' };
     }
-    if (!path.isAbsolute(dir)) return { success: false, error: 'Directory must be an absolute path' };
+    if (!path.isAbsolute(dir))
+      return { success: false, error: 'Directory must be an absolute path' };
     if (!fs.existsSync(dir)) return { success: false, error: 'Directory does not exist' };
 
     // Quote the path for the shell this PTY was actually spawned with (recorded in ptyShells), not
@@ -1191,7 +1250,10 @@ function setupIPC() {
       } else {
         // Secure storage unavailable (e.g. Linux without a keyring): NEVER write the key to
         // disk in plain text. Hold it in memory for this session only (see cache below).
-        ipcLog.warn('set-api-key: secure storage unavailable; key held in memory for this session only, not persisted', { provider });
+        ipcLog.warn(
+          'set-api-key: secure storage unavailable; key held in memory for this session only, not persisted',
+          { provider },
+        );
       }
 
       // Cache in memory so the key is usable this session regardless of disk persistence.
@@ -1277,17 +1339,17 @@ function setupIPC() {
   // Rate limiter: sliding window, max requests per window
   const transcriptionRateLimiter = {
     timestamps: [],
-    maxRequests: 15,    // 15 requests per minute
-    windowMs: 60000,    // 1 minute window
+    maxRequests: 15, // 15 requests per minute
+    windowMs: 60000, // 1 minute window
     check() {
       const now = Date.now();
-      this.timestamps = this.timestamps.filter(t => now - t < this.windowMs);
+      this.timestamps = this.timestamps.filter((t) => now - t < this.windowMs);
       if (this.timestamps.length >= this.maxRequests) {
         return false;
       }
       this.timestamps.push(now);
       return true;
-    }
+    },
   };
 
   // Audio blob validation
@@ -1313,17 +1375,26 @@ function setupIPC() {
         return await fn();
       } catch (err) {
         lastError = err;
-        const isRetryable = err.status === 429 || err.status === 503 || err.status === 502 ||
-          err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND' ||
+        const isRetryable =
+          err.status === 429 ||
+          err.status === 503 ||
+          err.status === 502 ||
+          err.code === 'ECONNRESET' ||
+          err.code === 'ETIMEDOUT' ||
+          err.code === 'ENOTFOUND' ||
           (err.message && err.message.includes('RESOURCE_EXHAUSTED'));
         if (!isRetryable || attempt === maxRetries) {
           throw err;
         }
         const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
-        ipcLog.warn(`${label}: retrying after transient error (attempt ${attempt + 1}/${maxRetries})`, {
-          error: err.message, delay: Math.round(delay)
-        });
-        await new Promise(resolve => setTimeout(resolve, delay));
+        ipcLog.warn(
+          `${label}: retrying after transient error (attempt ${attempt + 1}/${maxRetries})`,
+          {
+            error: err.message,
+            delay: Math.round(delay),
+          },
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
     throw lastError;
@@ -1359,17 +1430,20 @@ function setupIPC() {
 
       ipcLog.info(`Transcribing with Gemini (${geminiModel})`);
 
-      const result = await withRetry(async () => {
-        return await model.generateContent([
-          { text: prompt },
-          {
-            inlineData: {
-              mimeType: 'audio/webm',
-              data: audioBase64
-            }
-          }
-        ]);
-      }, { label: 'Gemini transcription' });
+      const result = await withRetry(
+        async () => {
+          return await model.generateContent([
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: 'audio/webm',
+                data: audioBase64,
+              },
+            },
+          ]);
+        },
+        { label: 'Gemini transcription' },
+      );
 
       const response = await result.response;
       const text = response.text()?.trim() || '';
@@ -1413,28 +1487,34 @@ function setupIPC() {
       const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
 
       // Use Whisper for transcription with retry
-      const transcription = await withRetry(async () => {
-        return await openaiClient.audio.transcriptions.create({
-          file: file,
-          model: 'whisper-1',
-        });
-      }, { label: 'OpenAI Whisper' });
+      const transcription = await withRetry(
+        async () => {
+          return await openaiClient.audio.transcriptions.create({
+            file: file,
+            model: 'whisper-1',
+          });
+        },
+        { label: 'OpenAI Whisper' },
+      );
 
       let text = transcription.text?.trim() || '';
 
       // If agent mode (has prompt with context), use GPT-4 to process the transcription
       if (prompt && modelId === 'openai-gpt4' && text) {
         ipcLog.info('Processing transcription with GPT-4');
-        const completion = await withRetry(async () => {
-          return await openaiClient.chat.completions.create({
-            model: 'gpt-4-turbo-preview',
-            messages: [
-              { role: 'system', content: prompt },
-              { role: 'user', content: text }
-            ],
-            max_tokens: 200,
-          });
-        }, { label: 'OpenAI GPT-4' });
+        const completion = await withRetry(
+          async () => {
+            return await openaiClient.chat.completions.create({
+              model: 'gpt-4-turbo-preview',
+              messages: [
+                { role: 'system', content: prompt },
+                { role: 'user', content: text },
+              ],
+              max_tokens: 200,
+            });
+          },
+          { label: 'OpenAI GPT-4' },
+        );
         text = completion.choices[0]?.message?.content?.trim() || text;
       }
 
@@ -1464,7 +1544,10 @@ function setupIPC() {
       const anthropicKey = await getApiKeyInternal('anthropic');
 
       if (!openaiKey) {
-        return { success: false, error: 'OpenAI API key required for audio transcription with Claude' };
+        return {
+          success: false,
+          error: 'OpenAI API key required for audio transcription with Claude',
+        };
       }
       if (!anthropicKey) {
         return { success: false, error: 'No Anthropic API key configured' };
@@ -1484,31 +1567,34 @@ function setupIPC() {
       const buffer = Buffer.from(audioBase64, 'base64');
       const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
 
-      const transcription = await withRetry(async () => {
-        return await openaiClient.audio.transcriptions.create({
-          file: file,
-          model: 'whisper-1',
-        });
-      }, { label: 'Whisper (for Claude)' });
+      const transcription = await withRetry(
+        async () => {
+          return await openaiClient.audio.transcriptions.create({
+            file: file,
+            model: 'whisper-1',
+          });
+        },
+        { label: 'Whisper (for Claude)' },
+      );
 
       let text = transcription.text?.trim() || '';
 
       // If agent mode (has prompt with context), use Claude to process the transcription
       if (prompt && text) {
         ipcLog.info('Processing transcription with Claude');
-        const claudeModel = modelId === 'claude-haiku'
-          ? 'claude-3-haiku-20240307'
-          : 'claude-sonnet-4-20250514';
+        const claudeModel =
+          modelId === 'claude-haiku' ? 'claude-3-haiku-20240307' : 'claude-sonnet-4-20250514';
 
-        const message = await withRetry(async () => {
-          return await anthropicClient.messages.create({
-            model: claudeModel,
-            max_tokens: 200,
-            messages: [
-              { role: 'user', content: `${prompt}\n\n${text}` }
-            ],
-          });
-        }, { label: 'Claude processing' });
+        const message = await withRetry(
+          async () => {
+            return await anthropicClient.messages.create({
+              model: claudeModel,
+              max_tokens: 200,
+              messages: [{ role: 'user', content: `${prompt}\n\n${text}` }],
+            });
+          },
+          { label: 'Claude processing' },
+        );
 
         const content = message.content[0];
         if (content.type === 'text') {
@@ -1552,25 +1638,28 @@ function setupIPC() {
       formData.append('audio', buffer, { filename: 'audio.webm', contentType: 'audio/webm' });
       formData.append('model_id', 'scribe_v1');
 
-      const data = await withRetry(async () => {
-        const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-          method: 'POST',
-          headers: {
-            'xi-api-key': apiKey,
-            ...formData.getHeaders(),
-          },
-          body: formData,
-        });
+      const data = await withRetry(
+        async () => {
+          const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+            method: 'POST',
+            headers: {
+              'xi-api-key': apiKey,
+              ...formData.getHeaders(),
+            },
+            body: formData,
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          const err = new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
-          err.status = response.status;
-          throw err;
-        }
+          if (!response.ok) {
+            const errorText = await response.text();
+            const err = new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+            err.status = response.status;
+            throw err;
+          }
 
-        return await response.json();
-      }, { label: 'ElevenLabs Scribe' });
+          return await response.json();
+        },
+        { label: 'ElevenLabs Scribe' },
+      );
 
       const text = data.text?.trim() || '';
 
@@ -1811,7 +1900,7 @@ function setupIPC() {
       // Load the URL
       await captureWin.loadURL(url);
       // Wait for content to render
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       // Capture the page
       const image = await captureWin.webContents.capturePage();
@@ -1906,74 +1995,83 @@ function setupIPC() {
 // App lifecycle
 app.whenReady().then(async () => {
   try {
-  // Initialize logger first
-  logger.init();
-  appLog.info('AudioBash starting', {
-    version: app.getVersion(),
-    platform: process.platform,
-    arch: process.arch,
-    isDev,
-  });
-
-  // Initialize whisper service
-  await whisperService.initialize();
-
-  loadShortcuts();
-  loadDirectories();
-
-  // Enforce a strict Content-Security-Policy on the app's own document in production.
-  // index.html ships a <meta> CSP that must keep 'unsafe-inline' in script-src so Vite's dev
-  // HMR preamble (an inline module script) works. The packaged build has no inline scripts, so
-  // here we add a response-header CSP whose script-src omits 'unsafe-inline'. The browser enforces
-  // every delivered CSP, so the effective policy is the intersection: inline/injected scripts are
-  // blocked in the shipped app.
-  //
-  // The hook is scoped to ONLY the app's own document URL. The offscreen capture-preview window
-  // also runs on defaultSession and loads arbitrary user-chosen http(s) pages for screenshots;
-  // applying the app CSP to those would break legitimate remote pages, so they are left untouched.
-  if (!isDev) {
-    const { pathToFileURL } = require('url');
-    const appDocumentUrl = pathToFileURL(path.join(__dirname, '../dist/index.html')).href.toLowerCase();
-    const CSP_HEADER = [
-      "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob:",
-      "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* wss://api.elevenlabs.io https://api.elevenlabs.io",
-      "media-src 'self' blob:",
-    ].join('; ');
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      const requestUrl = (details.url || '').split('#')[0].split('?')[0].toLowerCase();
-      if (details.resourceType !== 'mainFrame' || requestUrl !== appDocumentUrl) {
-        callback({ cancel: false });
-        return;
-      }
-      const responseHeaders = { ...(details.responseHeaders || {}) };
-      for (const key of Object.keys(responseHeaders)) {
-        if (key.toLowerCase() === 'content-security-policy') {
-          delete responseHeaders[key];
-        }
-      }
-      responseHeaders['Content-Security-Policy'] = [CSP_HEADER];
-      callback({ responseHeaders });
+    // Initialize logger first
+    logger.init();
+    appLog.info('AudioBash starting', {
+      version: app.getVersion(),
+      platform: process.platform,
+      arch: process.arch,
+      isDev,
     });
-  }
 
-  createWindow();
-  createTray();
-  registerShortcuts();
-  setupIPC();
-  // Spawn initial shell with default tab ID
-  spawnShell('tab-1');
+    // Initialize whisper service
+    await whisperService.initialize();
 
+    loadShortcuts();
+    loadDirectories();
+
+    // Enforce a strict Content-Security-Policy on the app's own document in production.
+    // index.html ships a <meta> CSP that must keep 'unsafe-inline' in script-src so Vite's dev
+    // HMR preamble (an inline module script) works. The packaged build has no inline scripts, so
+    // here we add a response-header CSP whose script-src omits 'unsafe-inline'. The browser enforces
+    // every delivered CSP, so the effective policy is the intersection: inline/injected scripts are
+    // blocked in the shipped app.
+    //
+    // The hook is scoped to ONLY the app's own document URL. The offscreen capture-preview window
+    // also runs on defaultSession and loads arbitrary user-chosen http(s) pages for screenshots;
+    // applying the app CSP to those would break legitimate remote pages, so they are left untouched.
+    if (!isDev) {
+      const { pathToFileURL } = require('url');
+      const appDocumentUrl = pathToFileURL(
+        path.join(__dirname, '../dist/index.html'),
+      ).href.toLowerCase();
+      const CSP_HEADER = [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* wss://api.elevenlabs.io https://api.elevenlabs.io",
+        "media-src 'self' blob:",
+      ].join('; ');
+      session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        const requestUrl = (details.url || '').split('#')[0].split('?')[0].toLowerCase();
+        if (details.resourceType !== 'mainFrame' || requestUrl !== appDocumentUrl) {
+          callback({ cancel: false });
+          return;
+        }
+        const responseHeaders = { ...(details.responseHeaders || {}) };
+        for (const key of Object.keys(responseHeaders)) {
+          if (key.toLowerCase() === 'content-security-policy') {
+            delete responseHeaders[key];
+          }
+        }
+        responseHeaders['Content-Security-Policy'] = [CSP_HEADER];
+        callback({ responseHeaders });
+      });
+    }
+
+    createWindow();
+    createTray();
+    registerShortcuts();
+    setupIPC();
+    // Spawn initial shell with default tab ID
+    spawnShell('tab-1');
   } catch (err) {
     console.error('[AudioBash] Startup failed:', err);
-    try { appLog.error('Startup failed', err); } catch (_) { /* logger may not be initialized */ }
+    try {
+      appLog.error('Startup failed', err);
+    } catch (_) {
+      /* logger may not be initialized */
+    }
 
     // Still try to show the window so the user sees something
     if (!mainWindow) {
-      try { createWindow(); } catch (_) { /* last resort */ }
+      try {
+        createWindow();
+      } catch (_) {
+        /* last resort */
+      }
     }
   }
 });
