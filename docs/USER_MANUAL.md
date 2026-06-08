@@ -86,7 +86,7 @@ AudioBash is a voice-controlled terminal application designed to work with Claud
 ### macOS installation
 
 #### System requirements
-- macOS 11 (Big Sur) or later
+- macOS 12 (Monterey) or later
 - Apple Silicon (M1/M2/M3/M4) or Intel processor
 - 4GB RAM minimum (8GB recommended)
 - 200MB disk space

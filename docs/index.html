@@ -16,7 +16,7 @@
 
     <!-- Open Graph -->
     <meta property="og:title" content="AudioBash - Voice-controlled terminal">
-    <meta property="og:description" content="Speak commands, execute instantly. Multi-tab terminal with AI-powered voice transcription. Available for Windows and macOS.">
+    <meta property="og:description" content="Speak commands and watch them run. Multi-tab terminal with voice transcription from Gemini, ElevenLabs, or local Whisper. Windows and macOS.">
     <meta property="og:type" content="website">
 
     <!-- Favicon -->
@@ -245,8 +245,8 @@
 
                 <h2 class="font-display text-5xl md:text-7xl text-chrome mb-6 glitch-text" data-text="SPEAK_EXECUTE">SPEAK_EXECUTE</h2>
 
-                <p class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto mb-8 border-l-2 border-accent pl-4 text-left">
-                    Voice-controlled terminal for developers. Speak your commands naturally, watch them execute instantly. Multi-tab terminals, multiple AI providers, fully customizable.
+                <p class="text-gray-400 text-lg md:text-xl font-mono max-w-2xl mx-auto mb-8">
+                    Voice-controlled terminal for developers. Speak your commands naturally and watch them run. Multi-tab terminals, split panes, and your choice of AI provider.
                 </p>
 
                 <!-- Platform Download Buttons -->
@@ -364,7 +364,7 @@
                             <i data-lucide="mic" class="w-6 h-6 text-accent"></i>
                         </div>
                         <h4 class="font-display text-lg text-chrome mb-2">VOICE_RECOGNITION</h4>
-                        <p class="text-gray-500 text-sm">Multiple AI providers: Gemini, ElevenLabs, or local Whisper. Choose your engine.</p>
+                        <p class="text-gray-500 text-sm">Multiple AI providers: Gemini 2.0/2.5 Flash, ElevenLabs Scribe (real-time or batch), or fully offline with bundled local Whisper. Parakeet is also supported if you run your own NVIDIA GPU server. Choose your engine.</p>
                     </div>
 
                     <!-- Feature 2 -->
@@ -399,8 +399,8 @@
                         <div class="w-12 h-12 bg-iceDim border border-ice/30 flex items-center justify-center mb-4 clip-notch-tl">
                             <i data-lucide="terminal" class="w-6 h-6 text-ice"></i>
                         </div>
-                        <h4 class="font-display text-lg text-chrome mb-2">MULTI_TERMINAL</h4>
-                        <p class="text-gray-500 text-sm">Up to 4 panes with 5 layout presets. Split, zoom, and resize. Each pane runs its own shell.</p>
+                        <h4 class="font-display text-lg text-chrome mb-2">CLAUDE_CODE</h4>
+                        <p class="text-gray-500 text-sm">Detects Claude Code /voice mode and hands off cleanly: shows a [CC /voice] badge and pauses the built-in mic so the two never fight.</p>
                     </div>
 
                     <!-- Feature 6 -->
@@ -447,7 +447,7 @@
                         <div class="w-16 h-16 bg-signal text-black font-display font-bold text-2xl flex items-center justify-center shrink-0 clip-notch">03</div>
                         <div class="min-w-0 flex-1">
                             <h4 class="font-display text-xl text-chrome mb-2">EXECUTE</h4>
-                            <p class="text-gray-400 font-mono">Command is sent to your active terminal and executed. Results appear instantly. Hands stay on keyboard.</p>
+                            <p class="text-gray-400 font-mono">The command runs in your active terminal and the results come back in place. Hands stay on the keyboard.</p>
                         </div>
                     </div>
 
@@ -486,7 +486,7 @@
                                 <i data-lucide="apple" class="w-8 h-8 text-apple"></i>
                                 <div>
                                     <h4 class="font-display text-lg text-chrome">macOS</h4>
-                                    <p class="text-gray-500 text-xs">macOS 10.13+</p>
+                                    <p class="text-gray-500 text-xs">macOS 12+</p>
                                 </div>
                             </div>
                             <div class="flex gap-2">
@@ -507,7 +507,7 @@
                                 STAR ON GITHUB
                             </span>
                         </a>
-                        <a href="https://github.com/jamditis/audiobash/blob/master/docs/USER_MANUAL.md" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-accent hover:text-accent transition-all">
+                        <a href="manual.html" class="px-8 py-4 border border-white/20 text-chrome font-display font-bold text-lg tracking-wider hover:border-accent hover:text-accent transition-all">
                             <span class="flex items-center gap-2">
                                 <i data-lucide="book-open" class="w-5 h-5"></i>
                                 USER MANUAL

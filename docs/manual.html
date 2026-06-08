@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Manual // AUDIOBASH</title>
-    <meta name="description" content="Complete user guide for AudioBash - Voice-controlled terminal for developers. Installation, setup, and usage instructions for Windows and macOS.">
+    <meta name="description" content="Complete user guide for AudioBash - Voice-controlled terminal for developers. Installation, setup, and usage instructions for Windows, macOS, and Linux.">
 
     <!-- Open Graph -->
     <meta property="og:title" content="AudioBash User Manual">
-    <meta property="og:description" content="Complete guide to installing and using AudioBash on Windows and macOS.">
+    <meta property="og:description" content="Complete guide to installing and using AudioBash on Windows, macOS, and Linux.">
     <meta property="og:type" content="website">
 
     <!-- Favicon -->
@@ -205,6 +205,7 @@
                     <a href="#installation" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Installation</a>
                     <a href="#windows" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Windows</a>
                     <a href="#macos" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">macOS</a>
+                    <a href="#linux" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Linux</a>
                     <a href="#setup" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">First-time setup</a>
                     <a href="#usage" class="toc-link block py-1 pl-3 border-l-2 border-white/10 text-gray-400 transition-colors">Using AudioBash</a>
                     <a href="#shortcuts" class="toc-link block py-1 pl-6 border-l-2 border-white/10 text-gray-500 transition-colors text-xs">Keyboard shortcuts</a>
@@ -225,10 +226,10 @@
             <div class="mb-12">
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/30 text-accent text-xs font-mono mb-4">
                     <span class="w-2 h-2 bg-accent rounded-full"></span>
-                    <span data-version="v{version}">v2.4.1</span>
+                    <span data-version="v{version}">v3.2.0</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
-                <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows and macOS.</p>
+                <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows, macOS, and Linux.</p>
 
                 <!-- Hero Screenshot -->
                 <div class="mt-8">
@@ -246,7 +247,7 @@
                         INTRODUCTION
                     </h2>
                     <div class="space-y-4">
-                        <p>AudioBash is a voice-controlled terminal application designed to work seamlessly with Claude Code. Instead of typing commands, you can speak them directly into your terminal. The application transcribes your voice input using AI-powered speech recognition and executes commands in a real terminal environment.</p>
+                        <p>AudioBash is a voice-controlled terminal built to work with Claude Code. Instead of typing commands, you can speak them directly into your terminal. The application transcribes your voice input using AI-powered speech recognition and executes commands in a real terminal environment.</p>
 
                         <div class="bg-panel border border-white/10 p-6 mt-6">
                             <h4 class="font-display text-chrome mb-4">Key features</h4>
@@ -257,7 +258,7 @@
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <i data-lucide="layers" class="w-4 h-4 text-ice mt-1 shrink-0"></i>
-                                    <span><strong class="text-chrome">Multi-provider transcription</strong> - Gemini, ElevenLabs, or local Whisper</span>
+                                    <span><strong class="text-chrome">Multi-provider transcription</strong> - Gemini, ElevenLabs, or local Whisper/Parakeet</span>
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <i data-lucide="terminal" class="w-4 h-4 text-signal mt-1 shrink-0"></i>
@@ -269,7 +270,7 @@
                                 </li>
                                 <li class="flex items-start gap-2">
                                     <i data-lucide="monitor" class="w-4 h-4 text-ice mt-1 shrink-0"></i>
-                                    <span><strong class="text-chrome">Cross-platform</strong> - Works on Windows 10/11 and macOS (Intel & Apple Silicon)</span>
+                                    <span><strong class="text-chrome">Cross-platform</strong> - Works on Windows 10/11, macOS (Intel & Apple Silicon), and Linux</span>
                                 </li>
                             </ul>
                         </div>
@@ -343,7 +344,7 @@
                         <div class="bg-panel border border-apple/20 p-6 mb-6">
                             <h4 class="font-display text-chrome mb-3">System requirements</h4>
                             <ul class="text-gray-400 space-y-1 text-sm">
-                                <li>macOS 11 (Big Sur) or later</li>
+                                <li>macOS 12 (Monterey) or later</li>
                                 <li>Apple Silicon (M1/M2/M3/M4) or Intel processor</li>
                                 <li>4GB RAM minimum (8GB recommended)</li>
                                 <li>200MB disk space</li>
@@ -375,7 +376,7 @@
                                 <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">3</span>
                                 <div>
                                     <strong class="text-chrome">First launch (important!)</strong>
-                                    <p class="text-sm mt-1">AudioBash is not yet signed with an Apple Developer certificate (pending). You must bypass Gatekeeper on first launch:</p>
+                                    <p class="text-sm mt-1">AudioBash isn't code-signed yet. The signing infrastructure is in the repo and signed builds are planned; until then, you must bypass Gatekeeper on first launch:</p>
                                     <div class="bg-void border border-white/10 p-4 mt-3 text-sm">
                                         <p class="text-chrome font-display mb-2">Method 1 - Right-click (recommended)</p>
                                         <p>Open Finder → Applications → <strong>Right-click</strong> AudioBash.app → Select "Open" → Click "Open" in the dialog</p>
@@ -395,6 +396,68 @@
                                         <li><strong>Microphone access:</strong> System Settings → Privacy & Security → Microphone</li>
                                         <li><strong>Accessibility access:</strong> System Settings → Privacy & Security → Accessibility (required for global hotkeys)</li>
                                     </ul>
+                                </div>
+                            </li>
+                        </ol>
+                    </div>
+
+                    <!-- Linux -->
+                    <div id="linux" class="mt-10">
+                        <h3 class="font-display text-xl text-chrome mb-4 flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-5 h-5"></i>
+                            Linux installation
+                        </h3>
+
+                        <div class="bg-panel border border-white/10 p-6 mb-6">
+                            <h4 class="font-display text-chrome mb-3">System requirements</h4>
+                            <ul class="text-gray-400 space-y-1 text-sm">
+                                <li>A 64-bit Linux distribution (AppImage and .deb supported)</li>
+                                <li>Node.js 20 or newer and npm</li>
+                                <li>Build tools for native modules (build-essential and python3, to compile node-pty)</li>
+                                <li>4GB RAM minimum (8GB recommended)</li>
+                                <li>Microphone for voice input</li>
+                            </ul>
+                        </div>
+
+                        <p class="text-gray-400 text-sm mb-4">Prebuilt Linux binaries aren't posted on the releases page yet, so build from source. The repo ships an electron-builder Linux target that produces an AppImage and a .deb.</p>
+
+                        <h4 class="font-display text-chrome mb-3">Build steps</h4>
+                        <ol class="space-y-4 text-gray-400">
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-chrome text-black font-display font-bold text-sm flex items-center justify-center shrink-0">1</span>
+                                <div>
+                                    <strong class="text-chrome">Clone the repository</strong>
+                                    <div class="bg-void border border-white/10 p-4 mt-2 text-sm">
+                                        <pre><code>git clone https://github.com/jamditis/audiobash.git
+cd audiobash</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-chrome text-black font-display font-bold text-sm flex items-center justify-center shrink-0">2</span>
+                                <div>
+                                    <strong class="text-chrome">Install dependencies</strong>
+                                    <p class="text-sm mt-1">This compiles node-pty for your architecture.</p>
+                                    <div class="bg-void border border-white/10 p-4 mt-2 text-sm">
+                                        <pre><code>npm install</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-chrome text-black font-display font-bold text-sm flex items-center justify-center shrink-0">3</span>
+                                <div>
+                                    <strong class="text-chrome">Build the Linux package</strong>
+                                    <p class="text-sm mt-1">Produces an AppImage and a .deb in <code>dist/</code>. To run without packaging, use <code>npm run electron:dev</code>.</p>
+                                    <div class="bg-void border border-white/10 p-4 mt-2 text-sm">
+                                        <pre><code>npm run electron:build:linux</code></pre>
+                                    </div>
+                                </div>
+                            </li>
+                            <li class="flex gap-3">
+                                <span class="w-6 h-6 bg-chrome text-black font-display font-bold text-sm flex items-center justify-center shrink-0">4</span>
+                                <div>
+                                    <strong class="text-chrome">Run it</strong>
+                                    <p class="text-sm mt-1">Make the AppImage executable with <code>chmod +x</code> and launch it, or install the .deb with <code>sudo dpkg -i</code>. Grant microphone access when prompted.</p>
                                 </div>
                             </li>
                         </ol>
@@ -476,7 +539,7 @@
                             <thead>
                                 <tr>
                                     <th>Action</th>
-                                    <th>Windows</th>
+                                    <th>Windows / Linux</th>
                                     <th>macOS</th>
                                 </tr>
                             </thead>
@@ -490,6 +553,11 @@
                                     <td>Cancel recording</td>
                                     <td><code>Alt+A</code></td>
                                     <td><code>Option+A</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Resend last transcription</td>
+                                    <td><code>Alt+R</code></td>
+                                    <td><code>Option+R</code></td>
                                 </tr>
                                 <tr>
                                     <td>Toggle raw/agent mode</td>
@@ -507,22 +575,84 @@
                                     <td><code>Option+C</code></td>
                                 </tr>
                                 <tr>
-                                    <td>Cycle layouts</td>
+                                    <td>Increase font size</td>
+                                    <td><code>Ctrl+=</code></td>
+                                    <td><code>Ctrl+=</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Decrease font size</td>
+                                    <td><code>Ctrl+-</code></td>
+                                    <td><code>Ctrl+-</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Reset font size</td>
+                                    <td><code>Ctrl+0</code></td>
+                                    <td><code>Ctrl+0</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Switch to tab 1-4</td>
+                                    <td><code>Alt+1</code> - <code>Alt+4</code></td>
+                                    <td><code>Option+1</code> - <code>Option+4</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Bookmark current directory</td>
+                                    <td><code>Alt+B</code></td>
+                                    <td><code>Option+B</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Cycle layout preset</td>
                                     <td><code>Alt+L</code></td>
                                     <td><code>Option+L</code></td>
                                 </tr>
                                 <tr>
-                                    <td>New tab</td>
-                                    <td><code>Ctrl+T</code></td>
-                                    <td><code>Cmd+T</code></td>
+                                    <td>Split pane horizontal</td>
+                                    <td><code>Alt+-</code></td>
+                                    <td><code>Option+-</code></td>
                                 </tr>
                                 <tr>
-                                    <td>Close tab</td>
-                                    <td><code>Ctrl+W</code></td>
-                                    <td><code>Cmd+W</code></td>
+                                    <td>Split pane vertical</td>
+                                    <td><code>Alt+\</code></td>
+                                    <td><code>Option+\</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Close pane</td>
+                                    <td><code>Alt+W</code></td>
+                                    <td><code>Option+W</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Zoom/unzoom pane</td>
+                                    <td><code>Alt+Z</code></td>
+                                    <td><code>Option+Z</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Focus next pane</td>
+                                    <td><code>Alt+Right</code></td>
+                                    <td><code>Option+Right</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Focus previous pane</td>
+                                    <td><code>Alt+Left</code></td>
+                                    <td><code>Option+Left</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Resize pane</td>
+                                    <td><code>Alt+Shift+Arrow</code></td>
+                                    <td><code>Option+Shift+Arrow</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Toggle preview pane</td>
+                                    <td><code>Alt+P</code></td>
+                                    <td><code>Option+P</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Capture preview screenshot</td>
+                                    <td><code>Alt+Shift+P</code></td>
+                                    <td><code>Option+Shift+P</code></td>
                                 </tr>
                             </tbody>
                         </table>
+                        <p class="text-gray-500 text-sm mt-4">New tab and close tab have no keyboard shortcut - use the <code>+</code> button to add a tab and the <code>×</code> on a tab to close it.</p>
+                        <p class="text-gray-500 text-sm mt-2"><strong class="text-chrome">Linux note:</strong> the global Alt shortcuts above register under X11 but may not fire under Wayland. If a shortcut doesn't respond on a Wayland session, switch to an X11 session or use the on-screen controls instead.</p>
                     </div>
 
                     <!-- Voice Recording -->
@@ -595,9 +725,9 @@
                         <h3 class="font-display text-xl text-chrome mb-4">Multi-tab interface</h3>
                         <p class="text-gray-400 mb-4">AudioBash supports multiple terminal tabs:</p>
                         <ul class="text-gray-400 space-y-2">
-                            <li><strong class="text-chrome">New tab:</strong> Click the <code>+</code> button or press <code>Ctrl/Cmd+T</code></li>
-                            <li><strong class="text-chrome">Switch tabs:</strong> Click on tabs or use <code>Ctrl+Tab</code></li>
-                            <li><strong class="text-chrome">Close tab:</strong> Click the <code>×</code> on the tab or press <code>Ctrl/Cmd+W</code></li>
+                            <li><strong class="text-chrome">New tab:</strong> Click the <code>+</code> button</li>
+                            <li><strong class="text-chrome">Switch tabs:</strong> Click a tab or press <code>Alt+1</code>-<code>Alt+4</code> (<code>Option+1</code>-<code>Option+4</code> on Mac)</li>
+                            <li><strong class="text-chrome">Close tab:</strong> Click the <code>×</code> on the tab</li>
                             <li><strong class="text-chrome">Rename tab:</strong> Double-click the tab title</li>
                         </ul>
                         <p class="text-gray-500 text-sm mt-4">Each tab maintains its own working directory, command history, and shell session.</p>
@@ -656,7 +786,7 @@
                                     </tr>
                                     <tr>
                                         <td>ElevenLabs API key</td>
-                                        <td>Real-time streaming and text-to-speech</td>
+                                        <td>Real-time and batch speech-to-text (Scribe)</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -666,8 +796,11 @@
                             <h4 class="font-display text-chrome mb-3">Transcription providers</h4>
                             <ul class="text-gray-400 space-y-1 text-sm">
                                 <li><strong class="text-accent">Gemini 2.0 Flash</strong> - Google's fast, accurate model (recommended, free tier)</li>
+                                <li><strong class="text-accent">Gemini 2.5 Flash</strong> - Latest Gemini with audio support</li>
+                                <li><strong class="text-ice">ElevenLabs Scribe</strong> - High-quality batch speech-to-text</li>
                                 <li><strong class="text-ice">ElevenLabs Scribe v2</strong> - Real-time WebSocket streaming (~150ms latency)</li>
-                                <li><strong>Local Whisper</strong> - Offline transcription, no API key required</li>
+                                <li><strong>Parakeet (local)</strong> - Offline transcription on an NVIDIA GPU. Advanced: it sends audio to a separate Parakeet server you run yourself at <code>localhost:8003</code>. Unlike Whisper, no server is bundled, so you must start one before selecting this provider.</li>
+                                <li><strong>Local Whisper</strong> - Offline transcription via whisper.cpp (small.en, 466 MB), no API key required</li>
                             </ul>
                             <p class="text-gray-500 text-sm mt-3">Click the model name in the voice overlay to cycle between providers without opening settings.</p>
                         </div>
@@ -692,7 +825,7 @@
                             <div class="space-y-4">
                                 <div class="bg-panel border border-white/10 p-4">
                                     <h4 class="text-chrome mb-2">"Windows protected your PC" SmartScreen warning</h4>
-                                    <p class="text-gray-400 text-sm">Click "More info" → "Run anyway". This appears because the app isn't signed with an expensive certificate.</p>
+                                    <p class="text-gray-400 text-sm">Click "More info" then "Run anyway". This appears because the Windows build is not yet code-signed.</p>
                                 </div>
                                 <div class="bg-panel border border-white/10 p-4">
                                     <h4 class="text-chrome mb-2">Global shortcuts not working</h4>
@@ -755,17 +888,18 @@
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">Can I use AudioBash with any shell?</h4>
-                            <p class="text-gray-400 text-sm">Yes. On Windows, it defaults to PowerShell. On macOS, it uses your default shell (usually zsh or bash). You can start any shell by typing its name.</p>
+                            <p class="text-gray-400 text-sm">Yes. On Windows, it defaults to PowerShell. On macOS and Linux, it uses your default shell (your <code>$SHELL</code>, usually zsh on macOS and bash on Linux). You can start any shell by typing its name.</p>
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">Can I use AudioBash with Claude Code CLI?</h4>
-                            <p class="text-gray-400 text-sm">Absolutely! That's exactly what it's designed for. Just type <code>claude</code> in the terminal to start Claude Code, then use voice commands to interact with it.</p>
+                            <p class="text-gray-400 text-sm">Yes - that's what it's designed for. Type <code>claude</code> in the terminal to start Claude Code, then use voice commands to interact with it.</p>
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
                             <h4 class="text-chrome mb-2">Where are settings stored?</h4>
                             <p class="text-gray-400 text-sm">
                                 <strong>Windows:</strong> <code>%APPDATA%\AudioBash\</code><br>
-                                <strong>macOS:</strong> <code>~/Library/Application Support/AudioBash/</code>
+                                <strong>macOS:</strong> <code>~/Library/Application Support/AudioBash/</code><br>
+                                <strong>Linux:</strong> <code>~/.config/AudioBash/</code>
                             </p>
                         </div>
                         <div class="bg-panel border border-white/10 p-4">
@@ -784,7 +918,7 @@
             <!-- FOOTER -->
             <div class="mt-16 pt-8 border-t border-white/10">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v2.4.1 - Voice-controlled terminal for Claude Code</div>
+                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v3.2.0 - Voice-controlled terminal for Claude Code</div>
                     <div class="flex items-center gap-4">
                         <a href="about.html" class="hover:text-accent transition-colors">About</a>
                         <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>
