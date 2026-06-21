@@ -109,14 +109,23 @@ describe('docs do not overstate the transcription hardening', () => {
   // process. Each occurrence must be qualified with "batch" in its immediate lead-in.
   const claimRe = /transcription requests (?:now run|moved) (?:in|into) the main process/g;
 
+  // releases.html and latest.html keep the v3.3.0 entry as frozen release history, so the claim
+  // must stay present (and scoped) there. index.html's single "what's new" panel rotates to the
+  // newest release, so once the homepage moves on (v3.3.1 leads with the local-dictionary fix) the
+  // claim is no longer required there. The anti-overstatement guard below still applies to every
+  // file: any claim that does appear must be scoped to the batch path.
+  const filesRequiringClaim = new Set(['releases.html', 'latest.html']);
+
   for (const name of ['releases.html', 'index.html', 'latest.html']) {
     it(`scopes the main-process transcription claim to batch in ${name}`, () => {
       const html = readFileSync(join(__dirname, '..', '..', 'docs', name), 'utf8').toLowerCase();
       const matches = [...html.matchAll(claimRe)];
-      expect(
-        matches.length,
-        `expected at least one main-process transcription claim in ${name}`,
-      ).toBeGreaterThan(0);
+      if (filesRequiringClaim.has(name)) {
+        expect(
+          matches.length,
+          `expected at least one main-process transcription claim in ${name}`,
+        ).toBeGreaterThan(0);
+      }
       for (const m of matches) {
         const leadIn = html.slice(Math.max(0, m.index - 30), m.index);
         expect(
