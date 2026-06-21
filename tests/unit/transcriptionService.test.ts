@@ -479,6 +479,68 @@ describe('Vocabulary Corrections', () => {
   });
 });
 
+describe('Local model vocabulary corrections', () => {
+  // Regression test for #41: custom dictionary entries were silently ignored by the local
+  // Parakeet and Whisper paths because applyVocabularyCorrections() was only called in the
+  // cloud raw-mode paths.
+  let service: TranscriptionService;
+
+  beforeEach(() => {
+    service = new TranscriptionService();
+    service.setCustomInstructions({
+      rawModeInstructions: '',
+      agentModeInstructions: '',
+      vocabulary: [{ spoken: 'audio bash', written: 'AudioBash' }],
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('applies vocabulary corrections to local Parakeet transcriptions', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ text: 'open audio bash now' }),
+          text: () => Promise.resolve(''),
+        } as Response),
+      ),
+    );
+
+    const result = await service.transcribeAudio(
+      createMockAudioBlob(),
+      'raw',
+      'parakeet-local',
+      1000,
+    );
+
+    expect(result.text).toBe('open AudioBash now');
+  });
+
+  it('applies vocabulary corrections to local Whisper transcriptions', async () => {
+    window.electron.whisperSetModel = vi.fn(() => Promise.resolve());
+    window.electron.saveTempAudio = vi.fn(() =>
+      Promise.resolve({ success: true, path: '/tmp/audio.webm' }),
+    );
+    window.electron.whisperTranscribe = vi.fn(() =>
+      Promise.resolve({ text: 'launch audio bash please' }),
+    );
+
+    const result = await service.transcribeAudio(
+      createMockAudioBlob(),
+      'raw',
+      'whisper-local-small',
+      1000,
+    );
+
+    expect(result.text).toBe('launch AudioBash please');
+  });
+});
+
 describe('Service State', () => {
   it('multiple service instances are independent', () => {
     const service1 = new TranscriptionService();

@@ -757,7 +757,10 @@ export class TranscriptionService {
       }
 
       log.debug('Parakeet transcription successful', { textLength: data.text?.length || 0 });
-      return { text: data.text || '', cost: '$0.00 (Local)' };
+      // Local models have no prompt-injection path for custom vocabulary, so apply the same
+      // post-transcription corrections used by the cloud raw-mode paths (see issue #41).
+      const text = this.applyVocabularyCorrections((data.text || '').trim());
+      return { text, cost: '$0.00 (Local)' };
     } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
 
@@ -829,8 +832,11 @@ export class TranscriptionService {
       }
 
       log.debug('Whisper transcription successful', { textLength: result.text?.length || 0 });
+      // whisper.cpp is invoked with no initial prompt, so custom vocabulary can't bias decoding.
+      // Apply the post-transcription corrections to match the cloud raw-mode paths (see issue #41).
+      const text = this.applyVocabularyCorrections((result.text || '').trim());
       return {
-        text: result.text || '',
+        text,
         cost: '$0.00 (Local)',
       };
     } catch (e: unknown) {
