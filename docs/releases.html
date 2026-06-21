@@ -158,17 +158,17 @@
         <!-- RELEASES -->
         <div class="space-y-8">
 
-            <!-- v3.3.0 -->
+            <!-- v3.3.1 -->
             <article class="release-card latest bg-panel border border-accent/30 p-6">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
-                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm" data-version="v{version}">v3.3.0</span>
+                    <span class="px-3 py-1 bg-accent text-black font-display font-bold text-sm" data-version="v{version}">v3.3.1</span>
                     <span class="px-3 py-1 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
-                    <span class="text-gray-500 text-sm">June 8, 2026</span>
+                    <span class="text-gray-500 text-sm">June 21, 2026</span>
                 </div>
 
-                <h2 class="font-display text-2xl text-chrome mb-4">Linux builds, hardened transcription, and Wayland shortcuts</h2>
+                <h2 class="font-display text-2xl text-chrome mb-4">Custom dictionary now works on local transcription</h2>
 
-                <p class="text-gray-400 mb-6">AudioBash now ships AppImage and .deb downloads for Linux. Batch cloud transcription requests now run in the main process instead of the renderer. Global shortcuts register under Wayland, not just X11.</p>
+                <p class="text-gray-400 mb-6">The custom dictionary was silently ignored by the local Whisper and Parakeet paths — configured corrections only applied to the cloud providers. Now spoken-to-written entries apply to local model output too, matching the cloud behavior.</p>
 
                 <!-- Downloads -->
                 <div class="bg-void border border-white/10 p-4 mb-6">
@@ -191,6 +191,61 @@
                             Linux (AppImage)
                         </a>
                         <a href="#" data-download="linux-deb" class="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/20 text-chrome text-sm hover:bg-white/10 transition-colors">
+                            <i data-lucide="package" class="w-4 h-4"></i>
+                            Linux (.deb)
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-display text-signal text-sm mb-2">Fixes</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>- <strong>Local custom dictionary</strong> - Configured spoken-to-written corrections now apply to local Whisper and Parakeet output, not just cloud providers</li>
+                            <li>- <strong>Consistent behavior</strong> - Local models now match the Gemini, OpenAI, and Anthropic vocabulary-correction behavior</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-display text-accent text-sm mb-2">Quality</h4>
+                        <ul class="text-gray-400 text-sm space-y-1">
+                            <li>- <strong>Regression tests</strong> - New tests assert a configured dictionary entry is applied on both local transcription paths</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+
+            <!-- v3.3.0 -->
+            <article class="release-card bg-panel border border-white/10 p-6">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="px-3 py-1 bg-white/10 text-chrome font-display font-bold text-sm">v3.3.0</span>
+                    <span class="text-gray-500 text-sm">June 8, 2026</span>
+                </div>
+
+                <h2 class="font-display text-2xl text-chrome mb-4">Linux builds, hardened transcription, and Wayland shortcuts</h2>
+
+                <p class="text-gray-400 mb-6">AudioBash now ships AppImage and .deb downloads for Linux. Batch cloud transcription requests now run in the main process instead of the renderer. Global shortcuts register under Wayland, not just X11.</p>
+
+                <!-- Downloads -->
+                <div class="bg-void border border-white/10 p-4 mb-6">
+                    <h4 class="font-display text-chrome text-sm mb-3">Downloads</h4>
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v3.3.0/AudioBash.Setup.3.3.0.exe" class="flex items-center gap-2 px-3 py-2 bg-ice/10 border border-ice/30 text-ice text-sm hover:bg-ice/20 transition-colors">
+                            <i data-lucide="monitor" class="w-4 h-4"></i>
+                            Windows
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v3.3.0/AudioBash-3.3.0-arm64.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="cpu" class="w-4 h-4"></i>
+                            macOS (Apple Silicon)
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v3.3.0/AudioBash-3.3.0.dmg" class="flex items-center gap-2 px-3 py-2 bg-apple/10 border border-apple/30 text-apple text-sm hover:bg-apple/20 transition-colors">
+                            <i data-lucide="laptop" class="w-4 h-4"></i>
+                            macOS (Intel)
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v3.3.0/AudioBash-3.3.0.AppImage" class="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/20 text-chrome text-sm hover:bg-white/10 transition-colors">
+                            <i data-lucide="terminal" class="w-4 h-4"></i>
+                            Linux (AppImage)
+                        </a>
+                        <a href="https://github.com/jamditis/audiobash/releases/download/v3.3.0/AudioBash-3.3.0.deb" class="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/20 text-chrome text-sm hover:bg-white/10 transition-colors">
                             <i data-lucide="package" class="w-4 h-4"></i>
                             Linux (.deb)
                         </a>
