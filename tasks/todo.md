@@ -147,10 +147,10 @@ docs: define evidence gates before changing the mac release path
 
 **Root cause:** `afterPack.cjs` repairs only packaged helpers. A clean local install leaves both macOS `spawn-helper` files at mode `0644`, so development and stress tests fail with `posix_spawnp failed`.
 
-- [ ] Add a failing test in `tests/unit/nodePtyBinaries.test.ts` that creates temporary arm64 and x64 helpers at mode `0644`, calls the planned repair API, and expects mode `0755`.
-- [ ] Add a failing test that injects a signing failure and expects release-mode repair to throw.
-- [ ] Run `npx vitest run tests/unit/nodePtyBinaries.test.ts` and confirm failure for the missing module.
-- [ ] Implement this small interface in `scripts/nodePtyBinaries.cjs`:
+- [x] Add a failing test in `tests/unit/nodePtyBinaries.test.ts` that creates temporary arm64 and x64 helpers at mode `0644`, calls the planned repair API, and expects mode `0755`.
+- [x] Add a failing test that injects a signing failure and expects release-mode repair to throw.
+- [x] Run `npx vitest run tests/unit/nodePtyBinaries.test.ts` and confirm failure for the missing module.
+- [x] Implement this small interface in `scripts/nodePtyBinaries.cjs`:
 
 ```js
 function repairNodePtyBinaries(options) {}
@@ -158,18 +158,18 @@ function verifyNodePtyBinaries(options) {}
 module.exports = { repairNodePtyBinaries, verifyNodePtyBinaries };
 ```
 
-- [ ] Make the functions accept the node-pty root, target architecture, release mode, and an injected `execFileSync` for tests.
-- [ ] On macOS, set `spawn-helper` to `0755`, sign `spawn-helper` and `pty.node`, and verify both signatures.
-- [ ] In release mode, throw on a missing file, permission failure, signing failure, or verification failure.
-- [ ] Refactor `scripts/afterPack.cjs` to use the module and stop swallowing failures.
-- [ ] Add `scripts/prepare-native-deps.cjs` as an explicit cross-platform command. It must be a no-op outside macOS and must not run as an npm `postinstall` hook.
-- [ ] Invoke `prepare:native` from `pretest`, `preelectron:dev`, `preelectron:build`, `preelectron:build:win`, `preelectron:build:mac`, `preelectron:build:mac:arm64`, `preelectron:build:mac:x64`, and `preelectron:build:linux`. Add a package-script test that requires this exact coverage.
-- [ ] Run `npm ci` from a clean dependency tree and confirm the helpers first return to mode `0644`.
-- [ ] Run the seven existing macOS PTY tests and confirm they fail with the original `posix_spawnp failed` symptom before repair.
-- [ ] Run `npm run prepare:native`, verify both local helpers are executable, and run the same seven tests again.
-- [ ] Temporarily restore one helper to `0644`, rerun one real PTY test to prove it fails, run the repair command again, and prove it passes.
-- [ ] Run `npx vitest run tests/unit/nodePtyBinaries.test.ts tests/macos-stress.test.ts` and require zero failures.
-- [ ] Review every changed line and request a Claude Code review before commit.
+- [x] Make the functions accept the node-pty root, target architecture, release mode, and an injected `execFileSync` for tests.
+- [x] On macOS, set `spawn-helper` to `0755`, sign `spawn-helper` and `pty.node`, and verify both signatures.
+- [x] In release mode, throw on a missing file, permission failure, signing failure, or verification failure.
+- [x] Refactor `scripts/afterPack.cjs` to use the module and stop swallowing failures.
+- [x] Add `scripts/prepare-native-deps.cjs` as an explicit cross-platform command. It must be a no-op outside macOS and must not run as an npm `postinstall` hook.
+- [x] Invoke `prepare:native` from `pretest`, `pretest:watch`, `pretest:coverage`, `pretest:ui`, `preelectron:dev`, `preelectron:build`, `preelectron:build:win`, `preelectron:build:mac`, `preelectron:build:mac:arm64`, `preelectron:build:mac:x64`, and `preelectron:build:linux`. Add a package-script test that requires this exact coverage.
+- [x] Run `npm ci` from a clean dependency tree and confirm the helpers first return to mode `0644`.
+- [x] Run the seven existing macOS PTY tests and confirm they fail with the original `posix_spawnp failed` symptom before repair.
+- [x] Run `npm run prepare:native`, verify both local helpers are executable, and run the same seven tests again.
+- [x] Temporarily restore one helper to `0644`, rerun one real PTY test to prove it fails, run the repair command again, and prove it passes.
+- [x] Run `npx vitest run tests/unit/nodePtyBinaries.test.ts tests/macos-stress.test.ts` and require zero failures.
+- [x] Review every changed line and request a Claude Code review before commit.
 
 Expected commit message:
 

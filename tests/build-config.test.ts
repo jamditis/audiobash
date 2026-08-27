@@ -137,6 +137,31 @@ describe('Linux build configuration', () => {
 describe('npm scripts', () => {
   const scripts = packageJson.scripts;
 
+  it('prepares native dependencies before each test and Electron entry point', () => {
+    expect(scripts['prepare:native']).toBe('node scripts/prepare-native-deps.cjs');
+    expect(scripts.postinstall).toBeUndefined();
+
+    const requiredHooks = [
+      'pretest',
+      'pretest:watch',
+      'pretest:coverage',
+      'pretest:ui',
+      'preelectron:dev',
+      'preelectron:build',
+      'preelectron:build:win',
+      'preelectron:build:mac',
+      'preelectron:build:mac:arm64',
+      'preelectron:build:mac:x64',
+      'preelectron:build:linux',
+    ];
+
+    for (const hook of requiredHooks) {
+      expect(scripts[hook], `${hook} must prepare native dependencies`).toBe(
+        'npm run prepare:native',
+      );
+    }
+  });
+
   it('has platform-specific build scripts', () => {
     expect(scripts['electron:build']).toBeDefined();
     expect(scripts['electron:build:win']).toBeDefined();

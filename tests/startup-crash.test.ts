@@ -75,30 +75,3 @@ describe('startup crash prevention (#29)', () => {
     });
   });
 });
-
-describe('afterPack code signing (#29)', () => {
-  const afterPackCode = readFileSync(join(rootDir, 'scripts', 'afterPack.cjs'), 'utf8');
-
-  it('re-signs binaries after chmod to preserve ARM64 code signature', () => {
-    // chmod invalidates ad-hoc code signatures on macOS ARM64.
-    // The afterPack script must re-sign after fixing permissions.
-    expect(afterPackCode).toContain('codesign');
-    expect(afterPackCode).toContain('--force');
-    expect(afterPackCode).toContain('--sign');
-  });
-
-  it('signs both spawn-helper and pty.node', () => {
-    expect(afterPackCode).toContain('spawn-helper');
-    expect(afterPackCode).toContain('pty.node');
-  });
-
-  it('handles both arm64 and x64 architectures', () => {
-    expect(afterPackCode).toContain('darwin-arm64');
-    expect(afterPackCode).toContain('darwin-x64');
-  });
-
-  it('uses execFileSync for shell injection safety', () => {
-    // execFileSync prevents shell injection, unlike the shell-based alternative
-    expect(afterPackCode).toContain('execFileSync');
-  });
-});

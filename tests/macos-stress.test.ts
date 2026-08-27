@@ -283,13 +283,4 @@ describe.skipIf(!isMac)('afterPack Hook Validation', () => {
     const scriptPath = path.join(projectRoot, 'scripts/afterPack.cjs');
     expect(fs.existsSync(scriptPath)).toBe(true);
   });
-
-  it('afterPack script should fix darwin permissions', () => {
-    const scriptPath = path.join(projectRoot, 'scripts/afterPack.cjs');
-    const content = fs.readFileSync(scriptPath, 'utf8');
-
-    expect(content).toContain('darwin');
-    expect(content).toContain('spawn-helper');
-    expect(content).toContain('chmod');
-  });
 });
