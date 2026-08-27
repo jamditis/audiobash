@@ -263,18 +263,29 @@ perf: stop shipping renderer and foreign native build inputs twice
 
 ## Task 5: Defer VAD code until the user starts VAD mode
 
-- [ ] Add a failing `tests/unit/useVAD.test.tsx` test that imports the hook without loading `@ricky0123/vad-web`.
-- [ ] Add failing tests for first start, repeated start and stop, load failure, and unmount during module loading.
-- [ ] Run the tests and confirm they fail because `useVAD.ts` imports `MicVAD` at module load.
-- [ ] Change the runtime import to a cached dynamic import inside `start()`.
-- [ ] Keep a type-only import for TypeScript.
-- [ ] Set `model: 'legacy'` explicitly so the copied asset and selected runtime model cannot drift.
-- [ ] Add a failing asset test that expects only the explicitly selected legacy model.
-- [ ] Remove `silero_vad_v5.onnx` from `scripts/copy-vad-assets.cjs` only after the explicit model test passes.
-- [ ] Keep cancellation safe when the component unmounts before the import finishes.
-- [ ] Build and record the initial chunk and deferred VAD chunk sizes.
+- [x] Add a failing `tests/unit/useVAD.test.tsx` test that imports the hook without loading `@ricky0123/vad-web`.
+- [x] Add failing tests for first start, repeated start and stop, load failure, and unmount during module loading.
+- [x] Run the tests and confirm they fail because `useVAD.ts` imports `MicVAD` at module load.
+- [x] Change the runtime import to a cached dynamic import inside `start()`.
+- [x] Keep a type-only import for TypeScript.
+- [x] Set `model: 'legacy'` explicitly so the copied asset and selected runtime model cannot drift.
+- [x] Add a failing asset test that expects only the explicitly selected legacy model.
+- [x] Remove `silero_vad_v5.onnx` from `scripts/copy-vad-assets.cjs` only after the explicit model test passes.
+- [x] Keep cancellation safe when the component unmounts before the import or internal start finishes.
+- [x] Build and record the initial chunk and deferred VAD chunk sizes.
+- [x] Rebuild both macOS architectures and pass the 30-test package gate against the fresh archives.
 - [ ] Run manual recording, first VAD start, repeated start and stop, and permission-denial tests.
-- [ ] Request Claude Code review and commit.
+- [x] Complete three independent internal repository reviews and correct every finding.
+
+Review:
+
+- The initial hook suite failed 10 of 10 tests. The asset test found the stale V5 model, the bundle test found 33 VAD and ONNX modules in the static entry closure, and both old package samples failed the new exact four-file VAD rule.
+- The final hook suite has 14 tests. It covers lazy loading, explicit legacy selection, `startOnLoad`, concurrent starts, serialized cleanup, StrictMode, stale callbacks, late instances, import retry, null rejection, unmount, and stop-restart races.
+- The initial JavaScript entry decreased from 1,088.55 kB to 652.09 kB. VAD and ONNX now occupy one 429.57 kB deferred chunk. The static VAD closure and VAD HTML preload are empty.
+- Removing the unused V5 model and related archive changes reduced each `app.asar` by 2,334,416 bytes, or 8.99%. The arm64 and x64 app samples each decreased by the same 2,334,416 bytes.
+- The final normal suite passes 507 tests. The mac package suite passes 30 tests. TypeScript, Ruff, Prettier, the renderer build, production audit, and ESLint pass. ESLint has zero errors and the same 63 known warnings.
+- Three internal repository reviews found and verified fixes for StrictMode remounting, real `startOnLoad` behavior, pending-start disposal, shared cleanup ownership, unknown rejection handling, stale callbacks after unmount, UTF-8 byte measurement, import retry, and Rollup chunk-name independence.
+- The fresh v3.3.1 arm64 and x64 samples are Developer ID signed package controls. They are not v3.4.0 release candidates and were not notarized. Live microphone and VAD behavior remains a final release gate.
 
 Expected commit message:
 

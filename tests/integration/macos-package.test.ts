@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'child_process';
+import { extractFile } from '@electron/asar';
 import {
   existsSync,
   mkdirSync,
@@ -45,6 +46,10 @@ function listAsar(asarPath: string): string[] {
   return execFileSync(asarBin, ['list', asarPath], { encoding: 'utf8' })
     .split(/\r?\n/)
     .filter(Boolean);
+}
+
+function readAsarText(asarPath: string, entry: string): string {
+  return extractFile(asarPath, entry.replace(/^\//, '')).toString('utf8');
 }
 
 function listFiles(directory: string, prefix = ''): string[] {
@@ -486,7 +491,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     }
   });
 
-  it('keeps one renderer sound set and both Task 4 VAD models', () => {
+  it('keeps one renderer sound set and only the selected VAD runtime', () => {
     const entries = packageEntries();
     const resourceFiles = listRequiredFiles(resourcesPath);
 
@@ -495,8 +500,33 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
       expect(resourceFiles).not.toContain(`/assets/${sound}`);
     }
 
-    expect(entries).toContain('/dist/vad/silero_vad_legacy.onnx');
-    expect(entries).toContain('/dist/vad/silero_vad_v5.onnx');
+    expect(entries.filter((entry) => entry.startsWith('/dist/vad/')).sort()).toEqual(
+      [
+        '/dist/vad/ort-wasm-simd-threaded.mjs',
+        '/dist/vad/ort-wasm-simd-threaded.wasm',
+        '/dist/vad/silero_vad_legacy.onnx',
+        '/dist/vad/vad.worklet.bundle.min.js',
+      ].sort(),
+    );
+
+    const rendererChunkEntries = entries.filter((entry) => /^\/dist\/assets\/.*\.js$/.test(entry));
+    const rendererHTML = readAsarText(asarPath, '/dist/index.html');
+    const entryMatch = rendererHTML.match(/<script[^>]+src="\.\/(assets\/index-[^"]+\.js)"/);
+    expect(entryMatch).not.toBeNull();
+
+    const rendererEntry = `/dist/${entryMatch?.[1]}`;
+    const entrySource = readAsarText(asarPath, rendererEntry);
+    const vadMarker = /silero_vad|onnxruntime|vad\.worklet/;
+    const deferredVADChunks = rendererChunkEntries.filter(
+      (entry) => entry !== rendererEntry && vadMarker.test(readAsarText(asarPath, entry)),
+    );
+
+    expect(vadMarker.test(entrySource)).toBe(false);
+    expect(deferredVADChunks.length).toBeGreaterThan(0);
+    for (const deferredChunk of deferredVADChunks) {
+      expect(entrySource).toContain(deferredChunk.split('/').at(-1));
+    }
+
     expect(entries).toContain('/dist/favicon.svg');
     expect(resourceFiles).toContain('/audiobash-logo.png');
     expect(resourceFiles).not.toContain('/audiobash-logo.ico');
