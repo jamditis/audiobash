@@ -45,25 +45,23 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.21.0",
     "@remotion/install-whisper-cpp": "^4.0.405",
-    "@ricky0123/vad-web": "^0.0.30",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/xterm": "^5.5.0",
     "node-pty": "^1.1.0",
-    "openai": "^6.10.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "openai": "^6.10.0"
   },
   "devDependencies": {
+    "@electron/asar": "^3.4.1",
     "@electron/notarize": "^3.1.1",
     "@eslint/js": "^9.39.4",
+    "@ricky0123/vad-web": "^0.0.30",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^4.0.16",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "autoprefixer": "^10.4.19",
     "concurrently": "^9.0.0",
     "electron": "^39.6.0",
@@ -76,6 +74,8 @@
     "jsdom": "^26.1.0",
     "postcss": "^8.4.38",
     "prettier": "^3.8.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.60.1",
@@ -100,26 +100,21 @@
       "electron/**/*",
       "node_modules/node-pty/**/*"
     ],
-    "asarUnpack": [
-      "node_modules/node-pty/**/*"
-    ],
     "extraResources": [
-      {
-        "from": "assets",
-        "to": "assets"
-      },
       {
         "from": "audiobash-logo.png",
         "to": "audiobash-logo.png"
-      },
-      {
-        "from": "audiobash-logo.ico",
-        "to": "audiobash-logo.ico"
       }
     ],
     "win": {
       "target": "nsis",
-      "icon": "audiobash-logo.png"
+      "icon": "audiobash-logo.png",
+      "extraResources": [
+        {
+          "from": "audiobash-logo.ico",
+          "to": "audiobash-logo.ico"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -145,7 +140,27 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "asar": {
+        "smartUnpack": false
+      },
+      "asarUnpack": [
+        "node_modules/node-pty/prebuilds/**/*"
+      ],
+      "files": [
+        "dist/**/*",
+        "electron/**/*",
+        "node_modules/node-pty/**/*",
+        "!node_modules/node-pty/prebuilds/!(darwin-${arch}){,/**/*}",
+        "!node_modules/node-pty/{deps,scripts,src}{,/**/*}",
+        "!node_modules/node-pty/**/*.test.{js,ts}",
+        "!node_modules/node-pty/**/*.{map,pdb}",
+        "!node_modules/node-addon-api{,/**/*}",
+        "!node_modules/json-schema-to-ts{,/**/*}",
+        "!node_modules/ts-algebra{,/**/*}",
+        "!node_modules/@babel/runtime{,/**/*}",
+        "!node_modules/@remotion/captions{,/**/*}"
+      ]
     },
     "dmg": {
       "sign": false,

@@ -21,13 +21,17 @@ This release includes:
 - Measured renderer, VAD, sound, public-file, and node-pty package bloat.
 - Two React hook warnings with possible stale runtime state.
 - Cloud transcription requests that have no local deadline.
+- A proportionate complexity and readability pass on each logic unit changed by this release.
 - Version, release-note, download-link, signing, notarization, favicon, social metadata, and release asset checks.
+
+For each edited logic unit, preserve behavior first, match the local style, keep the happy path flat, and give the unit one clear job. Use guard clauses, named intermediate facts, or flat dispatch when they make the edited logic easier to follow. Extract only a concept with a useful name. Do not compute a complexity score, split code into chains of tiny functions, or refactor untouched units.
 
 This release does not include:
 
 - GitHub issue #47, because it changes Windows shell selection.
 - New transcription models, media formats, or user-facing features.
 - A broad UI redesign.
+- A broad readability refactor outside logic already changed for this release.
 - Unmeasured dependency deletion.
 
 ## Baseline evidence from 2026-08-27
@@ -216,24 +220,40 @@ fix: give each mac architecture an isolated package output
 
 ## Task 4: Remove packaged renderer duplication and retired static files
 
-- [ ] Add failing package-manifest tests that classify React, Xterm, and VAD libraries as renderer build inputs instead of main-process runtime dependencies.
-- [ ] Add a failing build-config test that rejects the duplicate root sound resource set on macOS.
-- [ ] Add a failing package-content test that rejects React, Xterm, VAD, ONNX, non-target node-pty prebuilds, Windows PDB files, and retired remote-control files from the mac package.
-- [ ] Move `@ricky0123/vad-web`, `@xterm/addon-fit`, `@xterm/xterm`, `react`, and `react-dom` to `devDependencies`.
-- [ ] Remove unused `@testing-library/user-event`.
-- [ ] Keep both VAD model files during this task. Task 5 must pin the runtime model before it removes the V5 asset.
-- [ ] Remove the retired remote-control files listed in the file map.
-- [ ] Keep `public/favicon.svg`, `public/assets`, and generated `public/vad`.
-- [ ] Keep `public/assets/start.mp3`, `public/assets/stop.mp3`, `public/assets/success.mp3`, and `public/assets/error.mp3` as the renderer sound source.
-- [ ] Remove the byte-identical root `assets/*.mp3` files and the global `extraResources` sound copy.
-- [ ] Keep root `audiobash-logo.png` as the macOS application and tray image. Remove the 12-byte placeholder `assets/icon.png`.
-- [ ] Keep root `audiobash-logo.ico` for Windows and scope its resource copy to the Windows package.
-- [ ] Add mac-specific negative package patterns for non-darwin node-pty prebuilds, Windows PDB files, tests, source maps, and build-only source.
-- [ ] Keep the target architecture `pty.node`, `spawn-helper`, runtime JavaScript, and `package.json`.
-- [ ] List `app.asar` and `app.asar.unpacked` and make the package-content tests pass.
-- [ ] Measure installed production closure, `.app`, DMG, zip, `app.asar`, and `app.asar.unpacked` before and after this task.
-- [ ] Run packaged startup, PTY, tray, four-sound, manual voice, and VAD smoke tests before accepting any deletion.
-- [ ] Request Claude Code review and commit.
+- [x] Add failing package-manifest tests that classify React, Xterm, and VAD libraries as renderer build inputs instead of main-process runtime dependencies.
+- [x] Add a failing build-config test that rejects the duplicate root sound resource set on macOS.
+- [x] Add a failing package-content test that rejects React, Xterm, VAD, ONNX, non-target node-pty prebuilds, Windows PDB files, and retired remote-control files from the mac package.
+- [x] Move `@ricky0123/vad-web`, `@xterm/addon-fit`, `@xterm/xterm`, `react`, and `react-dom` to `devDependencies`.
+- [x] Remove unused `@testing-library/user-event`.
+- [x] Keep both VAD model files during this task. Task 5 must pin the runtime model before it removes the V5 asset.
+- [x] Remove the retired remote-control files listed in the file map.
+- [x] Keep `public/favicon.svg`, `public/assets`, and generated `public/vad`.
+- [x] Keep `public/assets/start.mp3`, `public/assets/stop.mp3`, `public/assets/success.mp3`, and `public/assets/error.mp3` as the renderer sound source.
+- [x] Remove the byte-identical root `assets/*.mp3` files and the global `extraResources` sound copy.
+- [x] Keep root `audiobash-logo.png` as the macOS application and tray image. Remove the 12-byte placeholder `assets/icon.png`.
+- [x] Keep root `audiobash-logo.ico` for Windows and scope its resource copy to the Windows package.
+- [x] Add mac-specific negative package patterns for non-darwin node-pty prebuilds, Windows PDB files, tests, source maps, and build-only source.
+- [x] Keep the target architecture `pty.node`, `spawn-helper`, runtime JavaScript, and `package.json`.
+- [x] List `app.asar` and `app.asar.unpacked` and make the package-content tests pass.
+- [x] Measure installed production closure, `.app`, DMG, zip, `app.asar`, and `app.asar.unpacked` before and after this task.
+- [ ] Run packaged startup, PTY, tray, four-sound, manual voice, and VAD smoke tests before release acceptance.
+  - [x] Automated arm64 and x64 startup, PTY, tray-image construction, package sound-file, and VAD-asset checks pass.
+  - [ ] Manually play all four notification sounds and test tray clicks and menu actions.
+  - [ ] Investigate the repeated arm64 Electron menu-model warning and confirm it is absent or harmless after the supported Electron update and tray interaction test.
+  - [ ] Manually test microphone voice capture and live VAD behavior.
+- [x] Request Claude Code review, correct its findings, and commit.
+
+### Task 4 review
+
+- The first macOS exclusion build produced a 4.0 GB app. Later source inspection showed that electron-builder 26 combines global and platform file patterns, so allowlist replacement is not a proven root cause. The macOS list remains self-contained and requires three positive include patterns, which prevents a future all-negative list from selecting the project.
+- Electron-builder smart unpack copied the node-pty runtime outside `app.asar`. Smart unpack is now disabled only for macOS, and a package test requires exactly the target `pty.node` and `spawn-helper` in `app.asar.unpacked`. Windows and Linux keep automatic native detection.
+- Independent specification review found that an extension-only filter could miss foreign DLL and executable files. A red synthetic inventory test now proves that every prebuild entry outside the exact target architecture directory is rejected.
+- Five installed dependency trees that the mac runtime does not use are excluded only at the package boundary. Isolated package probes use an empty temporary home and working directory, inherit only required locale, path, and temporary-directory variables, and reject every non-built-in CommonJS module resolution outside the packaged ASAR or its unpacked native tree. They load all retained main-process dependencies and call the Anthropic JSON-schema helper and both Whisper caption functions with a known non-empty caption fixture.
+- The final two-architecture package gate passes 30 tests. Both architectures pass package-content, artifact-integrity, architecture, strict-signature, real packaged PTY, isolated-startup, tray-image, and child-process cleanup checks.
+- A cold x64 dependency probe took 34 seconds under Rosetta. The child process now has a 60-second timeout and Vitest has a 70-second timeout, while native Intel testing remains a final release gate.
+- The sample packages skipped notarization because the current hook does not consume the approved App Store Connect API key. Task 11 must add API-key support and fail closed. This is an expected Task 4 package gate, not a release trust pass.
+- Live sound playback, tray interaction, microphone voice, and live VAD remain later release gates. The external Claude review findings were corrected, and three independent final repository reviews found no remaining Task 4 commit blocker.
+- An earlier arm64 startup probe logged a repeated Electron menu-model warning after tray creation. It did not appear in the final short arm64 or x64 startup probes. Task 7 and a longer manual tray gate must confirm that result before release acceptance.
 
 Expected commit message:
 
@@ -463,6 +483,7 @@ git diff --check
 - [ ] Download and inspect the Windows and Linux workflow artifacts. Treat them as release gates because the Electron and dependency changes affect all platforms.
 - [ ] Run a Claude Code review on the full diff and a separate review on the release workflow.
 - [ ] Fix all critical and important review findings with test-first commits.
+- [ ] Review each edited logic unit by eye: describe its job in one sentence, follow its happy path without tracking deep nesting, and confirm the surrounding author would recognize its style.
 - [ ] Review every line of the final diff and update this plan review section.
 
 ## Task 14: Merge, tag, draft, download-test, and publish
@@ -527,6 +548,7 @@ Stop and re-plan before publication if any of these conditions occurs:
 - [ ] Each task has a red-green test record.
 - [ ] Each commit message explains why the change was needed.
 - [ ] Each changed line received human-readable review.
+- [ ] Each edited logic unit received a proportionate complexity and readability review without a computed score.
 - [ ] Documentation matches verified behavior.
 - [ ] Final automated gates are green.
 - [ ] Final macOS manual gates are green.

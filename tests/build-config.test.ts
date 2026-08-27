@@ -92,6 +92,54 @@ describe('macOS build configuration', () => {
     const iconPath = join(rootDir, macConfig.icon);
     expect(existsSync(iconPath)).toBe(true);
   });
+
+  it('does not copy duplicate sounds or Windows icons into macOS resources', () => {
+    const globalResources = buildConfig.extraResources ?? [];
+    const macResources = macConfig.extraResources ?? [];
+    const macResourceSources = [...globalResources, ...macResources].map(
+      (resource: string | { from: string }) =>
+        typeof resource === 'string' ? resource : resource.from,
+    );
+
+    expect(macResourceSources).not.toContain('assets');
+    expect(macResourceSources).not.toContain('audiobash-logo.ico');
+    expect(macResourceSources).toContain('audiobash-logo.png');
+  });
+
+  it('keeps the application allowlist when macOS adds package exclusions', () => {
+    expect(macConfig.files).toEqual(
+      expect.arrayContaining(['dist/**/*', 'electron/**/*', 'node_modules/node-pty/**/*']),
+    );
+  });
+
+  it('scopes the manual native unpack policy to macOS', () => {
+    expect(buildConfig.asar).toBeUndefined();
+    expect(buildConfig.asarUnpack).toBeUndefined();
+    expect(macConfig.asar).toEqual({ smartUnpack: false });
+    expect(macConfig.asarUnpack).toEqual(['node_modules/node-pty/prebuilds/**/*']);
+  });
+
+  it('keeps positive application patterns and all macOS package exclusions', () => {
+    const macFiles = macConfig.files as string[];
+    const positivePatterns = macFiles.filter((pattern) => !pattern.startsWith('!'));
+
+    expect(positivePatterns).toEqual(
+      expect.arrayContaining(['dist/**/*', 'electron/**/*', 'node_modules/node-pty/**/*']),
+    );
+    expect(macFiles).toEqual(
+      expect.arrayContaining([
+        '!node_modules/node-pty/prebuilds/!(darwin-${arch}){,/**/*}',
+        '!node_modules/node-pty/{deps,scripts,src}{,/**/*}',
+        '!node_modules/node-pty/**/*.test.{js,ts}',
+        '!node_modules/node-pty/**/*.{map,pdb}',
+        '!node_modules/node-addon-api{,/**/*}',
+        '!node_modules/json-schema-to-ts{,/**/*}',
+        '!node_modules/ts-algebra{,/**/*}',
+        '!node_modules/@babel/runtime{,/**/*}',
+        '!node_modules/@remotion/captions{,/**/*}',
+      ]),
+    );
+  });
 });
 
 describe('DMG configuration', () => {
@@ -118,6 +166,20 @@ describe('Windows build configuration', () => {
     expect(buildConfig.nsis).toBeDefined();
     expect(buildConfig.nsis.oneClick).toBe(false);
     expect(buildConfig.nsis.allowToChangeInstallationDirectory).toBe(true);
+  });
+
+  it('scopes the ICO resource copy to Windows', () => {
+    const globalResources = buildConfig.extraResources ?? [];
+    const windowsResources = buildConfig.win.extraResources ?? [];
+    const globalSources = globalResources.map((resource: string | { from: string }) =>
+      typeof resource === 'string' ? resource : resource.from,
+    );
+    const windowsSources = windowsResources.map((resource: string | { from: string }) =>
+      typeof resource === 'string' ? resource : resource.from,
+    );
+
+    expect(globalSources).not.toContain('audiobash-logo.ico');
+    expect(windowsSources).toContain('audiobash-logo.ico');
   });
 });
 
@@ -224,21 +286,25 @@ describe('required assets', () => {
     expect(existsSync(join(rootDir, 'audiobash-logo.ico'))).toBe(true);
   });
 
-  it('has assets directory with audio files', () => {
-    expect(existsSync(join(rootDir, 'assets'))).toBe(true);
-    expect(existsSync(join(rootDir, 'assets', 'start.mp3'))).toBe(true);
-    expect(existsSync(join(rootDir, 'assets', 'stop.mp3'))).toBe(true);
+  it('keeps renderer sounds in the public asset source', () => {
+    for (const sound of ['start.mp3', 'stop.mp3', 'success.mp3', 'error.mp3']) {
+      expect(existsSync(join(rootDir, 'public', 'assets', sound))).toBe(true);
+      expect(existsSync(join(rootDir, 'assets', sound))).toBe(false);
+    }
+  });
+
+  it('keeps the renderer SVG favicon in the public asset source', () => {
+    expect(existsSync(join(rootDir, 'public', 'favicon.svg'))).toBe(true);
+  });
+
+  it('does not keep the placeholder root asset icon', () => {
+    expect(existsSync(join(rootDir, 'assets', 'icon.png'))).toBe(false);
   });
 });
 
 describe('dependencies', () => {
   it('has node-pty for terminal emulation', () => {
     expect(packageJson.dependencies['node-pty']).toBeDefined();
-  });
-
-  it('has xterm for terminal rendering', () => {
-    expect(packageJson.dependencies['@xterm/xterm']).toBeDefined();
-    expect(packageJson.dependencies['@xterm/addon-fit']).toBeDefined();
   });
 
   it('has electron-builder as dev dependency', () => {
