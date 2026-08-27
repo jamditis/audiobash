@@ -5,7 +5,6 @@
  * - spawn-helper permissions and PTY spawning
  * - Multi-terminal stability
  * - Resource cleanup
- * - Package integrity
  */
 
 import { describe, it, expect } from 'vitest';
@@ -125,47 +124,6 @@ describe.skipIf(!isMac)('macOS Stress Tests', () => {
       expect(shell.pid).toBeGreaterThan(0);
       shell.kill();
     });
-  });
-
-  describe('Package Integrity', () => {
-    const distPath = path.join(projectRoot, 'dist');
-
-    it.skipIf(!fs.existsSync(path.join(distPath, 'mac-arm64')))(
-      'built app should have correct structure',
-      () => {
-        const appPath = path.join(distPath, 'mac-arm64/AudioBash.app');
-        expect(fs.existsSync(appPath)).toBe(true);
-        expect(fs.existsSync(path.join(appPath, 'Contents/MacOS/AudioBash'))).toBe(true);
-        expect(fs.existsSync(path.join(appPath, 'Contents/Resources/app.asar'))).toBe(true);
-      },
-    );
-
-    it.skipIf(!fs.existsSync(path.join(distPath, 'mac-arm64')))(
-      'unpacked node-pty should have correct permissions',
-      () => {
-        const unpackedPath = path.join(
-          distPath,
-          'mac-arm64/AudioBash.app/Contents/Resources/app.asar.unpacked/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper',
-        );
-
-        if (fs.existsSync(unpackedPath)) {
-          const stats = fs.statSync(unpackedPath);
-          const isExecutable = (stats.mode & 0o111) !== 0;
-          expect(isExecutable).toBe(true);
-        }
-      },
-    );
-
-    it.skipIf(!fs.existsSync(path.join(distPath, 'AudioBash-2.0.2-arm64.dmg')))(
-      'DMG should exist and be valid',
-      () => {
-        const dmgPath = path.join(distPath, 'AudioBash-2.0.2-arm64.dmg');
-        expect(fs.existsSync(dmgPath)).toBe(true);
-
-        const stats = fs.statSync(dmgPath);
-        expect(stats.size).toBeGreaterThan(100 * 1024 * 1024); // Should be > 100MB
-      },
-    );
   });
 
   describe('Shell Environment', () => {

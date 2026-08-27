@@ -18,6 +18,7 @@
     "test:coverage": "vitest run --coverage",
     "pretest:ui": "npm run prepare:native",
     "test:ui": "vitest --ui",
+    "test:package:mac": "vitest run --config vitest.package.config.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:py": "ruff check scripts build",
@@ -31,11 +32,11 @@
     "preelectron:build:win": "npm run prepare:native",
     "electron:build:win": "npm run build && electron-builder --win",
     "preelectron:build:mac": "npm run prepare:native",
-    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:mac": "npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64",
     "preelectron:build:mac:arm64": "npm run prepare:native",
-    "electron:build:mac:arm64": "npm run build && electron-builder --mac --arm64",
+    "electron:build:mac:arm64": "npm run build && electron-builder --mac --arm64 --publish never",
     "preelectron:build:mac:x64": "npm run prepare:native",
-    "electron:build:mac:x64": "npm run build && electron-builder --mac --x64",
+    "electron:build:mac:x64": "npm run build && electron-builder --mac --x64 --publish never",
     "preelectron:build:linux": "npm run prepare:native",
     "electron:build:linux": "npm run build && electron-builder --linux",
     "preview": "vite preview"
@@ -91,6 +92,9 @@
     "productName": "AudioBash",
     "npmRebuild": false,
     "afterPack": "./scripts/afterPack.cjs",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",
@@ -131,21 +135,10 @@
     },
     "afterSign": "./scripts/notarize.cjs",
     "mac": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "dmg",
+        "zip"
       ],
       "icon": "audiobash-logo.png",
       "category": "public.app-category.developer-tools",

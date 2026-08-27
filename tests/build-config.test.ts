@@ -10,6 +10,9 @@ import { join } from 'path';
 const rootDir = join(__dirname, '..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
 const buildConfig = packageJson.build;
+const gitignoreEntries = readFileSync(join(rootDir, '.gitignore'), 'utf8')
+  .split(/\r?\n/)
+  .map((entry) => entry.trim());
 
 describe('electron-builder configuration', () => {
   it('has valid appId format', () => {
@@ -31,6 +34,16 @@ describe('electron-builder configuration', () => {
     expect(buildConfig.files).toContain('dist/**/*');
     expect(buildConfig.files).toContain('electron/**/*');
   });
+
+  it('keeps renderer and package output in separate directories', () => {
+    expect(buildConfig.directories.output).toBe('release');
+    expect(buildConfig.files).toContain('dist/**/*');
+  });
+
+  it('ignores package output and local audit evidence', () => {
+    expect(gitignoreEntries).toContain('/release/');
+    expect(gitignoreEntries).toContain('.audit/');
+  });
 });
 
 describe('macOS build configuration', () => {
@@ -40,17 +53,20 @@ describe('macOS build configuration', () => {
     expect(macConfig).toBeDefined();
   });
 
-  it('targets both architectures (arm64 and x64)', () => {
-    const dmgTarget = macConfig.target.find((t: any) => t.target === 'dmg');
-    const zipTarget = macConfig.target.find((t: any) => t.target === 'zip');
+  it('leaves architecture selection to the build command', () => {
+    const macTargets = macConfig.target.map((target: string | { target: string }) =>
+      typeof target === 'string' ? target : target.target,
+    );
+    const macTargetsWithArch = macConfig.target.filter(
+      (target: string | { arch?: string[] }) => typeof target !== 'string' && target.arch,
+    );
 
-    expect(dmgTarget).toBeDefined();
-    expect(dmgTarget.arch).toContain('arm64');
-    expect(dmgTarget.arch).toContain('x64');
+    expect(macTargets).toEqual(['dmg', 'zip']);
+    expect(macTargetsWithArch).toHaveLength(0);
+  });
 
-    expect(zipTarget).toBeDefined();
-    expect(zipTarget.arch).toContain('arm64');
-    expect(zipTarget.arch).toContain('x64');
+  it('uses explicit architecture-qualified artifact names', () => {
+    expect(macConfig.artifactName).toBe('${productName}-${version}-${arch}.${ext}');
   });
 
   it('has hardened runtime enabled for code signing', () => {
@@ -171,13 +187,31 @@ describe('npm scripts', () => {
 
   it('has architecture-specific macOS build scripts', () => {
     expect(scripts['electron:build:mac:arm64']).toContain('--arm64');
+    expect(scripts['electron:build:mac:arm64']).not.toContain('--x64');
+    expect(scripts['electron:build:mac:arm64']).toContain('--publish never');
     expect(scripts['electron:build:mac:x64']).toContain('--x64');
+    expect(scripts['electron:build:mac:x64']).not.toContain('--arm64');
+    expect(scripts['electron:build:mac:x64']).toContain('--publish never');
   });
 
-  it('all build scripts include vite build step', () => {
+  it('builds both macOS architectures in sequence when explicitly requested', () => {
+    const combinedScript = scripts['electron:build:mac'];
+
+    expect(combinedScript).toBe(
+      'npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64',
+    );
+  });
+
+  it('has an explicit fail-closed macOS package test command', () => {
+    expect(scripts['test:package:mac']).toBe('vitest run --config vitest.package.config.ts');
+  });
+
+  it('runs the Vite build before each direct package build', () => {
     expect(scripts['electron:build']).toContain('npm run build');
-    expect(scripts['electron:build:mac']).toContain('npm run build');
     expect(scripts['electron:build:win']).toContain('npm run build');
+    expect(scripts['electron:build:mac:arm64']).toContain('npm run build');
+    expect(scripts['electron:build:mac:x64']).toContain('npm run build');
+    expect(scripts['electron:build:linux']).toContain('npm run build');
   });
 });
 

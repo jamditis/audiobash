@@ -181,7 +181,7 @@ fix: make clean mac installs able to start terminal processes
 
 **Root cause:** Vite and electron-builder both own `dist`. The mac target also hard-codes both architectures, so architecture-specific scripts still build both and can sweep package output into the next package.
 
-- [ ] Replace the current architecture assertion with failing behavior assertions in `tests/build-config.test.ts`:
+- [x] Replace the current architecture assertion with failing behavior assertions in `tests/build-config.test.ts`:
 
 ```ts
 expect(buildConfig.directories.output).toBe('release');
@@ -191,22 +191,22 @@ expect(scripts['electron:build:mac:arm64']).toContain('--arm64');
 expect(scripts['electron:build:mac:arm64']).not.toContain('--x64');
 ```
 
-- [ ] Add failing assertions that `.gitignore` contains `/release/` and `.audit/` so packages, hashes, validation logs, and local credential-path evidence cannot enter a commit.
-- [ ] Add a failing assertion that mac package tests derive artifact names from `package.json` instead of `2.0.2`.
-- [ ] Run the targeted tests and confirm the expected failures.
-- [ ] Set `build.directories.output` to `release` and keep Vite output in `dist`.
-- [ ] Change mac targets to `"dmg"` and `"zip"` without target-level `arch` arrays.
-- [ ] Make arm64 and x64 scripts build only their named architecture with `--publish never`.
-- [ ] Add an explicit combined release script that runs the two architecture builds in sequence.
-- [ ] Update Windows and Linux artifact paths from `dist/` to `release/`.
-- [ ] Replace the obsolete DMG skip test with `tests/integration/macos-package.test.ts`. The release test command must fail when the current-version artifact is absent.
-- [ ] Run each architecture directory build separately and prove it creates only the named architecture.
-- [ ] Run a clean arm64 DMG build. Record whether the earlier temporary-DMG `ENOENT` failure is gone.
-- [ ] Run a clean x64 DMG build under Rosetta or the x64 electron-builder path. Record whether it is independent of arm64 output.
-- [ ] Compare file lists and hashes to prove no architecture package contains the other package output.
-- [ ] Before package pruning or an Electron major update, use the Task 0 credentials to build, sign, notarize, staple, and validate one unpruned package for each architecture on the current Electron 39 baseline. This control isolates the trust pipeline from later dependency changes. It is not a release candidate or an approved release runtime.
-- [ ] Keep the control sample hashes, package lists, and validation output in ignored audit records. If this control fails, fix packaging or signing before Task 4.
-- [ ] Request Claude Code review and commit.
+- [x] Add failing assertions that `.gitignore` contains `/release/` and `.audit/` so packages, hashes, validation logs, and local credential-path evidence cannot enter a commit.
+- [x] Add a failing assertion that mac package tests derive artifact names from `package.json` instead of `2.0.2`.
+- [x] Run the targeted tests and confirm the expected failures.
+- [x] Set `build.directories.output` to `release` and keep Vite output in `dist`.
+- [x] Change mac targets to `"dmg"` and `"zip"` without target-level `arch` arrays.
+- [x] Make arm64 and x64 scripts build only their named architecture with `--publish never`.
+- [x] Add an explicit combined release script that runs the two architecture builds in sequence.
+- [x] Update Windows and Linux artifact paths from `dist/` to `release/`.
+- [x] Replace the obsolete DMG skip test with `tests/integration/macos-package.test.ts`. The release test command must fail when the current-version artifact is absent.
+- [x] Run each architecture directory build separately and prove it creates only the named architecture.
+- [x] Run a clean arm64 DMG build. Record whether the earlier temporary-DMG `ENOENT` failure is gone.
+- [x] Run a clean x64 DMG build under Rosetta or the x64 electron-builder path. Record whether it is independent of arm64 output.
+- [x] Compare file lists and hashes to prove no architecture package contains the other package output.
+- [x] Before package pruning or an Electron major update, use the Task 0 credentials to build, sign, notarize, staple, and validate one unpruned package for each architecture on the current Electron 39 baseline. This control isolates the trust pipeline from later dependency changes. It is not a release candidate or an approved release runtime.
+- [x] Keep the control sample hashes, package lists, and validation output in ignored audit records. If this control fails, fix packaging or signing before Task 4.
+- [x] Request Claude Code review and commit.
 
 Expected commit message:
 
