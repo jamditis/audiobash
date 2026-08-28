@@ -7,7 +7,44 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import Terminal from '../../src/components/Terminal';
-import { ThemeProvider } from '../../src/themes/ThemeProvider';
+import { getThemeById, themeToXtermTheme, ThemeProvider, useTheme } from '../../src/themes';
+
+const xtermRuntime = vi.hoisted(() => ({
+  instances: [] as Array<{
+    options: Record<string, unknown>;
+    dispose: ReturnType<typeof vi.fn>;
+    onData: ReturnType<typeof vi.fn>;
+    onSelectionChange: ReturnType<typeof vi.fn>;
+  }>,
+}));
+
+vi.mock('@xterm/xterm', () => ({
+  Terminal: class {
+    options: Record<string, unknown>;
+    cols = 80;
+    rows = 24;
+    open = vi.fn();
+    dispose = vi.fn();
+    focus = vi.fn();
+    write = vi.fn();
+    writeln = vi.fn();
+    clear = vi.fn();
+    getSelection = vi.fn(() => '');
+    loadAddon = vi.fn();
+    onData = vi.fn(() => ({ dispose: vi.fn() }));
+    onSelectionChange = vi.fn(() => ({ dispose: vi.fn() }));
+
+    constructor(options?: Record<string, unknown>) {
+      this.options = options || {};
+      xtermRuntime.instances.push(this);
+    }
+  },
+}));
+
+function ThemeChangeControl() {
+  const { setTheme } = useTheme();
+  return <button onClick={() => setTheme('hacker')}>Change terminal theme</button>;
+}
 
 // Helper to render Terminal with required providers
 function renderTerminal(props: Partial<Parameters<typeof Terminal>[0]> = {}) {
@@ -31,6 +68,7 @@ function renderTerminal(props: Partial<Parameters<typeof Terminal>[0]> = {}) {
 describe('Terminal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    xtermRuntime.instances.length = 0;
     localStorage.clear();
   });
 
@@ -154,6 +192,41 @@ describe('Terminal Component', () => {
   });
 
   describe('Props behavior', () => {
+    it('updates font size and theme on the existing terminal after mount', async () => {
+      const terminalProps = {
+        tabId: 'live-options-tab',
+        isActive: true,
+        isVisible: true,
+      };
+      const { rerender } = render(
+        <ThemeProvider>
+          <ThemeChangeControl />
+          <Terminal {...terminalProps} fontSize={14} />
+        </ThemeProvider>,
+      );
+
+      await waitFor(() => expect(xtermRuntime.instances).toHaveLength(1));
+      const terminal = xtermRuntime.instances[0];
+
+      rerender(
+        <ThemeProvider>
+          <ThemeChangeControl />
+          <Terminal {...terminalProps} fontSize={20} />
+        </ThemeProvider>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Change terminal theme' }));
+
+      await waitFor(() => expect(terminal.options.fontSize).toBe(20));
+      await waitFor(() =>
+        expect(terminal.options.theme).toEqual(themeToXtermTheme(getThemeById('hacker'))),
+      );
+      expect(xtermRuntime.instances).toEqual([terminal]);
+      expect(terminal.dispose).not.toHaveBeenCalled();
+      expect(terminal.onData).toHaveBeenCalledOnce();
+      expect(terminal.onSelectionChange).toHaveBeenCalledOnce();
+      expect(window.electron.onTerminalData).toHaveBeenCalledOnce();
+    });
+
     it('uses isVisible when provided', () => {
       const { container: hidden } = renderTerminal({ isVisible: false, isActive: true });
       const { container: visible } = renderTerminal({ isVisible: true, isActive: false });
@@ -191,13 +264,20 @@ describe('Terminal Component', () => {
   });
 });
 
-describe('Terminal with Recording State', () => {
-  it('passes recording state to focus indicator', () => {
-    const { container } = renderTerminal({ isFocused: true, isRecording: true });
+describe('Terminal recording state', () => {
+  it('changes the focused pane ring while recording', () => {
+    const { container: idleContainer } = renderTerminal({
+      isFocused: true,
+      isRecording: false,
+    });
+    const { container: recordingContainer } = renderTerminal({
+      isFocused: true,
+      isRecording: true,
+    });
 
-    // When focused and recording, the focus indicator should be present
-    const wrapper = container.firstChild as HTMLElement;
-    expect(wrapper.className).toContain('ring-1');
+    expect((idleContainer.firstChild as HTMLElement).className).toContain('ring-1');
+    expect((idleContainer.firstChild as HTMLElement).className).not.toContain('ring-accent');
+    expect((recordingContainer.firstChild as HTMLElement).className).toContain('ring-accent');
   });
 });
 

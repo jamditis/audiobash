@@ -48,7 +48,7 @@ describe.skipIf(!isMac)('macOS Stress Tests', () => {
   describe('PTY Spawn Stress', () => {
     it('should spawn and destroy multiple PTYs rapidly', async () => {
       const pty = await import('node-pty');
-      const shells: any[] = [];
+      const shells: Array<ReturnType<typeof pty.spawn>> = [];
       const SPAWN_COUNT = 10;
 
       // Rapid spawn
@@ -151,7 +151,7 @@ describe.skipIf(!isMac)('macOS Stress Tests', () => {
       const pty = await import('node-pty');
 
       for (let cycle = 0; cycle < 5; cycle++) {
-        const shells: any[] = [];
+        const shells: Array<ReturnType<typeof pty.spawn>> = [];
 
         // Create 5 shells
         for (let i = 0; i < 5; i++) {

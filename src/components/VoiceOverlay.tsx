@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 import {
   transcriptionService,
   ModelId,
@@ -74,23 +74,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const SendIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={2}
-    stroke="currentColor"
-    className="w-4 h-4"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-    />
-  </svg>
-);
-
 const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   isOpen,
   isRecording,
@@ -117,6 +100,11 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startGenerationRef = useRef(0);
   const startPendingRef = useRef(false);
+  const recordingActionsRef = useRef<{
+    start: () => Promise<void>;
+    stop: () => void;
+    cancel: () => void;
+  } | null>(null);
   const {
     begin: beginBatchTranscription,
     cancel: cancelBatchTranscription,
@@ -676,6 +664,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   }, [
     mode,
     model,
+    activeTabId,
     hasApiKey,
     onTranscript,
     setIsRecording,
@@ -687,7 +676,6 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     cancelBatchTranscription,
     finishBatchTranscription,
     cleanupAudioResources,
-    invalidatePendingStart,
     openVisualizationStream,
   ]);
 
@@ -781,27 +769,38 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     }
   }, [startRecording, stopRecording]);
 
+  useLayoutEffect(() => {
+    recordingActionsRef.current = {
+      start: startRecording,
+      stop: stopRecording,
+      cancel: cancelRecording,
+    };
+  }, [startRecording, stopRecording, cancelRecording]);
+
   // Global shortcut handler for toggle recording
   useEffect(() => {
     const handleToggle = () => {
+      const actions = recordingActionsRef.current;
+      if (!actions) return;
+
       if (isRecordingRef.current) {
-        stopRecording();
+        actions.stop();
       } else {
-        startRecording();
+        void actions.start();
       }
     };
     const cleanup = window.electron?.onToggleRecording(handleToggle);
     return () => cleanup?.();
-  }, [startRecording, stopRecording]);
+  }, []);
 
   // Global shortcut handler for cancel recording
   useEffect(() => {
     const handleCancel = () => {
-      cancelRecording();
+      recordingActionsRef.current?.cancel();
     };
     const cleanup = window.electron?.onCancelRecording(handleCancel);
     return () => cleanup?.();
-  }, [cancelRecording]);
+  }, []);
 
   // Smart handoff: cancel recording when CC /voice becomes active (discard partial audio)
   useEffect(() => {

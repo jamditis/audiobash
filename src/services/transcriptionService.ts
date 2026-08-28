@@ -309,9 +309,6 @@ ${customInstructions.agentModeInstructions}
 Convert the following speech to a ${shell} command:`;
 }
 
-// Fallback static prompt for when no context is available
-const AGENT_PROMPT = buildAgentPrompt();
-
 export class TranscriptionService {
   // Tracks which providers have a key configured (for the model picker and config checks).
   // The actual cloud calls happen in the main process, so the renderer does not construct

@@ -402,22 +402,36 @@ build: move AudioBash to a supported Electron security line
 
 ## Task 8: Make lint and React state gates truthful
 
-- [ ] Add a Terminal behavior test that changes `fontSize` and `theme` after mount and checks the live terminal options.
-- [ ] Add a VoiceOverlay behavior test that switches the active tab and checks that the next transcription routes to the new tab.
-- [ ] Run the tests before changing hook dependencies. If either test already passes, document the warning as non-behavioral and use the smallest valid lint correction.
-- [ ] Fix the two hook dependency warnings without recreating terminals, reconnecting listeners, or sending text to a stale tab.
-- [ ] Remove unused variables and explicit `any` values only in files already changed by this release. Do not widen the release with unrelated type refactors.
-- [ ] Keep terminal control-character regex exceptions.
-- [ ] Record the exact warning count after Task 7 and after the two behavioral warnings and touched-file warnings are fixed. The final count must be 64 or lower. Set ESLint `--max-warnings` to that measured final count, prove it passes the current commit, and prove a test fixture with one added warning fails. If the final count is 65 or higher, stop and diagnose instead of weakening the budget or closing this task.
+- [x] Add a Terminal behavior test that changes `fontSize` and `theme` after mount and checks the live terminal options.
+- [x] Add a VoiceOverlay behavior test that switches the active tab and checks that the next transcription routes to the new tab.
+- [x] Run the tests before changing hook dependencies. If either test already passes, document the warning as non-behavioral and use the smallest valid lint correction.
+- [x] Fix the two hook dependency warnings without recreating terminals, reconnecting listeners, or sending text to a stale tab.
+- [x] Remove unused variables and explicit `any` values only in files already changed by this release. Do not widen the release with unrelated type refactors.
+- [x] Keep terminal control-character regex exceptions.
+- [x] Record the exact warning count after Task 7 and after the two behavioral warnings and touched-file warnings are fixed. The final count must be 64 or lower. Set ESLint `--max-warnings` to that measured final count, prove it passes the current commit, and prove a test fixture with one added warning fails. If the final count is 65 or higher, stop and diagnose instead of weakening the budget or closing this task.
 - [ ] Create a follow-up issue for the remaining untouched warnings. Zero warnings remains the codebase goal, but unrelated warning cleanup does not block this stability release.
-- [ ] Add a reproducible local Ruff setup command and run both `ruff check` and `ruff format --check`.
-- [ ] Run affected tests after each file and the full suite after the batch.
-- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
+- [x] Add a reproducible local Ruff setup command and run both `ruff check` and `ruff format --check`.
+- [x] Run affected tests after each file and the full suite after the batch.
+- [x] Complete three independent internal repository reviews and correct every finding.
+- [x] Receive a clean final cross-model correction review and commit.
+
+Evidence and review:
+
+- Task 7 ended with zero ESLint errors and 58 warnings. The two hook warnings were in `Terminal.tsx` and `VoiceOverlay.tsx`.
+- The first Terminal live-value test and a VoiceOverlay rerender test passed before source changes. The first VoiceOverlay test called the current prop callback and did not exercise the retained Electron listener. A stronger test kept the original listener, switched from `tab-1` to `tab-2`, and then failed because terminal context still used `tab-1`. The latest-actions ref correction makes that same saved listener use `tab-2` without a new subscription.
+- The Terminal keeps one xterm instance while live font-size and theme options change. Its data, selection, and Electron terminal-data listeners each remain single subscriptions. A strengthened test failed until a focused pane began using the defined accent ring while recording. Idle focus styling is unchanged; the pre-existing `ring-acid/60` utility is not defined by the Tailwind theme and is recorded for later visual cleanup.
+- ESLint warning counts were 58 at baseline, 50 after the hook and test corrections, and 34 after cleanup limited to release-touched files. The 34 remaining warnings are in 13 untouched files. The terminal control-character regex exceptions are unchanged.
+- `npm run lint` passes at exactly 34 warnings. An isolated temporary workspace copies Git-tracked and nonignored lint inputs, adds warning 35, and makes the same command fail against `--max-warnings 34`. ESLint also ignores local `.audit` and `.worktrees` content. This is a net-warning ratchet; the follow-up zero-warning issue will remove the identity-replacement gap.
+- `npm run setup:ruff` prepares and reports Ruff 0.15.1 through `uv tool run`. `npm run lint:py` uses the same pinned uv environment for both `ruff check` and `ruff format --check`; both pass across seven Python files.
+- The focused gate passes 89 tests in five files. The normal suite passes 656 tests in 40 files. TypeScript, CommonJS syntax, Ruff, Prettier, the exact Node/npm toolchain check, the renderer build, generated `.ring-accent` CSS, and `git diff --check` pass. ESLint reports zero errors and 34 warnings.
+- Three independent internal reviews found lifecycle, cleanup, portability, timeout, isolation, Ruff-version, evidence, mock-fidelity, and stale-count defects. All internal findings are corrected, and their correction reviews report no open P0-P3 item.
+- The cross-model review found that the first lint fixture could copy the primary checkout's 9.4 GB worktree store, that local evidence remained in the normal lint scope, and that several tests and evidence statements were not precise enough. Git-listed inputs, explicit ESLint ignores, zero-budget grammar, absent-path handling, npm-launch fallback, mock parity, and corrected evidence close those findings. The final cross-model correction review reports zero unresolved P0-P3 items.
+- The follow-up GitHub issue is specified but not created. It remains behind explicit user approval.
 
 Expected commit message:
 
 ```text
-refactor: make static analysis reject new release warnings
+refactor: prevent net lint warning growth in release changes
 ```
 
 ## Task 9: Keep preview watching alive across atomic saves

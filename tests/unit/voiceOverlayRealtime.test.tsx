@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useCallback, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import VoiceOverlay from '../../src/components/VoiceOverlay';
+import { transcriptionService } from '../../src/services/transcriptionService';
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -47,7 +49,10 @@ const feedbackRuntime = vi.hoisted(() => ({
 }));
 
 const shortcutRuntime = vi.hoisted(() => ({
+  toggleRecording: null as null | (() => void),
   cancelRecording: null as null | (() => void),
+  toggleCleanup: vi.fn(),
+  cancelCleanup: vi.fn(),
 }));
 
 vi.mock('../../src/hooks/useElevenLabsRealtime', () => ({
@@ -81,7 +86,10 @@ describe('voice overlay real-time setup', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     realtimeRuntime.options = null;
+    shortcutRuntime.toggleRecording = null;
     shortcutRuntime.cancelRecording = null;
+    shortcutRuntime.toggleCleanup.mockReset();
+    shortcutRuntime.cancelCleanup.mockReset();
     localStorage.setItem('audiobash-model', 'elevenlabs-scribe-realtime');
     localStorage.setItem('audiobash-recording-mode', 'manual');
     realtimeRuntime.start.mockRejectedValue(new Error('Real-time setup failed'));
@@ -90,16 +98,96 @@ describe('voice overlay real-time setup', () => {
     window.electron.getApiKey = vi.fn(async (provider) =>
       provider === 'elevenlabs' ? 'configured-test-key' : '',
     );
-    window.electron.onToggleRecording = vi.fn(() => vi.fn());
+    window.electron.onToggleRecording = vi.fn((handler) => {
+      shortcutRuntime.toggleRecording = handler;
+      return shortcutRuntime.toggleCleanup;
+    });
     window.electron.onCancelRecording = vi.fn((handler) => {
       shortcutRuntime.cancelRecording = handler;
-      return vi.fn();
+      return shortcutRuntime.cancelCleanup;
     });
     navigator.mediaDevices.getUserMedia = vi.fn();
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('routes the next manual transcription to the active tab without reconnecting shortcuts', async () => {
+    localStorage.setItem('audiobash-model', 'parakeet-local');
+    stubWorkingAudioContext();
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }],
+    } as unknown as MediaStream);
+    const getTerminalContext = vi.fn(async (tabId: string) => ({
+      cwd: `/work/${tabId}`,
+      recentOutput: '',
+      os: 'mac' as const,
+      shell: '/bin/zsh',
+      lastCommand: '',
+      lastError: '',
+    }));
+    window.electron.getTerminalContext = getTerminalContext;
+    vi.spyOn(transcriptionService, 'transcribeAudio').mockResolvedValue({
+      text: 'pwd',
+      cost: '$0.00',
+    });
+    const routeTranscript = vi.fn();
+
+    function VoiceOverlayHarness({ activeTabId }: { activeTabId: string }) {
+      const [isRecording, setIsRecording] = useState(false);
+      const onTranscript = useCallback(
+        (text: string) => routeTranscript(activeTabId, text),
+        [activeTabId],
+      );
+      return (
+        <VoiceOverlay
+          isOpen
+          isRecording={isRecording}
+          setIsRecording={setIsRecording}
+          onTranscript={onTranscript}
+          transcript=""
+          onClose={vi.fn()}
+          isPinned
+          setIsPinned={vi.fn()}
+          activeTabId={activeTabId}
+          mode="agent"
+          setMode={vi.fn()}
+        />
+      );
+    }
+
+    const { rerender, unmount } = render(<VoiceOverlayHarness activeTabId="tab-1" />);
+    await waitFor(() => expect(screen.getByText('Ready')).toBeVisible());
+
+    const subscribedToggle = shortcutRuntime.toggleRecording;
+    expect(subscribedToggle).toBeTypeOf('function');
+    expect(window.electron.onToggleRecording).toHaveBeenCalledOnce();
+    expect(window.electron.onCancelRecording).toHaveBeenCalledOnce();
+    vi.mocked(window.electron.onToggleRecording).mockClear();
+    vi.mocked(window.electron.onCancelRecording).mockClear();
+    shortcutRuntime.toggleCleanup.mockClear();
+    shortcutRuntime.cancelCleanup.mockClear();
+
+    rerender(<VoiceOverlayHarness activeTabId="tab-2" />);
+    act(() => subscribedToggle?.());
+    await waitFor(() => expect(screen.getByText('Listening...')).toBeVisible());
+    act(() => subscribedToggle?.());
+
+    await waitFor(() => {
+      expect(getTerminalContext).toHaveBeenCalledTimes(1);
+      expect(getTerminalContext).toHaveBeenCalledWith('tab-2');
+      expect(routeTranscript).toHaveBeenCalledWith('tab-2', 'pwd');
+    });
+    expect(routeTranscript).not.toHaveBeenCalledWith('tab-1', expect.any(String));
+    expect(window.electron.onToggleRecording).not.toHaveBeenCalled();
+    expect(window.electron.onCancelRecording).not.toHaveBeenCalled();
+    expect(shortcutRuntime.toggleCleanup).not.toHaveBeenCalled();
+    expect(shortcutRuntime.cancelCleanup).not.toHaveBeenCalled();
+    unmount();
+    expect(shortcutRuntime.toggleCleanup).toHaveBeenCalledOnce();
+    expect(shortcutRuntime.cancelCleanup).toHaveBeenCalledOnce();
   });
 
   it('does not enter recording state after real-time setup rejects', async () => {

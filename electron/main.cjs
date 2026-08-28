@@ -29,7 +29,7 @@ process.on('uncaughtException', (err) => {
   console.error('[AudioBash] Uncaught exception:', err);
   try {
     appLog.error('Uncaught exception', err);
-  } catch (_) {
+  } catch {
     /* logger may not be initialized */
   }
 });
@@ -38,7 +38,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[AudioBash] Unhandled rejection:', reason);
   try {
     appLog.error('Unhandled rejection', { reason: String(reason) });
-  } catch (_) {
+  } catch {
     /* logger may not be initialized */
   }
 });
@@ -1624,7 +1624,7 @@ function setupIPC() {
       sessions[name] = { name, tree, timestamp: Date.now() };
       store.set('paneSessions', sessions);
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -1634,7 +1634,7 @@ function setupIPC() {
       const sessions = store.get('paneSessions') || {};
       const session = sessions[name];
       return session ? { success: true, tree: session.tree } : { success: false };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -1643,7 +1643,7 @@ function setupIPC() {
     try {
       const sessions = store.get('paneSessions') || {};
       return { sessions: Object.values(sessions) };
-    } catch (err) {
+    } catch {
       return { sessions: [] };
     }
   });
@@ -1654,7 +1654,7 @@ function setupIPC() {
       delete sessions[name];
       store.set('paneSessions', sessions);
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -1729,7 +1729,7 @@ app.whenReady().then(async () => {
     console.error('[AudioBash] Startup failed:', err);
     try {
       appLog.error('Startup failed', err);
-    } catch (_) {
+    } catch {
       /* logger may not be initialized */
     }
 
@@ -1737,7 +1737,7 @@ app.whenReady().then(async () => {
     if (!mainWindow) {
       try {
         createWindow();
-      } catch (_) {
+      } catch {
         /* last resort */
       }
     }
@@ -1761,11 +1761,11 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 
   // Close all file watchers
-  for (const [watcherId, entry] of fileWatchers) {
+  for (const entry of fileWatchers.values()) {
     try {
       clearTimeout(entry.debounceTimer);
       entry.watcher.close();
-    } catch (err) {
+    } catch {
       // Ignore cleanup errors during shutdown
     }
   }

@@ -154,7 +154,9 @@ describe('DMG configuration', () => {
   });
 
   it('has proper DMG layout with Applications link', () => {
-    const appLink = dmgConfig.contents.find((c: any) => c.type === 'link');
+    const appLink = dmgConfig.contents.find(
+      (content: { path?: string; type?: string }) => content.type === 'link',
+    );
     expect(appLink).toBeDefined();
     expect(appLink.path).toBe('/Applications');
   });
@@ -203,8 +205,9 @@ describe('Linux build configuration', () => {
   // author was a bare "Joe Amditis" string, so the deb step failed in CI and blocked the release job.
   it('provides a maintainer email for the deb target', () => {
     const rawTargets = buildConfig.linux.target ?? [];
-    const targetNames = (Array.isArray(rawTargets) ? rawTargets : [rawTargets]).map((t: any) =>
-      typeof t === 'string' ? t : t?.target,
+    const targetNames = (Array.isArray(rawTargets) ? rawTargets : [rawTargets]).map(
+      (target: string | { target?: string }) =>
+        typeof target === 'string' ? target : target.target,
     );
     if (!targetNames.includes('deb')) return;
     const author = packageJson.author;
@@ -218,6 +221,13 @@ describe('Linux build configuration', () => {
 
 describe('npm scripts', () => {
   const scripts = packageJson.scripts;
+
+  it('pins the local Ruff setup and runs both Python static checks', () => {
+    expect(scripts['setup:ruff']).toBe('uv tool run --from ruff==0.15.1 ruff --version');
+    expect(scripts['lint:py']).toBe(
+      'uv tool run --from ruff==0.15.1 ruff check scripts build && uv tool run --from ruff==0.15.1 ruff format --check scripts build',
+    );
+  });
 
   it('prepares native dependencies before each test and Electron entry point', () => {
     expect(scripts['prepare:native']).toBe('node scripts/prepare-native-deps.cjs');

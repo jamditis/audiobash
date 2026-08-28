@@ -794,7 +794,7 @@ contextBridge.exposeInMainWorld('electron', {
    * });
    */
   onFileChanged: (callback) => {
-    const handler = (_, { watcherId, filepath }) => callback(filepath);
+    const handler = (_, { filepath }) => callback(filepath);
     ipcRenderer.on('file-changed', handler);
     return () => ipcRenderer.removeListener('file-changed', handler);
   },
