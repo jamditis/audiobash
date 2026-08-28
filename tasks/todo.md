@@ -1,6 +1,6 @@
 # AudioBash macOS stability and v3.4.0 release plan
 
-> For agentic workers: use `superjawn:subagent-driven-development` to execute this plan. Use `superjawn:test-driven-development` for each behavior change, `superjawn:systematic-debugging` for each failure, and `superjawn:verification-before-completion` before each commit and release gate.
+> For internal repository agents: use one bounded task per agent. Add a failing test before each bug fix, diagnose each failure from evidence, and verify each commit and release gate before completion. Do not use external skills or plugins.
 
 **Goal:** Build and publish AudioBash v3.4.0 with smaller macOS packages, reliable local and packaged PTYs, bounded background work, a supported Electron security line, signed and notarized arm64 and x64 artifacts, and release checks that fail when an artifact is missing or invalid.
 
@@ -295,20 +295,38 @@ perf: avoid loading voice activity detection during app startup
 
 ## Task 6: Remove the undeclared ElevenLabs multipart dependency and add request deadlines
 
-**Root cause:** `electron/main.cjs` calls `require('form-data')`, but that package exists only through development dependencies. The packaged ElevenLabs batch path can fail at runtime.
+**Root cause:** `electron/main.cjs` calls development-only `form-data`. Both current macOS packages omit that module, and Electron's native `fetch` does not correctly serialize its object. The batch path also uses the wrong ElevenLabs multipart field name, reuses a consumed body, multiplies SDK retries, and has no full-operation deadline or user cancellation contract. Real-time setup can remain pending after a pre-open error and can reconnect after the user stops it.
 
-- [ ] Add a failing unit test that builds an ElevenLabs request after `npm prune --omit=dev` in an isolated package fixture.
-- [ ] Add failing tests for audio filename, media type, model field, API key header, non-2xx error text, timeout, and caller cancellation.
-- [ ] Run `npx vitest run tests/unit/elevenLabsRequest.test.ts` and confirm the missing module or API failure.
-- [ ] Implement `electron/elevenLabsRequest.cjs` with built-in `FormData`, `Blob`, `fetch`, and `AbortController`.
-- [ ] Do not set multipart boundary headers manually. Let `fetch` set them.
-- [ ] Give each cloud request a 30-second per-attempt deadline, at most three attempts, fixed one-second and two-second retry delays, and a 100-second total deadline that can stop the final attempt early. Retry only transient network failures, HTTP 408, HTTP 429, and HTTP 5xx responses. Clear every timer in `finally`.
-- [ ] Apply the same deadline helper to Gemini, OpenAI, Anthropic, ElevenLabs batch, and ElevenLabs real-time setup where the SDK supports cancellation.
-- [ ] Replace the warning-only timeout stress test with assertions.
-- [ ] Keep retry count and deadline count separate. A stalled request must return one actionable user error within 100 seconds.
-- [ ] Assert that the built-in `FormData` request does not set an explicit multipart `Content-Type` header.
-- [ ] Run unit, stress, main-process syntax, and packaged ElevenLabs smoke tests.
-- [ ] Request Claude Code review and commit.
+- [x] Add failing request-policy tests for a 30-second attempt deadline, three total attempts, fixed one-second and two-second abortable delays, a 100-second operation budget, concurrent isolation, and complete timer and listener cleanup.
+- [x] Prove that only transient network failures, HTTP 408, HTTP 429, HTTP 500 through 599, and attempt timeouts retry. Prove that caller cancellation and other HTTP 4xx responses do not retry.
+- [x] Add failing ElevenLabs request tests for exact binary bytes, the `file` field, filename `audio.webm`, media type `audio/webm`, `model_id=scribe_v1`, the API key header, fresh bodies, response parsing, and safe non-2xx errors.
+- [x] Run the request helper from an isolated fixture after `npm prune --omit=dev --ignore-scripts`. Prove that it does not resolve third-party modules.
+- [x] Assert that AudioBash does not declare or require `form-data` and that native `FormData` does not receive an explicit multipart `Content-Type` header.
+- [x] Implement `electron/transcriptionRequest.cjs` so one operation budget can run multiple provider stages. Give every attempt a fresh `AbortController`, stop it at the smaller of 30 seconds or the remaining operation budget, and clear every timer and abort listener in `finally`.
+- [x] Implement `electron/elevenLabsRequest.cjs` with native `FormData`, `Blob`, and `fetch`. Build a new multipart body inside each retry attempt and let `fetch` generate the boundary.
+- [x] Extract the batch provider handlers into one named main-process module. Pass the attempt signal and timeout to Gemini. Pass `signal`, `timeout`, and `maxRetries: 0` to every OpenAI and Anthropic SDK call.
+- [x] Share one 100-second budget across Whisper plus GPT and Whisper plus Anthropic. Return stable timeout and cancellation codes without exposing keys or request bodies.
+- [x] Add a unique request ID to each renderer batch request, one main-process controller per active request, and a `cancel-transcription` IPC channel. Test concurrent isolation, early cancellation, duplicate IDs, active cancellation, and registry cleanup.
+- [x] Make `TranscriptionService` accept a caller signal and send the matching cancel IPC call. Make `VoiceOverlay` abort the active batch request when the user cancels, starts a replacement, or unmounts.
+- [x] Add failing real-time service and hook tests for error-before-open, close-before-open, repeated connect calls, stop and unmount during setup, retry-delay cancellation, stale socket events, and no late PCM start.
+- [x] Give real-time setup the same contract of at most three attempts with one-second and two-second abortable delays. Keep it in the renderer and do not move streaming audio into the main process.
+- [x] Replace the warning-only timeout stress test and local timeout simulation with assertions against the production request policy under fake time.
+- [x] Add a packaged Electron smoke test for both architectures. Load the native multipart helper from `app.asar`, inspect a fake request without network access, and prove that `form-data` is absent.
+- [x] Keep local Parakeet and local Whisper process work out of this task. Record Parakeet's missing deadline as a known limit; Task 10 owns Whisper and FFmpeg process-tree cleanup.
+- [x] Run focused unit tests, stress tests, the normal suite, type checks, lint, formatting, main-process syntax checks, production audit, both macOS package builds, and the packaged suite.
+- [x] Complete three independent internal repository reviews, correct every finding, and commit.
+
+Review:
+
+- The initial combined Task 6 run failed 27 tests and could not load the missing request module. Later red tests reproduced nested network errors, a non-transient 4xx status that retried, late success after cancellation, failed real-time setup that reported success, repeated stop commits, reflected provider error data, and an active PCM stream after a server error.
+- The final normal suite passes 610 tests in 34 files. The focused Task 6 suite passes 171 tests in 10 files. TypeScript, five main-process syntax checks, Ruff, Prettier, the renderer build, production audit, and ESLint pass. ESLint has zero errors and 58 known warnings.
+- One 100-second budget now owns each cloud operation. Each provider attempt has a 30-second limit, at most three attempts, and abortable one-second and two-second delays. Provider SDK retries are disabled so they cannot multiply the outer policy.
+- Renderer cancellation is authoritative. A late cloud or local success is rejected after cancellation. Main-process cancellation uses one controller per request ID, includes bounded early-cancel storage, and does not expose provider error text, keys, or audio data.
+- ElevenLabs batch transcription uses native `FormData`, `Blob`, and `fetch`, creates a new body for each attempt, and sends the required file metadata. The isolated production fixture resolves no third-party dependency and inherits no user secrets or Node options.
+- ElevenLabs real-time setup has the same three-attempt timing contract, prevents reconnect after stop, rejects failed starts, treats server errors as terminal, and separates a graceful one-commit stop from discard cancellation.
+- Fresh v3.3.1 arm64 and x64 internal packages pass 32 package tests, including execution of the multipart helper from each packaged ASAR. Strict signature validation passes for both apps, and neither ASAR contains `form-data`. The app sizes are 278 MB and 287 MB. The arm64 DMG and zip are 112 MB and 107 MB. The x64 DMG and zip are 119 MB and 115 MB. These samples skip notarization and are not release candidates.
+- Three internal reviews covered the package boundary, privacy boundary, and release lifecycle. The final review found two stale-resource races and one stop-path test gap. Test-first corrections now prove replacement stream ownership, cleanup after five partial PCM setup failures, normal and repeated stop cleanup, and cleanup when final audio delivery throws.
+- Local Parakeet work still has no process-level deadline. Task 10 owns local Whisper, FFmpeg, and Parakeet process-tree cancellation and shutdown behavior.
 
 Expected commit message:
 
@@ -332,7 +350,7 @@ fix: keep cloud transcription bounded and self-contained in production
 - [ ] Use full `npm audit` to cover renderer build inputs and release tooling. Require zero critical and zero high findings, and add a reachability note for each remaining moderate or low finding.
 - [ ] Record any moderate or low residual finding with reachability evidence and user approval before release.
 - [ ] Update Browserslist data and confirm the stale-data warning is gone.
-- [ ] Request Claude Code review after each dependency group.
+- [ ] Complete an independent internal repository review after each dependency group.
 
 Expected commit messages:
 
@@ -353,7 +371,7 @@ build: move AudioBash to a supported Electron security line
 - [ ] Create a follow-up issue for the remaining untouched warnings. Zero warnings remains the codebase goal, but unrelated warning cleanup does not block this stability release.
 - [ ] Add a reproducible local Ruff setup command and run both `ruff check` and `ruff format --check`.
 - [ ] Run affected tests after each file and the full suite after the batch.
-- [ ] Request Claude Code review and commit.
+- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
 
 Expected commit message:
 
@@ -375,7 +393,7 @@ refactor: make static analysis reject new release warnings
 - [ ] Close the watcher and all timers on explicit unwatch and app shutdown.
 - [ ] Replace the inline watcher code in `electron/main.cjs` with the module.
 - [ ] Run unit tests and a manual preview edit loop with an editor that uses atomic saves.
-- [ ] Request Claude Code review and commit.
+- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
 
 Expected commit message:
 
@@ -400,7 +418,7 @@ fix: keep preview refresh attached after atomic file saves
 - [ ] Make app shutdown wait for job cleanup with a bounded deadline before the final quit.
 - [ ] Run macOS integration tests and Windows process-tree tests in GitHub Actions.
 - [ ] Verify no child FFmpeg or Whisper process remains after timeout, cancel, or quit.
-- [ ] Request Claude Code review and commit.
+- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
 
 Expected commit message:
 
@@ -431,7 +449,7 @@ fix: reap local transcription process trees before jobs finish
 - [ ] Preserve the verified workflow artifact hashes so Task 14 can attach those exact files to the tag and draft release.
 - [ ] Keep the current entitlement set in v3.4.0. Create a follow-up issue to test removal of `com.apple.security.network.server` after the first clean notarized release.
 - [ ] Do not export the local signing private key or add GitHub secrets unless Task 0 records separate user approval for that exact credential step.
-- [ ] Request Claude Code security and release review and commit.
+- [ ] Complete separate internal security and release reviews, correct every finding, and commit.
 
 Expected commit message:
 
@@ -455,7 +473,7 @@ build: make mac release trust checks mandatory
 - [ ] Update the manual checklist to expect normal Gatekeeper launch for the release build.
 - [ ] Keep the existing SVG favicons and add missing release-page Open Graph and Twitter metadata using the existing on-brand image.
 - [ ] Test every public page locally and run the documentation tests.
-- [ ] Request Claude Code writing and release review and commit.
+- [ ] Complete separate internal writing and release reviews, correct every finding, and commit.
 
 Expected commit message:
 
@@ -492,7 +510,7 @@ git diff --check
 - [ ] Run the Windows test and package job on a Windows GitHub runner and the Linux test and package job on an Ubuntu GitHub runner for the same commit.
 - [ ] Make each platform job verify package version, expected filenames, package contents, main-process dependencies, and SHA-256 before upload.
 - [ ] Download and inspect the Windows and Linux workflow artifacts. Treat them as release gates because the Electron and dependency changes affect all platforms.
-- [ ] Run a Claude Code review on the full diff and a separate review on the release workflow.
+- [ ] Run an internal review on the full diff and a separate internal review on the release workflow.
 - [ ] Fix all critical and important review findings with test-first commits.
 - [ ] Review each edited logic unit by eye: describe its job in one sentence, follow its happy path without tracking deep nesting, and confirm the surrounding author would recognize its style.
 - [ ] Review every line of the final diff and update this plan review section.
@@ -520,6 +538,47 @@ git diff --check
 - [ ] Leave #47 open.
 - [ ] Confirm the final worktree is clean and remove it only after the release is verified.
 
+## Task 15: Prove the Mac App Store route before submission
+
+- [ ] Read the current official Apple documentation for macOS TestFlight, App Store distribution, sandboxing, entitlements, certificates, provisioning profiles, privacy manifests, and upload validation. Record links and access dates.
+- [ ] Use the root agent for every Apple browser action. Do not let a subagent inspect credentials, control the browser, accept terms, create records, create certificates, create profiles, upload a build, add testers, or submit for review.
+- [ ] Reconnect to the signed-in Apple browser session and perform read-only checks for agreements, roles, bundle identifiers, certificates, profiles, and App Store Connect access. Do not print or store secret values.
+- [ ] Stop for user approval immediately before each account mutation, agreement acceptance, certificate or profile creation, app-record creation, upload, tester invitation, TestFlight submission, or App Review submission.
+- [ ] Add a separate App Store package configuration. Do not weaken the Developer ID build, its hardened runtime, or its notarization gates.
+- [ ] Prove whether the App Sandbox can support AudioBash terminal creation, PTY control, shell child processes, microphone capture, local transcription processes, file preview, screenshots, and network transcription without private entitlements or policy violations.
+- [ ] If a core terminal path cannot work within current App Store rules, stop before creating or uploading a misleading build. Record the exact limitation and keep the signed and notarized direct release as the supported macOS route.
+- [ ] If feasible, add failing configuration tests for the App Store bundle identifier, target, distribution certificate, provisioning profile, sandbox entitlements, helper entitlements, architecture, version, build number, and absence of Developer ID-only settings.
+- [ ] Build the App Store package from the exact reviewed v3.4.0 commit. Run source tests, package tests, signature checks, sandbox checks, and a clean-device behavior pass.
+- [ ] Validate the package with Apple's current command-line or Transporter workflow before upload.
+- [ ] With user approval, create or update the App Store Connect record, upload the validated build, complete required privacy and export-compliance fields, and submit it to internal TestFlight.
+- [ ] Confirm processing status and internal installation before any App Review submission.
+- [ ] Prepare the App Review metadata, screenshots, support URL, privacy URL, reviewer notes, and test instructions. Submit for App Review only after separate user approval.
+
+## Task 16: Prepare the Microsoft Store package and submission
+
+- [ ] Read the current official Microsoft documentation for desktop app submission, supported package types, identity, signing, restricted capabilities, certification, privacy fields, and staged publication. Record links and access dates.
+- [ ] Use the root agent for every Microsoft browser action. Do not let a subagent inspect credentials, control the browser, accept terms, reserve a name, create a product, change account data, upload a package, or submit it.
+- [ ] Reconnect to the signed-in Partner Center browser session and perform read-only checks for account state, agreements, payout or tax blockers, product access, and available submission routes. Do not print or store secret values.
+- [ ] Stop for user approval immediately before each account mutation, agreement acceptance, product-name reservation, product creation, identity assignment, upload, flight creation, or certification submission.
+- [ ] Select the current supported Store route that preserves PTY, shell, child-process, microphone, file, screenshot, and network behavior. Record why the selected package type and capabilities fit AudioBash.
+- [ ] Add failing configuration tests for package identity, publisher, version mapping, architecture, capabilities, artifact name, signing state, and manifest contents.
+- [ ] Build the Windows Store package from the exact reviewed v3.4.0 commit and the same tested source used for the direct release.
+- [ ] Run the full Windows test job, package-content checks, signature verification, installer and uninstall tests, clean-user launch, PTY and shell tests, microphone tests, local and cloud transcription tests, and Microsoft's current certification kit.
+- [ ] Prepare the Store listing, screenshots, privacy URL, support URL, age rating, release notes, system requirements, and certification notes.
+- [ ] With user approval, create or update the Partner Center product, upload the validated package, use a private flight when available, and submit for certification.
+- [ ] Confirm ingestion, certification, staged availability, installation, update, and rollback behavior before public publication.
+
+## Task 17: Update every release and documentation surface
+
+- [ ] Inventory the README, changelog, v3.4.0 release notes, patch notes, website pages, download links, installation guides, support pages, privacy pages, developer docs, GitHub release text, Apple listing, Microsoft listing, and in-app version surfaces.
+- [ ] Use one factual change list and one tested artifact manifest for every surface. Do not claim notarization, TestFlight, App Store, Microsoft Store, or public availability until that exact state is verified.
+- [ ] Describe the debloat measurements, transcription deadlines and cancellation, microphone cleanup, dependency changes, supported Electron line, known limits, platform requirements, and direct-download trust behavior in plain language.
+- [ ] Keep `package.json` as the version source. Require automated checks for version text, artifact names, download URLs, checksums, bundle metadata, Store versions, and release dates.
+- [ ] Keep the existing on-brand SVG favicons on every public page. Add or verify complete Open Graph and social-sharing metadata and graphics for every published release page.
+- [ ] Test every local page, external URL, download, checksum, image, favicon, social metadata field, install command, and store link before publication.
+- [ ] Run separate internal writing, security, and release reviews. Read every changed line and correct each finding.
+- [ ] Commit the final surface sweep only after its tests pass and the documented release states match the live systems.
+
 ## Stop conditions
 
 Stop and re-plan before publication if any of these conditions occurs:
@@ -533,7 +592,7 @@ Stop and re-plan before publication if any of these conditions occurs:
 - Intel behavior cannot be tested beyond Rosetta and the release risk is not accepted.
 - A critical or high security finding remains.
 - The final ESLint warning count is not below the measured baseline of 65.
-- A critical or important external review finding remains.
+- A critical or important internal review finding remains.
 
 ## Review record
 
@@ -553,6 +612,7 @@ Stop and re-plan before publication if any of these conditions occurs:
 - [x] Claude Code execution review found ambiguous version, retry, script, warning-budget, password, audit-path, and artifact-name instructions. The plan now defines one supported Electron target, bounded retry timing, exact native-preparation hooks, a measured warning budget, one password variable, ignored audit evidence, and package-derived release names.
 - [x] The plan rejects an unsigned public fallback and stops if Apple prerequisites are absent.
 - [x] User approved the plan.
+- [x] After the user correction, all remaining work uses core tools and internal repository agents only. No external skill, plugin, Claude, or Copilot action is permitted.
 
 ### Implementation review
 

@@ -39,6 +39,56 @@ export function usePCMCapture(options: UsePCMCaptureOptions): UsePCMCaptureResul
   const bufferRef = useRef<Float32Array[]>([]);
   const bufferIntervalRef = useRef<number | null>(null);
 
+  const releaseCaptureResources = useCallback(() => {
+    if (bufferIntervalRef.current !== null) {
+      clearInterval(bufferIntervalRef.current);
+      bufferIntervalRef.current = null;
+    }
+
+    const processor = processorRef.current;
+    processorRef.current = null;
+    if (processor) {
+      processor.onaudioprocess = null;
+      try {
+        processor.disconnect();
+      } catch {
+        // The node can already be disconnected after a partial setup failure.
+      }
+    }
+
+    const source = sourceRef.current;
+    sourceRef.current = null;
+    if (source) {
+      try {
+        source.disconnect();
+      } catch {
+        // The node can already be disconnected after a partial setup failure.
+      }
+    }
+
+    const stream = streamRef.current;
+    streamRef.current = null;
+    stream?.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch {
+        // Continue releasing the remaining capture resources.
+      }
+    });
+
+    const audioContext = audioContextRef.current;
+    audioContextRef.current = null;
+    if (audioContext) {
+      try {
+        void Promise.resolve(audioContext.close()).catch(() => undefined);
+      } catch {
+        // The context can already be closed after a partial setup failure.
+      }
+    }
+
+    bufferRef.current = [];
+  }, []);
+
   const start = useCallback(async () => {
     if (isCapturing) {
       return;
@@ -105,57 +155,49 @@ export function usePCMCapture(options: UsePCMCaptureOptions): UsePCMCaptureResul
       setIsCapturing(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
+      const captureError = err instanceof Error ? err : new Error(errorMessage);
+      releaseCaptureResources();
+      setIsCapturing(false);
       setError(errorMessage);
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
+      onError?.(captureError);
+      throw captureError;
     }
-  }, [isCapturing, sampleRate, deviceId, onAudioData, onError]);
+  }, [isCapturing, sampleRate, deviceId, onAudioData, onError, releaseCaptureResources]);
 
   const stop = useCallback(() => {
-    // Clear the send interval
-    if (bufferIntervalRef.current) {
-      clearInterval(bufferIntervalRef.current);
-      bufferIntervalRef.current = null;
-    }
+    let deliveryError: Error | null = null;
 
-    // Send any remaining buffered audio
-    if (bufferRef.current.length > 0) {
-      const totalLength = bufferRef.current.reduce((sum, arr) => sum + arr.length, 0);
-      if (totalLength > 0) {
-        const combined = new Float32Array(totalLength);
-        let offset = 0;
-        for (const chunk of bufferRef.current) {
-          combined.set(chunk, offset);
-          offset += chunk.length;
+    try {
+      // Send any remaining buffered audio before releasing the capture graph.
+      if (bufferRef.current.length > 0) {
+        const totalLength = bufferRef.current.reduce((sum, arr) => sum + arr.length, 0);
+        if (totalLength > 0) {
+          const combined = new Float32Array(totalLength);
+          let offset = 0;
+          for (const chunk of bufferRef.current) {
+            combined.set(chunk, offset);
+            offset += chunk.length;
+          }
+          const base64 = float32ArrayToBase64(combined);
+          onAudioData(base64);
         }
-        const base64 = float32ArrayToBase64(combined);
-        onAudioData(base64);
       }
-      bufferRef.current = [];
+    } catch {
+      deliveryError = new Error('Failed to send the final audio segment');
+    } finally {
+      releaseCaptureResources();
+      setIsCapturing(false);
     }
 
-    // Disconnect and clean up
-    if (processorRef.current) {
-      processorRef.current.disconnect();
-      processorRef.current = null;
+    if (deliveryError) {
+      setError(deliveryError.message);
+      try {
+        onError?.(deliveryError);
+      } catch {
+        // A reporting callback must not interrupt capture cleanup.
+      }
     }
-
-    if (sourceRef.current) {
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    setIsCapturing(false);
-  }, [onAudioData]);
+  }, [onAudioData, onError, releaseCaptureResources]);
 
   return {
     start,

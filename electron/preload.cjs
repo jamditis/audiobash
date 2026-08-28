@@ -568,12 +568,14 @@ contextBridge.exposeInMainWorld('electron', {
    * @function transcribeWithGemini
    * @memberof window.electron
    * @param {Object} data - Transcription data
+   * @param {string} data.requestId - Unique request ID used for exact cancellation
    * @param {string} data.audioBase64 - Base64-encoded audio data
    * @param {string} data.prompt - The prompt for transcription/agent mode
    * @param {string} data.modelId - Model ID (e.g., 'gemini-2.0-flash')
-   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @returns {Promise<{success: boolean, text?: string, error?: string, errorCode?: string}>} Transcription result
    * @example
    * const result = await window.electron.transcribeWithGemini({
+   *   requestId: crypto.randomUUID(),
    *   audioBase64: base64Audio,
    *   prompt: 'Transcribe this audio...',
    *   modelId: 'gemini-2.0-flash'
@@ -588,12 +590,14 @@ contextBridge.exposeInMainWorld('electron', {
    * @function transcribeWithOpenAI
    * @memberof window.electron
    * @param {Object} data - Transcription data
+   * @param {string} data.requestId - Unique request ID used for exact cancellation
    * @param {string} data.audioBase64 - Base64-encoded audio data
    * @param {string} data.prompt - The prompt for agent mode (if using GPT-4)
    * @param {string} data.modelId - Model ID (e.g., 'openai-whisper', 'openai-gpt4')
-   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @returns {Promise<{success: boolean, text?: string, error?: string, errorCode?: string}>} Transcription result
    * @example
    * const result = await window.electron.transcribeWithOpenAI({
+   *   requestId: crypto.randomUUID(),
    *   audioBase64: base64Audio,
    *   prompt: 'Convert to CLI command...',
    *   modelId: 'openai-gpt4'
@@ -608,12 +612,14 @@ contextBridge.exposeInMainWorld('electron', {
    * @function transcribeWithAnthropic
    * @memberof window.electron
    * @param {Object} data - Transcription data
+   * @param {string} data.requestId - Unique request ID used for exact cancellation
    * @param {string} data.audioBase64 - Base64-encoded audio data
    * @param {string} data.prompt - The prompt for agent mode
    * @param {string} data.modelId - Model ID (e.g., 'claude-sonnet', 'claude-haiku')
-   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @returns {Promise<{success: boolean, text?: string, error?: string, errorCode?: string}>} Transcription result
    * @example
    * const result = await window.electron.transcribeWithAnthropic({
+   *   requestId: crypto.randomUUID(),
    *   audioBase64: base64Audio,
    *   prompt: 'Convert to CLI command...',
    *   modelId: 'claude-sonnet'
@@ -627,14 +633,19 @@ contextBridge.exposeInMainWorld('electron', {
    * @function transcribeWithElevenLabs
    * @memberof window.electron
    * @param {Object} data - Transcription data
+   * @param {string} data.requestId - Unique request ID used for exact cancellation
    * @param {string} data.audioBase64 - Base64-encoded audio data
-   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @returns {Promise<{success: boolean, text?: string, error?: string, errorCode?: string}>} Transcription result
    * @example
    * const result = await window.electron.transcribeWithElevenLabs({
+   *   requestId: crypto.randomUUID(),
    *   audioBase64: base64Audio
    * });
    */
   transcribeWithElevenLabs: (data) => ipcRenderer.invoke('transcribe-with-elevenlabs', data),
+
+  /** Cancels one active or not-yet-registered cloud transcription request. */
+  cancelTranscription: (requestId) => ipcRenderer.invoke('cancel-transcription', { requestId }),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DIRECTORY MANAGEMENT

@@ -1,14 +1,14 @@
 /**
- * ElevenLabs Scribe v2 Real-time WebSocket Service
- * Provides streaming speech-to-text with VAD-based auto-commit
+ * ElevenLabs Scribe v2 real-time WebSocket service.
+ * Provides streaming speech-to-text with VAD-based auto-commit.
  */
 
 import { transcriptionLog as log } from '../utils/logger';
 
 export interface ElevenLabsRealtimeConfig {
   apiKey: string;
-  language?: string; // 'eng' or null for auto-detect
-  keyterms?: string[]; // Up to 100 vocabulary terms for better accuracy
+  language?: string;
+  keyterms?: string[];
   onFinalTranscript: (text: string) => void;
   onError: (error: Error) => void;
   onSessionStart?: () => void;
@@ -17,7 +17,6 @@ export interface ElevenLabsRealtimeConfig {
 
 export interface ElevenLabsRealtimeError extends Error {
   code: string;
-  type?: string;
 }
 
 type MessageType =
@@ -29,147 +28,294 @@ type MessageType =
 
 interface ServerMessage {
   message_type: MessageType;
-  session_id?: string;
   text?: string;
-  error_message?: string;
-  error_type?: string;
-  language_code?: string;
-  words?: Array<{
-    text: string;
-    start: number;
-    end: number;
-    type: string;
-    logprob: number;
-  }>;
+}
+
+export const REALTIME_CONNECT_TIMEOUT_MS = 30_000;
+export const REALTIME_MAX_CONNECT_ATTEMPTS = 3;
+export const REALTIME_RETRY_DELAYS_MS = [1_000, 2_000] as const;
+
+function cancellationError(reason?: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+
+  const error = new Error('ElevenLabs connection canceled');
+  error.name = 'AbortError';
+  return error;
+}
+
+function setupError(): ElevenLabsRealtimeError {
+  const error = new Error('ElevenLabs real-time setup failed') as ElevenLabsRealtimeError;
+  error.code = 'ELEVENLABS_REALTIME_SETUP_FAILED';
+  return error;
+}
+
+function abortableDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    return Promise.reject(cancellationError(signal.reason));
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort);
+      resolve();
+    }, delayMs);
+
+    const handleAbort = () => {
+      clearTimeout(timeout);
+      signal.removeEventListener('abort', handleAbort);
+      reject(cancellationError(signal.reason));
+    };
+
+    signal.addEventListener('abort', handleAbort, { once: true });
+  });
 }
 
 export class ElevenLabsRealtimeService {
   private ws: WebSocket | null = null;
   private config: ElevenLabsRealtimeConfig;
-  private sessionId: string = '';
-  private isConnecting: boolean = false;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 3;
-  private reconnectDelay: number = 1000;
+  private connectPromise: Promise<void> | null = null;
+  private setupController: AbortController | null = null;
+  private generation = 0;
+  private manuallyDisconnected = false;
 
   constructor(config: ElevenLabsRealtimeConfig) {
     this.config = config;
   }
 
-  /**
-   * Connect to ElevenLabs real-time WebSocket endpoint
-   */
-  async connect(): Promise<void> {
+  /** Connect to the ElevenLabs real-time WebSocket endpoint. */
+  connect(): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN) {
-      log.debug('WebSocket already connected');
-      return;
+      return Promise.resolve();
     }
 
-    if (this.isConnecting) {
-      log.debug('WebSocket connection already in progress');
-      return;
+    if (this.connectPromise) {
+      return this.connectPromise;
     }
 
-    this.isConnecting = true;
+    this.manuallyDisconnected = false;
+    const generation = ++this.generation;
+    const controller = new AbortController();
+    this.setupController = controller;
+
+    const connection = this.connectWithRetries(generation, controller.signal)
+      .catch((error: unknown) => {
+        if (
+          controller.signal.aborted ||
+          this.manuallyDisconnected ||
+          generation !== this.generation
+        ) {
+          throw cancellationError(controller.signal.reason ?? error);
+        }
+
+        log.error('ElevenLabs real-time setup failed');
+        throw setupError();
+      })
+      .finally(() => {
+        if (this.connectPromise === connection) {
+          this.connectPromise = null;
+        }
+        if (this.setupController === controller) {
+          this.setupController = null;
+        }
+      });
+
+    this.connectPromise = connection;
+    return connection;
+  }
+
+  private async connectWithRetries(generation: number, signal: AbortSignal): Promise<void> {
+    let latestError: unknown;
+
+    for (let attempt = 0; attempt < REALTIME_MAX_CONNECT_ATTEMPTS; attempt += 1) {
+      try {
+        await this.connectOnce(generation, signal);
+        return;
+      } catch (error) {
+        latestError = error;
+
+        if (signal.aborted || generation !== this.generation) {
+          throw cancellationError(signal.reason ?? error);
+        }
+
+        const retryDelay = REALTIME_RETRY_DELAYS_MS[attempt];
+        if (retryDelay === undefined) {
+          break;
+        }
+
+        log.info('Retrying ElevenLabs real-time setup', {
+          attempt: attempt + 2,
+          maxAttempts: REALTIME_MAX_CONNECT_ATTEMPTS,
+          delayMs: retryDelay,
+        });
+        await abortableDelay(retryDelay, signal);
+      }
+    }
+
+    throw latestError instanceof Error
+      ? latestError
+      : new Error('ElevenLabs real-time setup failed');
+  }
+
+  private connectOnce(generation: number, signal: AbortSignal): Promise<void> {
+    if (signal.aborted || generation !== this.generation) {
+      return Promise.reject(cancellationError(signal.reason));
+    }
+
+    const url = this.createConnectionUrl();
+    log.info('Connecting to ElevenLabs real-time', {
+      endpoint: url.origin + url.pathname,
+      language: this.config.language || 'auto',
+      keytermsCount: this.config.keyterms?.length || 0,
+    });
 
     return new Promise((resolve, reject) => {
-      try {
-        // Build WebSocket URL with query parameters
-        const url = new URL('wss://api.elevenlabs.io/v1/speech-to-text/realtime');
-        url.searchParams.set('model_id', 'scribe_v2_realtime');
-        url.searchParams.set('audio_format', 'pcm_16000');
-        url.searchParams.set('commit_strategy', 'vad');
-        url.searchParams.set('include_timestamps', 'false');
+      const socket = new WebSocket(url.toString());
+      this.ws = socket;
+      let settled = false;
 
-        if (this.config.language) {
-          url.searchParams.set('language_code', this.config.language);
+      const isCurrentSocket = () => this.ws === socket && generation === this.generation;
+
+      const clearSetup = () => {
+        clearTimeout(connectionTimeout);
+        signal.removeEventListener('abort', handleAbort);
+        socket.onopen = null;
+        socket.onmessage = null;
+        socket.onerror = null;
+        socket.onclose = null;
+      };
+
+      const fail = (error: Error) => {
+        if (settled) {
+          return;
         }
 
-        // Add keyterms if provided (max 100)
-        if (this.config.keyterms && this.config.keyterms.length > 0) {
-          const keyterms = this.config.keyterms.slice(0, 100);
-          url.searchParams.set('keyterms', JSON.stringify(keyterms));
+        settled = true;
+        clearSetup();
+        if (this.ws === socket) {
+          this.ws = null;
         }
-
-        // Browser WebSocket doesn't support custom headers, so we pass the API key
-        // as a query parameter. This is the standard approach for ElevenLabs.
-        url.searchParams.set('xi-api-key', this.config.apiKey);
-
-        log.info('Connecting to ElevenLabs real-time', {
-          endpoint: url.origin + url.pathname,
-          language: this.config.language || 'auto',
-          keytermsCount: this.config.keyterms?.length || 0,
-        });
-
-        this.ws = new WebSocket(url.toString());
-
-        const connectionTimeout = setTimeout(() => {
-          if (this.ws?.readyState !== WebSocket.OPEN) {
-            this.ws?.close();
-            this.isConnecting = false;
-            reject(new Error('WebSocket connection timeout'));
-          }
-        }, 10000);
-
-        this.ws.onopen = () => {
-          clearTimeout(connectionTimeout);
-          this.isConnecting = false;
-          this.reconnectAttempts = 0;
-          log.info('WebSocket connected');
-          resolve();
-        };
-
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data);
-        };
-
-        this.ws.onerror = (event) => {
-          clearTimeout(connectionTimeout);
-          log.error('WebSocket error', event);
-          this.isConnecting = false;
-        };
-
-        this.ws.onclose = (event) => {
-          clearTimeout(connectionTimeout);
-          this.isConnecting = false;
-          log.info('WebSocket closed', {
-            code: event.code,
-            reason: event.reason,
-            wasClean: event.wasClean,
-          });
-
-          if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.attemptReconnect();
-          } else {
-            this.config.onSessionEnd?.();
-          }
-        };
-      } catch (error) {
-        this.isConnecting = false;
-        log.error('Failed to create WebSocket', error);
+        if (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        }
         reject(error);
-      }
+      };
+
+      const handleAbort = () => {
+        fail(cancellationError(signal.reason));
+      };
+
+      const connectionTimeout = setTimeout(() => {
+        fail(new Error('ElevenLabs real-time connection timeout'));
+      }, REALTIME_CONNECT_TIMEOUT_MS);
+
+      socket.onopen = () => {
+        if (!isCurrentSocket()) {
+          fail(cancellationError());
+          return;
+        }
+
+        settled = true;
+        clearSetup();
+        this.installConnectedHandlers(socket, generation);
+        log.info('ElevenLabs real-time WebSocket connected');
+        resolve();
+      };
+
+      socket.onerror = () => {
+        fail(new Error('ElevenLabs real-time connection failed before opening'));
+      };
+
+      socket.onclose = () => {
+        fail(new Error('ElevenLabs real-time connection closed before opening'));
+      };
+
+      signal.addEventListener('abort', handleAbort, { once: true });
     });
   }
 
-  /**
-   * Handle incoming WebSocket messages
-   */
+  private createConnectionUrl(): URL {
+    const url = new URL('wss://api.elevenlabs.io/v1/speech-to-text/realtime');
+    url.searchParams.set('model_id', 'scribe_v2_realtime');
+    url.searchParams.set('audio_format', 'pcm_16000');
+    url.searchParams.set('commit_strategy', 'vad');
+    url.searchParams.set('include_timestamps', 'false');
+
+    if (this.config.language) {
+      url.searchParams.set('language_code', this.config.language);
+    }
+
+    if (this.config.keyterms?.length) {
+      url.searchParams.set('keyterms', JSON.stringify(this.config.keyterms.slice(0, 100)));
+    }
+
+    url.searchParams.set('xi-api-key', this.config.apiKey);
+    return url;
+  }
+
+  private installConnectedHandlers(socket: WebSocket, generation: number): void {
+    socket.onmessage = (event) => {
+      if (this.ws === socket && this.generation === generation) {
+        this.handleMessage(event.data);
+      }
+    };
+
+    socket.onerror = () => {
+      if (this.ws === socket && this.generation === generation) {
+        log.error('ElevenLabs real-time WebSocket error');
+      }
+    };
+
+    socket.onclose = (event) => {
+      if (this.ws !== socket || this.generation !== generation) {
+        return;
+      }
+
+      this.ws = null;
+      log.info('ElevenLabs real-time WebSocket closed', {
+        code: event.code,
+        wasClean: event.wasClean,
+      });
+
+      if (this.manuallyDisconnected || event.wasClean) {
+        this.notifySessionEnd();
+        return;
+      }
+
+      const reconnect = () => {
+        if (!this.manuallyDisconnected && generation === this.generation && !this.ws) {
+          void this.connect().catch((error: unknown) => {
+            if (this.manuallyDisconnected) {
+              return;
+            }
+            this.notifyError(error instanceof Error ? error : setupError());
+            this.disconnect();
+            this.notifySessionEnd();
+          });
+        }
+      };
+      const pendingSetup = this.connectPromise;
+      if (pendingSetup) {
+        void pendingSetup.then(reconnect, reconnect);
+      } else {
+        queueMicrotask(reconnect);
+      }
+    };
+  }
+
   private handleMessage(data: string): void {
     try {
       const message: ServerMessage = JSON.parse(data);
 
       switch (message.message_type) {
         case 'session_started':
-          this.sessionId = message.session_id || '';
-          log.info('ElevenLabs session started', { sessionId: this.sessionId });
-          this.config.onSessionStart?.();
+          log.info('ElevenLabs session started');
+          this.notifySessionStart();
           break;
 
         case 'partial_transcript':
-          // We're not displaying partial transcripts per user preference
-          // but we still log them for debugging
-          log.debug('Partial transcript', { text: message.text });
+          log.debug('Partial transcript received', { textLength: message.text?.length || 0 });
           break;
 
         case 'committed_transcript':
@@ -177,128 +323,125 @@ export class ElevenLabsRealtimeService {
           const text = message.text?.trim() || '';
           if (text) {
             log.info('Final transcript received', { textLength: text.length });
-            this.config.onFinalTranscript(text);
+            this.notifyFinalTranscript(text);
           }
           break;
         }
 
         case 'error': {
           const error = new Error(
-            message.error_message || 'Unknown ElevenLabs error',
+            'ElevenLabs real-time transcription failed',
           ) as ElevenLabsRealtimeError;
-          error.code = message.error_type || 'UNKNOWN';
-          error.type = message.error_type;
-          log.error('ElevenLabs error', error, { errorType: message.error_type });
-          this.config.onError(error);
+          error.code = 'ELEVENLABS_REALTIME_ERROR';
+          log.error('ElevenLabs real-time transcription failed');
+          this.notifyError(error);
+          this.disconnect();
           break;
         }
 
         default:
-          log.debug('Unknown message type', { type: message.message_type });
+          log.debug('Unknown ElevenLabs message type received');
       }
-    } catch (error) {
-      log.error('Failed to parse WebSocket message', error);
+    } catch {
+      log.error('Failed to process ElevenLabs WebSocket message');
     }
   }
 
-  /**
-   * Send PCM audio data to the WebSocket
-   * @param pcmBase64 Base64-encoded PCM 16-bit audio at 16kHz
-   */
+  /** Send base64-encoded, 16-bit PCM audio at 16 kHz. */
   sendAudio(pcmBase64: string): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       log.warn('Cannot send audio: WebSocket not connected');
       return;
     }
 
-    const message = {
-      message_type: 'input_audio_chunk',
-      audio_base_64: pcmBase64,
-      commit: false,
-      sample_rate: 16000,
-    };
-
-    this.ws.send(JSON.stringify(message));
+    this.ws.send(
+      JSON.stringify({
+        message_type: 'input_audio_chunk',
+        audio_base_64: pcmBase64,
+        commit: false,
+        sample_rate: 16000,
+      }),
+    );
   }
 
-  /**
-   * Force commit the current audio buffer (manual stop)
-   */
+  /** Commit the current server-side audio buffer. */
   commit(): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       log.warn('Cannot commit: WebSocket not connected');
       return;
     }
 
-    log.debug('Sending manual commit');
-
-    // Send a commit message to finalize the current audio
-    const message = {
-      message_type: 'input_audio_chunk',
-      audio_base_64: '',
-      commit: true,
-      sample_rate: 16000,
-    };
-
-    this.ws.send(JSON.stringify(message));
+    this.ws.send(
+      JSON.stringify({
+        message_type: 'input_audio_chunk',
+        audio_base_64: '',
+        commit: true,
+        sample_rate: 16000,
+      }),
+    );
   }
 
-  /**
-   * Disconnect from WebSocket
-   */
+  /** Cancel setup or close the active WebSocket. */
   disconnect(): void {
-    this.reconnectAttempts = this.maxReconnectAttempts; // Prevent auto-reconnect
-    if (this.ws) {
-      log.info('Disconnecting WebSocket');
-      this.ws.close(1000, 'User disconnect');
-      this.ws = null;
+    this.manuallyDisconnected = true;
+    this.generation += 1;
+
+    const socket = this.ws;
+    const wasConnected = socket?.readyState === WebSocket.OPEN;
+    this.ws = null;
+
+    if (socket) {
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      socket.close(1000, 'User disconnect');
     }
-    this.sessionId = '';
+
+    this.setupController?.abort(cancellationError());
+    this.setupController = null;
+
+    if (wasConnected) {
+      this.notifySessionEnd();
+    }
   }
 
-  /**
-   * Check if connected
-   */
+  private notifyError(error: Error): void {
+    try {
+      this.config.onError(error);
+    } catch {
+      log.error('ElevenLabs real-time error callback failed');
+    }
+  }
+
+  private notifyFinalTranscript(text: string): void {
+    try {
+      this.config.onFinalTranscript(text);
+    } catch {
+      log.error('ElevenLabs final-transcript callback failed');
+    }
+  }
+
+  private notifySessionStart(): void {
+    try {
+      this.config.onSessionStart?.();
+    } catch {
+      log.error('ElevenLabs session-start callback failed');
+    }
+  }
+
+  private notifySessionEnd(): void {
+    try {
+      this.config.onSessionEnd?.();
+    } catch {
+      log.error('ElevenLabs real-time session-end callback failed');
+    }
+  }
+
   get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
-  /**
-   * Get current session ID
-   */
-  get currentSessionId(): string {
-    return this.sessionId;
-  }
-
-  /**
-   * Attempt to reconnect after disconnection
-   */
-  private async attemptReconnect(): Promise<void> {
-    this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-
-    log.info('Attempting reconnect', {
-      attempt: this.reconnectAttempts,
-      maxAttempts: this.maxReconnectAttempts,
-      delayMs: delay,
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, delay));
-
-    try {
-      await this.connect();
-    } catch (error) {
-      log.error('Reconnect failed', error);
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        this.config.onError(new Error('Failed to reconnect after multiple attempts'));
-        this.config.onSessionEnd?.();
-      }
-    }
-  }
-
-  /**
-   * Update configuration (e.g., keyterms) - requires reconnect
-   */
   updateConfig(newConfig: Partial<ElevenLabsRealtimeConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }

@@ -5,6 +5,7 @@
 
 import { blobToBase64 } from '../utils/audioUtils';
 import { transcriptionLog as log } from '../utils/logger';
+import type { TranscribeIpcRequest, TranscribeIpcResult } from '../types';
 
 // Cloud transcription runs in the Electron main process via IPC. The renderer never holds a
 // browser SDK client (no `dangerouslyAllowBrowser`) and never sends API keys over the network
@@ -80,6 +81,11 @@ export class TranscriptionError extends Error {
         return 'Audio format not supported. Please try again.';
       case 'LOCAL_SERVER_UNAVAILABLE':
         return 'Local transcription server not running. Please start the Parakeet server.';
+      case 'TRANSCRIPTION_CANCELLED':
+        return 'Transcription cancelled.';
+      case 'TRANSCRIPTION_ATTEMPT_TIMEOUT':
+      case 'TRANSCRIPTION_DEADLINE_EXCEEDED':
+        return `${this.provider} transcription timed out. Check your connection and try again.`;
       default:
         return this.message;
     }
@@ -331,9 +337,24 @@ export class TranscriptionService {
    * Map an error string returned by a main-process transcription handler back into a
    * TranscriptionError with a code, so the UI can show a friendly, provider-specific message.
    */
-  private mapIpcError(message: string | undefined, provider: string): TranscriptionError {
+  private mapIpcError(
+    message: string | undefined,
+    provider: string,
+    errorCode?: string,
+  ): TranscriptionError {
     const msg = message || 'Transcription failed';
     const m = msg.toLowerCase();
+    if (
+      errorCode === 'TRANSCRIPTION_CANCELLED' ||
+      errorCode === 'TRANSCRIPTION_ATTEMPT_TIMEOUT' ||
+      errorCode === 'TRANSCRIPTION_DEADLINE_EXCEEDED' ||
+      errorCode === 'NO_API_KEY' ||
+      errorCode === 'INVALID_API_KEY' ||
+      errorCode === 'RATE_LIMIT' ||
+      errorCode === 'SERVER_ERROR'
+    ) {
+      return new TranscriptionError(msg, provider, errorCode);
+    }
     if (m.includes('no ') && m.includes('api key')) {
       return new TranscriptionError(msg, provider, 'NO_API_KEY');
     }
@@ -360,6 +381,36 @@ export class TranscriptionService {
       return new TranscriptionError(msg, provider, 'SERVER_ERROR');
     }
     return new TranscriptionError(msg, provider, 'UNKNOWN');
+  }
+
+  private throwIfCancelled(signal: AbortSignal | undefined, provider: string): void {
+    if (signal?.aborted) {
+      throw new TranscriptionError('Transcription cancelled', provider, 'TRANSCRIPTION_CANCELLED');
+    }
+  }
+
+  private async invokeCloudTranscription(
+    invoke: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>,
+    data: Omit<TranscribeIpcRequest, 'requestId'>,
+    signal?: AbortSignal,
+  ): Promise<TranscribeIpcResult> {
+    this.throwIfCancelled(signal, 'Cloud transcription');
+
+    const requestId = globalThis.crypto.randomUUID();
+    const cancel = () => {
+      void window.electron.cancelTranscription(requestId).catch((error) => {
+        log.warn('Failed to send transcription cancellation', { error: getErrorMessage(error) });
+      });
+    };
+
+    signal?.addEventListener('abort', cancel, { once: true });
+    try {
+      const result = await invoke({ ...data, requestId });
+      this.throwIfCancelled(signal, 'Cloud transcription');
+      return result;
+    } finally {
+      signal?.removeEventListener('abort', cancel);
+    }
   }
 
   /**
@@ -468,6 +519,7 @@ export class TranscriptionService {
     mode: TranscriptionMode = 'raw',
     modelId: ModelId = 'gemini-2.0-flash',
     durationMs: number = 0,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     const modelInfo = this.getModelInfo(modelId);
     if (!modelInfo) {
@@ -476,6 +528,8 @@ export class TranscriptionService {
         modelId,
       });
     }
+
+    this.throwIfCancelled(signal, modelInfo.name);
 
     // Validate the audio blob before doing any work or sending it across IPC. The main-process
     // handlers re-validate the base64 payload, but checking here gives a faster, friendlier error.
@@ -502,16 +556,16 @@ export class TranscriptionService {
 
       switch (modelInfo.provider) {
         case 'gemini':
-          result = await this.transcribeWithGemini(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithGemini(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'openai':
-          result = await this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'anthropic':
-          result = await this.transcribeWithClaude(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithClaude(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'elevenlabs':
-          result = await this.transcribeWithElevenLabs(audioBlob, durationMs);
+          result = await this.transcribeWithElevenLabs(audioBlob, durationMs, signal);
           break;
         case 'local':
           // Check if it's a Whisper local model or Parakeet local
@@ -528,6 +582,8 @@ export class TranscriptionService {
             'UNSUPPORTED_PROVIDER',
           );
       }
+
+      this.throwIfCancelled(signal, modelInfo.name);
 
       const elapsed = performance.now() - startTime;
       log.info('Transcription completed', {
@@ -556,6 +612,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: string,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('gemini')) {
       throw new TranscriptionError('No Gemini API key configured', 'Gemini', 'NO_API_KEY');
@@ -576,13 +633,13 @@ export class TranscriptionService {
 
       log.debug('Sending request to Gemini (via main process)', { modelId, mode });
 
-      const result = await window.electron.transcribeWithGemini({
-        audioBase64: base64Audio,
-        prompt,
-        modelId,
-      });
+      const result = await this.invokeCloudTranscription(
+        window.electron.transcribeWithGemini,
+        { audioBase64: base64Audio, prompt, modelId },
+        signal,
+      );
       if (!result.success) {
-        throw this.mapIpcError(result.error, 'Gemini');
+        throw this.mapIpcError(result.error, 'Gemini', result.errorCode);
       }
 
       const text = (result.text || '').trim();
@@ -604,6 +661,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: ModelId,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('openai')) {
       throw new TranscriptionError('No OpenAI API key configured.', 'OpenAI', 'NO_API_KEY');
@@ -618,13 +676,13 @@ export class TranscriptionService {
         ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
         : '';
 
-    const result = await window.electron.transcribeWithOpenAI({
-      audioBase64: base64Audio,
-      prompt,
-      modelId,
-    });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithOpenAI,
+      { audioBase64: base64Audio, prompt, modelId },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'OpenAI');
+      throw this.mapIpcError(result.error, 'OpenAI', result.errorCode);
     }
 
     let text = (result.text || '').trim();
@@ -652,6 +710,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: ModelId,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     // Claude doesn't support audio directly, so main uses OpenAI Whisper first, then Claude.
     if (!this.hasApiKey('openai')) {
@@ -674,13 +733,13 @@ export class TranscriptionService {
         ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
         : '';
 
-    const result = await window.electron.transcribeWithAnthropic({
-      audioBase64: base64Audio,
-      prompt,
-      modelId,
-    });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithAnthropic,
+      { audioBase64: base64Audio, prompt, modelId },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'Claude');
+      throw this.mapIpcError(result.error, 'Claude', result.errorCode);
     }
 
     let text = (result.text || '').trim();
@@ -705,15 +764,20 @@ export class TranscriptionService {
   private async transcribeWithElevenLabs(
     audioBlob: Blob,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('elevenlabs')) {
       throw new TranscriptionError('No ElevenLabs API key configured.', 'ElevenLabs', 'NO_API_KEY');
     }
 
     const base64Audio = await blobToBase64(audioBlob);
-    const result = await window.electron.transcribeWithElevenLabs({ audioBase64: base64Audio });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithElevenLabs,
+      { audioBase64: base64Audio, modelId: 'elevenlabs-scribe' },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'ElevenLabs');
+      throw this.mapIpcError(result.error, 'ElevenLabs', result.errorCode);
     }
 
     const text = (result.text || '').trim();

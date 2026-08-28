@@ -96,15 +96,17 @@ export interface PaneSession {
 
 // Cloud transcription IPC request/response shapes
 export interface TranscribeIpcRequest {
+  requestId: string;
   audioBase64: string;
   prompt?: string;
-  modelId: string;
+  modelId?: string;
 }
 
 export interface TranscribeIpcResult {
   success: boolean;
   text?: string;
   error?: string;
+  errorCode?: string;
 }
 
 export interface ElectronAPI {
@@ -158,7 +160,10 @@ export interface ElectronAPI {
   transcribeWithGemini: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
   transcribeWithOpenAI: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
   transcribeWithAnthropic: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
-  transcribeWithElevenLabs: (data: { audioBase64: string }) => Promise<TranscribeIpcResult>;
+  transcribeWithElevenLabs: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
+  cancelTranscription: (
+    requestId: string,
+  ) => Promise<{ cancelled: boolean; queued: boolean; error?: string }>;
 
   // Directory management
   getDirectories: () => Promise<DirectoriesResult>;

@@ -201,10 +201,75 @@ function packagedDependencyProbeScript(
   ].join('\n');
 }
 
-function createPackagedProbeEnvironment(home: string): NodeJS.ProcessEnv {
+function packagedElevenLabsRequestProbeScript(
+  packagedNodeModules: string,
+  packagedHelper: string,
+  expectedArchitecture: string,
+): string {
+  return [
+    commonJsResolutionBoundaryScript(packagedNodeModules),
+    `
+const { sendElevenLabsRequest } = require(${JSON.stringify(packagedHelper)});
+
+(async () => {
+  if (process.arch !== ${JSON.stringify(expectedArchitecture)}) {
+    throw new Error(
+      'Package architecture mismatch: expected ${expectedArchitecture}, received ' + process.arch,
+    );
+  }
+
+  const sourceBytes = Buffer.from([0, 1, 2, 127, 128, 255]);
+  const result = await sendElevenLabsRequest({
+    audioBuffer: sourceBytes,
+    apiKey: 'package-probe-key',
+    fetchImpl: async (input, init) => {
+      if (new Headers(init.headers).has('content-type')) {
+        throw new Error('Package helper set an explicit multipart Content-Type');
+      }
+
+      const request = new Request(input, init);
+      const body = await request.formData();
+      const audio = body.get('file');
+      if (!audio || typeof audio === 'string') {
+        throw new Error('Package helper omitted the ElevenLabs file field');
+      }
+
+      const actualBytes = [...new Uint8Array(await audio.arrayBuffer())];
+      if (
+        request.method !== 'POST' ||
+        request.headers.get('xi-api-key') !== 'package-probe-key' ||
+        body.get('model_id') !== 'scribe_v1' ||
+        audio.name !== 'audio.webm' ||
+        audio.type !== 'audio/webm' ||
+        JSON.stringify(actualBytes) !== JSON.stringify([...sourceBytes])
+      ) {
+        throw new Error('Package helper built an invalid ElevenLabs request');
+      }
+
+      return new Response(JSON.stringify({ text: 'package probe ok' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  if (result.text !== 'package probe ok') {
+    throw new Error('Package helper did not parse its response');
+  }
+
+  console.log('PACKAGED_ELEVENLABS_REQUEST_OK_${expectedArchitecture}');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+`.trim(),
+  ].join('\n');
+}
+
+function createPackagedProbeEnvironment(isolatedRoot: string): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     ELECTRON_RUN_AS_NODE: '1',
-    HOME: home,
+    AUDIOBASH_PACKAGE_PROBE_ROOT: isolatedRoot,
   };
 
   for (const name of inheritedProbeEnvironmentNames) {
@@ -441,7 +506,10 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     const entries = packageEntries();
     const requiredEntries = [
       '/dist/index.html',
+      '/electron/elevenLabsRequest.cjs',
       '/electron/main.cjs',
+      '/electron/transcriptionHandlers.cjs',
+      '/electron/transcriptionRequest.cjs',
       '/node_modules/@anthropic-ai/sdk',
       '/node_modules/@google/generative-ai',
       '/node_modules/@remotion/install-whisper-cpp',
@@ -471,6 +539,25 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     const output = runPackagedDependencyProbe(appExecutable, script);
 
     expect(output).toContain('PACKAGED_DEPENDENCIES_OK');
+  }, 70_000);
+
+  it('builds a native ElevenLabs request from the packaged ASAR', () => {
+    const entries = packageEntries();
+    expect(entries.some((entry) => entry === '/node_modules/form-data')).toBe(false);
+    expect(entries.some((entry) => entry.startsWith('/node_modules/form-data/'))).toBe(false);
+    expect(readAsarText(asarPath, '/electron/main.cjs')).not.toContain("require('form-data')");
+
+    const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);
+    const packagedNodeModules = join(resourcesPath, 'app.asar', 'node_modules');
+    const packagedHelper = join(resourcesPath, 'app.asar', 'electron', 'elevenLabsRequest.cjs');
+    const script = packagedElevenLabsRequestProbeScript(
+      packagedNodeModules,
+      packagedHelper,
+      packageTarget.architecture,
+    );
+    const output = runPackagedDependencyProbe(appExecutable, script);
+
+    expect(output).toContain(`PACKAGED_ELEVENLABS_REQUEST_OK_${packageTarget.architecture}`);
   }, 70_000);
 
   it('does not ship retired remote-control files', () => {

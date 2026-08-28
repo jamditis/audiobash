@@ -7,6 +7,38 @@ import { describe, it, expect, vi } from 'vitest';
 import { runStressTest, generateRandomData, sleep, StressTestResult } from './stress-utils';
 import * as fs from 'fs';
 import * as path from 'path';
+import transcriptionRequestModule from '../../electron/transcriptionRequest.cjs';
+
+interface TranscriptionAttemptContext {
+  signal: AbortSignal;
+}
+
+interface TranscriptionOperation {
+  runStage<T>(
+    label: string,
+    attempt: (context: TranscriptionAttemptContext) => Promise<T>,
+  ): Promise<T>;
+}
+
+interface TranscriptionRequestModule {
+  ATTEMPT_TIMEOUT_MS: number;
+  MAX_ATTEMPTS: number;
+  OPERATION_TIMEOUT_MS: number;
+  RETRY_DELAYS_MS: number[];
+  createTranscriptionRequest(): TranscriptionOperation;
+}
+
+const transcriptionRequest = transcriptionRequestModule as unknown as TranscriptionRequestModule;
+
+function waitForAbort(signal: AbortSignal): Promise<never> {
+  if (signal.aborted) {
+    return Promise.reject(signal.reason);
+  }
+
+  return new Promise((_, reject) => {
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+  });
+}
 
 describe('Transcription Service Stress Tests', () => {
   const results: StressTestResult[] = [];
@@ -67,7 +99,7 @@ describe('Transcription Service Stress Tests', () => {
     it('should handle very long recordings', async () => {
       const result = await runStressTest(
         'Very Long Recordings',
-        async (iteration) => {
+        async () => {
           // Simulate 5-minute recording (~5MB)
           const fiveMinutes = 5 * 60;
           const bytesPerSecond = 16 * 1024;
@@ -167,33 +199,38 @@ describe('Transcription Service Stress Tests', () => {
       expect(maxConcurrent).toBeGreaterThan(0);
     });
 
-    it('should handle API timeout gracefully', async () => {
-      const result = await runStressTest(
-        'API Timeout Handling',
-        async (iteration) => {
-          const timeout = 5000; // 5 second timeout
+    it('bounds 100 concurrent stalled production requests', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(0);
 
-          // Simulate slow API response
-          const responseTime = iteration % 10 === 0 ? 10000 : 100; // 10% timeout
+      try {
+        const attemptCounts = Array.from({ length: 100 }, () => 0);
+        const requests = attemptCounts.map((_, requestIndex) => {
+          const operation = transcriptionRequest.createTranscriptionRequest();
+          return operation.runStage('Stress transcription', ({ signal }) => {
+            attemptCounts[requestIndex] += 1;
+            return waitForAbort(signal);
+          });
+        });
+        const outcomes = Promise.allSettled(requests);
 
-          try {
-            await Promise.race([
-              sleep(Math.min(responseTime, 50)), // Cap for test speed
-              new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 100)),
-            ]);
-          } catch (err: any) {
-            if (err.message === 'API timeout') {
-              // Expected timeout - handled gracefully
-            } else {
-              throw err;
-            }
-          }
-        },
-        { iterations: 100, cooldown: 5 },
-      );
+        await vi.advanceTimersByTimeAsync(93_000);
+        const settledOutcomes = await outcomes;
 
-      results.push(result);
-      expect(result.passed).toBe(true);
+        expect(attemptCounts).toEqual(Array(100).fill(3));
+        expect(settledOutcomes).toHaveLength(100);
+        expect(
+          settledOutcomes.every(
+            (outcome) =>
+              outcome.status === 'rejected' &&
+              (outcome.reason as { code?: string }).code === 'TRANSCRIPTION_ATTEMPT_TIMEOUT',
+          ),
+        ).toBe(true);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      }
     });
 
     it('should handle API error responses', async () => {
@@ -338,21 +375,11 @@ describe('Transcription Service Configuration', () => {
     expect(content).toContain('apiKey');
   });
 
-  it('should have timeout configuration', () => {
-    const servicePath = path.join(__dirname, '../../src/services/transcriptionService.ts');
-    const content = fs.readFileSync(servicePath, 'utf-8');
-
-    // Ideally should have timeout handling
-    // This test documents missing functionality if it fails
-    const hasTimeout =
-      content.includes('timeout') ||
-      content.includes('Timeout') ||
-      content.includes('AbortController');
-
-    // Note: This might fail, indicating a needed improvement
-    if (!hasTimeout) {
-      console.warn('WARNING: transcriptionService.ts may need timeout handling');
-    }
+  it('uses the production request limits', () => {
+    expect(transcriptionRequest.ATTEMPT_TIMEOUT_MS).toBe(30_000);
+    expect(transcriptionRequest.MAX_ATTEMPTS).toBe(3);
+    expect(transcriptionRequest.OPERATION_TIMEOUT_MS).toBe(100_000);
+    expect(transcriptionRequest.RETRY_DELAYS_MS).toEqual([1_000, 2_000]);
   });
 });
 

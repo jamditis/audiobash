@@ -226,6 +226,100 @@ describe('TranscriptionService', () => {
         TranscriptionError,
       );
     });
+
+    it('sends one targeted cancellation for an active cloud request', async () => {
+      service.setApiKey('configured', 'elevenlabs');
+      const controller = new AbortController();
+      let finishRequest:
+        | ((result: { success: false; error: string; errorCode: string }) => void)
+        | undefined;
+      window.electron.transcribeWithElevenLabs = vi.fn(
+        () =>
+          new Promise((resolve) => {
+            finishRequest = resolve;
+          }),
+      );
+      window.electron.cancelTranscription = vi.fn(() => Promise.resolve({ cancelled: true }));
+
+      const transcription = service.transcribeAudio(
+        createMockAudioBlob(),
+        'raw',
+        'elevenlabs-scribe',
+        1000,
+        controller.signal,
+      );
+      await vi.waitFor(() =>
+        expect(window.electron.transcribeWithElevenLabs).toHaveBeenCalledOnce(),
+      );
+
+      const request = vi.mocked(window.electron.transcribeWithElevenLabs).mock.calls[0][0];
+      controller.abort();
+      await vi.waitFor(() =>
+        expect(window.electron.cancelTranscription).toHaveBeenCalledWith(request.requestId),
+      );
+      finishRequest?.({
+        success: false,
+        error: 'Transcription cancelled',
+        errorCode: 'TRANSCRIPTION_CANCELLED',
+      });
+
+      await expect(transcription).rejects.toMatchObject({
+        code: 'TRANSCRIPTION_CANCELLED',
+      });
+      expect(window.electron.cancelTranscription).toHaveBeenCalledOnce();
+    });
+
+    it('removes the cancellation listener after a cloud request settles', async () => {
+      service.setApiKey('configured', 'elevenlabs');
+      const controller = new AbortController();
+      window.electron.transcribeWithElevenLabs = vi.fn(() =>
+        Promise.resolve({ success: true, text: 'done' }),
+      );
+      window.electron.cancelTranscription = vi.fn(() => Promise.resolve({ cancelled: true }));
+
+      await service.transcribeAudio(
+        createMockAudioBlob(),
+        'raw',
+        'elevenlabs-scribe',
+        1000,
+        controller.signal,
+      );
+      controller.abort();
+      await Promise.resolve();
+
+      expect(window.electron.cancelTranscription).not.toHaveBeenCalled();
+    });
+
+    it('rejects a late cloud success after renderer cancellation', async () => {
+      service.setApiKey('configured', 'elevenlabs');
+      const controller = new AbortController();
+      let finishRequest: ((result: { success: true; text: string }) => void) | undefined;
+      window.electron.transcribeWithElevenLabs = vi.fn(
+        () =>
+          new Promise((resolve) => {
+            finishRequest = resolve;
+          }),
+      );
+      window.electron.cancelTranscription = vi.fn(() => Promise.resolve({ cancelled: false }));
+
+      const transcription = service.transcribeAudio(
+        createMockAudioBlob(),
+        'raw',
+        'elevenlabs-scribe',
+        1000,
+        controller.signal,
+      );
+      await vi.waitFor(() =>
+        expect(window.electron.transcribeWithElevenLabs).toHaveBeenCalledOnce(),
+      );
+
+      controller.abort();
+      finishRequest?.({ success: true, text: 'late transcript' });
+
+      await expect(transcription).rejects.toMatchObject({
+        code: 'TRANSCRIPTION_CANCELLED',
+      });
+    });
   });
 
   describe('TranscriptionError class', () => {
@@ -538,6 +632,35 @@ describe('Local model vocabulary corrections', () => {
     );
 
     expect(result.text).toBe('launch AudioBash please');
+  });
+
+  it('rejects a late local Whisper result after renderer cancellation', async () => {
+    const controller = new AbortController();
+    let finishTranscription: ((value: { text: string }) => void) | undefined;
+    window.electron.whisperSetModel = vi.fn(() => Promise.resolve());
+    window.electron.saveTempAudio = vi.fn(() =>
+      Promise.resolve({ success: true, path: '/tmp/audio.webm' }),
+    );
+    window.electron.whisperTranscribe = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finishTranscription = resolve;
+        }),
+    );
+
+    const transcription = service.transcribeAudio(
+      createMockAudioBlob(),
+      'raw',
+      'whisper-local-small',
+      1000,
+      controller.signal,
+    );
+    await vi.waitFor(() => expect(window.electron.whisperTranscribe).toHaveBeenCalledOnce());
+
+    controller.abort();
+    finishTranscription?.({ text: 'late local transcript' });
+
+    await expect(transcription).rejects.toMatchObject({ code: 'TRANSCRIPTION_CANCELLED' });
   });
 });
 
