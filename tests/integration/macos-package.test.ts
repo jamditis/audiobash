@@ -3,6 +3,7 @@ import { execFileSync } from 'child_process';
 import { extractFile } from '@electron/asar';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -14,10 +15,16 @@ import {
 } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import {
+  assertExactPackageBytes,
+  assertMaximumMacOsDeploymentTarget,
+  parseMacOsDeploymentTargets,
+} from '../helpers/macosPackagePolicy';
 
 const rootDir = join(__dirname, '../..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
-const releaseDir = join(rootDir, 'release');
+const releaseDir = process.env.AUDIOBASH_MAC_PACKAGE_DIR || join(rootDir, 'release');
+const requireArtifacts = process.env.AUDIOBASH_REQUIRE_MAC_ARTIFACTS !== 'false';
 const asarBin = join(rootDir, 'node_modules/.bin/asar');
 const inheritedProbeEnvironmentNames = ['LANG', 'LC_ALL', 'LC_CTYPE', 'PATH', 'TMPDIR'];
 
@@ -52,6 +59,12 @@ function readAsarText(asarPath: string, entry: string): string {
   return extractFile(asarPath, entry.replace(/^\//, '')).toString('utf8');
 }
 
+function readPlistValue(plistPath: string, key: string): string {
+  return execFileSync('/usr/libexec/PlistBuddy', ['-c', `Print :${key}`, plistPath], {
+    encoding: 'utf8',
+  }).trim();
+}
+
 function listFiles(directory: string, prefix = ''): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const relativePath = `${prefix}/${entry.name}`;
@@ -67,6 +80,27 @@ function listRequiredFiles(directory: string): string[] {
   }
 
   return listFiles(directory);
+}
+
+function listMachODeploymentTargets(appPath: string) {
+  return listFiles(appPath).flatMap((relativePath) => {
+    const absolutePath = join(appPath, relativePath);
+    if (!lstatSync(absolutePath).isFile()) return [];
+
+    const fileType = execFileSync('/usr/bin/file', ['-b', absolutePath], { encoding: 'utf8' });
+    if (!fileType.includes('Mach-O')) return [];
+
+    const vtoolOutput = execFileSync('xcrun', ['vtool', '-show-build', absolutePath], {
+      encoding: 'utf8',
+    });
+
+    return [
+      {
+        path: `${packageJson.build.productName}.app${relativePath}`,
+        targets: parseMacOsDeploymentTargets(vtoolOutput),
+      },
+    ];
+  });
 }
 
 function listPrebuildEntriesOutsideTarget(entries: string[], targetPrebuild: string): string[] {
@@ -266,6 +300,86 @@ const { sendElevenLabsRequest } = require(${JSON.stringify(packagedHelper)});
   ].join('\n');
 }
 
+function packagedPtyProbeScript(
+  packagedNodeModules: string,
+  expectedElectronVersion: string,
+  expectedArchitecture: string,
+): string {
+  return [
+    commonJsResolutionBoundaryScript(packagedNodeModules),
+    `
+const ptyPath = require('path');
+
+if (process.versions.electron !== ${JSON.stringify(expectedElectronVersion)}) {
+  throw new Error(
+    'Expected Electron ${expectedElectronVersion}, received ' +
+      (process.versions.electron || 'none'),
+  );
+}
+
+if (process.arch !== ${JSON.stringify(expectedArchitecture)}) {
+  throw new Error('Expected ${expectedArchitecture}, received ' + process.arch);
+}
+
+const pty = require(ptyPath.join(${JSON.stringify(packagedNodeModules)}, 'node-pty'));
+const token = 'AUDIOBASH_PACKAGED_PTY_OK';
+const terminal = pty.spawn('/bin/zsh', ['-f'], {
+  name: 'xterm-256color',
+  cols: 80,
+  rows: 24,
+  cwd: '/tmp',
+  env: {
+    LANG: 'en_US.UTF-8',
+    PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+    TERM: 'xterm-256color',
+  },
+});
+let output = '';
+let finished = false;
+
+function finish(error) {
+  if (finished) return;
+  finished = true;
+  clearTimeout(timeout);
+
+  if (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(token + '_${expectedArchitecture}_ELECTRON_${expectedElectronVersion}');
+}
+
+const timeout = setTimeout(() => {
+  terminal.kill();
+  finish(new Error('Packaged PTY did not exit within 10 seconds.'));
+}, 10_000);
+
+terminal.onData((data) => {
+  output += data;
+});
+
+terminal.onExit(({ exitCode }) => {
+  if (exitCode !== 0) {
+    finish(new Error('Packaged PTY exited with code ' + exitCode + '.'));
+    return;
+  }
+
+  if (!output.includes(token)) {
+    finish(new Error('Packaged PTY did not return the expected token.'));
+    return;
+  }
+
+  finish();
+});
+
+terminal.resize(100, 30);
+terminal.write("printf '" + token + "\\n'; exit 0\\r");
+`.trim(),
+  ].join('\n');
+}
+
 function createPackagedProbeEnvironment(isolatedRoot: string): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     ELECTRON_RUN_AS_NODE: '1',
@@ -284,9 +398,11 @@ function createPackagedProbeEnvironment(isolatedRoot: string): NodeJS.ProcessEnv
 
 function runPackagedDependencyProbe(appExecutable: string, script: string): string {
   const isolatedWorkingDirectory = mkdtempSync(join(tmpdir(), 'audiobash-package-probe-'));
+  const probePath = join(isolatedWorkingDirectory, 'probe.cjs');
 
   try {
-    return execFileSync(appExecutable, ['-e', script], {
+    writeFileSync(probePath, script);
+    return execFileSync(appExecutable, [probePath], {
       cwd: isolatedWorkingDirectory,
       encoding: 'utf8',
       env: createPackagedProbeEnvironment(isolatedWorkingDirectory),
@@ -445,6 +561,35 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     expect(existsSync(join(appPath, 'Contents/Resources/app.asar'))).toBe(true);
   });
 
+  it('keeps the release identity and omits development dependencies', () => {
+    const packagedManifest = JSON.parse(readAsarText(asarPath, '/package.json'));
+    const plistPath = join(appPath, 'Contents/Info.plist');
+
+    expect(packagedManifest).toMatchObject({
+      name: packageJson.name,
+      version: packageJson.version,
+      main: packageJson.main,
+      dependencies: packageJson.dependencies,
+    });
+    expect(packagedManifest).not.toHaveProperty('devDependencies');
+    expect(readPlistValue(plistPath, 'CFBundleIdentifier')).toBe(packageJson.build.appId);
+    expect(readPlistValue(plistPath, 'CFBundleDisplayName')).toBe(packageJson.build.productName);
+    expect(readPlistValue(plistPath, 'CFBundleShortVersionString')).toBe(packageJson.version);
+    expect(readPlistValue(plistPath, 'CFBundleVersion')).toBe(
+      packageJson.build.buildVersion || packageJson.version,
+    );
+  });
+
+  it('contains the exact current main-process source', () => {
+    for (const entry of ['electron/main.cjs', 'electron/trayLifecycle.cjs']) {
+      assertExactPackageBytes(
+        entry,
+        extractFile(asarPath, entry),
+        readFileSync(join(rootDir, entry)),
+      );
+    }
+  });
+
   it('does not ship renderer libraries or their ONNX source trees twice', () => {
     const entries = packageEntries();
     const forbiddenPrefixes = [
@@ -508,6 +653,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
       '/dist/index.html',
       '/electron/elevenLabsRequest.cjs',
       '/electron/main.cjs',
+      '/electron/trayLifecycle.cjs',
       '/electron/transcriptionHandlers.cjs',
       '/electron/transcriptionRequest.cjs',
       '/node_modules/@anthropic-ai/sdk',
@@ -525,6 +671,43 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     expect(entries.some((entry) => /^\/dist\/assets\/index-.*\.js$/.test(entry))).toBe(true);
   });
 
+  it('declares and embeds the macOS 12 minimum in the app identity', () => {
+    const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);
+    const minimumSystemVersion = execFileSync(
+      '/usr/libexec/PlistBuddy',
+      ['-c', 'Print :LSMinimumSystemVersion', join(appPath, 'Contents/Info.plist')],
+      { encoding: 'utf8' },
+    ).trim();
+    const buildVersion = execFileSync('xcrun', ['vtool', '-show-build', appExecutable], {
+      encoding: 'utf8',
+    });
+
+    expect(packageJson.build.mac.minimumSystemVersion).toBe('12.0');
+    expect(minimumSystemVersion).toBe('12.0');
+    expect(buildVersion).toMatch(/\bminos 12\.0\b/);
+  });
+
+  it('keeps every packaged Mach-O deployment target at macOS 12 or earlier', () => {
+    const records = listMachODeploymentTargets(appPath);
+    const paths = records.map((record) => record.path);
+
+    expect(records.length).toBeGreaterThan(0);
+    for (const requiredPath of [
+      /\/Contents\/MacOS\/AudioBash$/,
+      /\/Electron Framework\.framework\/Versions\/A\/Electron Framework$/,
+      /\/AudioBash Helper\.app\/Contents\/MacOS\/AudioBash Helper$/,
+      /\/node-pty\/prebuilds\/darwin-(?:arm64|x64)\/pty\.node$/,
+      /\/node-pty\/prebuilds\/darwin-(?:arm64|x64)\/spawn-helper$/,
+    ]) {
+      expect(
+        paths.some((path) => requiredPath.test(path)),
+        requiredPath.source,
+      ).toBe(true);
+    }
+
+    assertMaximumMacOsDeploymentTarget(records, '12.0');
+  });
+
   it('loads every unbundled main-process dependency from the packaged ASAR', () => {
     const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);
     const packagedNodeModules = join(resourcesPath, 'app.asar', 'node_modules');
@@ -539,6 +722,21 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     const output = runPackagedDependencyProbe(appExecutable, script);
 
     expect(output).toContain('PACKAGED_DEPENDENCIES_OK');
+  }, 70_000);
+
+  it('runs a real PTY under the selected packaged Electron runtime', () => {
+    const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);
+    const packagedNodeModules = join(resourcesPath, 'app.asar', 'node_modules');
+    const script = packagedPtyProbeScript(
+      packagedNodeModules,
+      packageJson.devDependencies.electron,
+      packageTarget.architecture,
+    );
+    const output = runPackagedDependencyProbe(appExecutable, script);
+
+    expect(output).toContain(
+      `AUDIOBASH_PACKAGED_PTY_OK_${packageTarget.architecture}_ELECTRON_${packageJson.devDependencies.electron}`,
+    );
   }, 70_000);
 
   it('builds a native ElevenLabs request from the packaged ASAR', () => {
@@ -631,7 +829,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     expect(statSync(spawnHelperPath).mode & 0o111).not.toBe(0);
   });
 
-  it.each(['dmg', 'zip'] as const)(
+  it.skipIf(!requireArtifacts).each(['dmg', 'zip'] as const)(
     'contains a valid current-version %s artifact',
     (extension) => {
       const expectedArtifactPath = artifactPath(packageTarget.architecture, extension);

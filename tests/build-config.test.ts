@@ -75,6 +75,10 @@ describe('macOS build configuration', () => {
     expect(macConfig.gatekeeperAssess).toBe(false);
   });
 
+  it('declares macOS 12 as the minimum supported release', () => {
+    expect(macConfig.minimumSystemVersion).toBe('12.0');
+  });
+
   it('has entitlements configured for node-pty and microphone', () => {
     expect(macConfig.entitlements).toBe('build/entitlements.mac.plist');
     expect(macConfig.entitlementsInherit).toBe('build/entitlements.mac.inherit.plist');
@@ -217,13 +221,11 @@ describe('npm scripts', () => {
 
   it('prepares native dependencies before each test and Electron entry point', () => {
     expect(scripts['prepare:native']).toBe('node scripts/prepare-native-deps.cjs');
+    expect(scripts['prepare:electron']).toBe('node node_modules/electron/install.js');
     expect(scripts.postinstall).toBeUndefined();
 
-    const requiredHooks = [
-      'pretest',
-      'pretest:watch',
-      'pretest:coverage',
-      'pretest:ui',
+    const testHooks = ['pretest', 'pretest:watch', 'pretest:coverage', 'pretest:ui'];
+    const electronHooks = [
       'preelectron:dev',
       'preelectron:build',
       'preelectron:build:win',
@@ -233,9 +235,15 @@ describe('npm scripts', () => {
       'preelectron:build:linux',
     ];
 
-    for (const hook of requiredHooks) {
-      expect(scripts[hook], `${hook} must prepare native dependencies`).toBe(
-        'npm run prepare:native',
+    for (const hook of testHooks) {
+      expect(scripts[hook], `${hook} must prepare native dependencies and Electron`).toBe(
+        'npm run prepare:native && npm run prepare:electron',
+      );
+    }
+
+    for (const hook of electronHooks) {
+      expect(scripts[hook], `${hook} must prepare native dependencies and Electron`).toBe(
+        'npm run prepare:native && npm run prepare:electron',
       );
     }
   });

@@ -336,25 +336,42 @@ fix: keep cloud transcription bounded and self-contained in production
 
 ## Task 7: Update vulnerable build and runtime dependencies in controlled groups
 
+### Resume checkpoint from August 28, 2026
+
+- [x] Recover the August 27 handoff and confirm the linked worktree, branch, package controls, and uncommitted Electron group.
+- [x] Repeat the x64 Launch Services start and quit test three times with one-second timing and retained app logs.
+- [x] Run the same Launch Services timing test for arm64 as the control.
+- [x] Inspect process-specific macOS unified logs for each shutdown interval without searching user data or secrets.
+- [x] Record an x64-only Launch Services shutdown timeout observed under Rosetta and retain the earlier unbounded direct-launch result as unreproduced harness-only evidence.
+- [x] Make no source fix because all normal launches accepted quit and exited; keep native Intel timing as a Task 13 gate.
+- [x] Complete the final internal repository review for the Electron 43.4.1 group. It returned four P2 findings and no P0, P1, or P3 finding.
+- [x] Add a test-first package gate that rejects stale `main.cjs` or `trayLifecycle.cjs` bytes and checks the bundle identity and versions.
+- [x] Add a test-first package gate that rejects any packaged Mach-O deployment target later than macOS 12.0.
+- [x] Retain one more x64 Launch Services run with explicit post-quit checks for the main process and PTY.
+- [x] Use the same non-causal quit classification and Task 13 Intel gate in the task, release evidence, and handoff.
+- [x] Complete the correction review with no open P0-P2 finding and correct its two P3 evidence-count notes in the final gate update.
+- [x] Rerun the focused Electron suite, the full suite, static checks, audits, and the two-architecture package gate.
+- [x] Review every uncommitted line, update the Task 7 evidence, and commit the Electron group.
+
 - [x] Add `engines.node` as `>=22.13.0 <23`, add `.nvmrc` with the tested `22.17.1` runtime, pin `packageManager` to `npm@10.9.2`, and add a release verifier that requires those exact tested Node and npm versions.
 - [x] Update CI and build workflows to the same Node 22 line before packages that require Node 22.
 - [x] Add Dependabot cooldowns of 30 days for major updates, 7 days for minor updates, and 3 days for patch updates. Keep security updates outside the cooldown and require the normal audit and test gates before merge.
 - [x] Update the low-risk group first: `electron-builder` 26.15.3, Vite 6.4.3, Vitest 4.1.11, coverage 4.1.11, concurrently 9.2.4, PostCSS 8.5.26, and protobufjs 7.6.5.
 - [x] Do not use protobufjs 7.6.6 before August 30, 2026. It was published on August 27 and has not passed the three-day cooldown.
 - [x] Run install, audit, tests, lint, type checks, build, and arm64 directory package after this group.
-- [ ] Treat the supported Electron major as the reason for the v3.4.0 minor release. Update it only after the signed Electron 39 baseline control packages and pruned Electron 39 packages both pass. Electron 39 is a compatibility baseline only and cannot ship in v3.4.0.
+- [x] Treat the supported Electron major as the reason for the v3.4.0 minor release. Update it only after the signed Electron 39 baseline control packages and pruned Electron 39 packages both pass. Electron 39 is a compatibility baseline only and cannot ship in v3.4.0.
 - [x] On August 27, 2026, verify the current stable Electron release and its support status from official Electron sources and `npm view electron version`. Record one exact `RELEASE_ELECTRON_VERSION` in the release evidence before changing dependencies.
-- [ ] Use `RELEASE_ELECTRON_VERSION=43.4.1`. Do not use Electron 44.0.0 because it was published on August 24, 2026 and removes macOS 12 support, which conflicts with AudioBash's current compatibility promise.
-- [ ] Update Electron to the recorded `RELEASE_ELECTRON_VERSION` in a separate commit. Use that same version for every later package, test, workflow, document, and stop condition.
-- [ ] If the selected supported Electron release fails a proven compatibility test, stop and diagnose. Do not silently downgrade or publish on unsupported Electron 39. Select another supported line only after documenting the exact incompatibility and getting user approval.
+- [x] Use `RELEASE_ELECTRON_VERSION=43.4.1`. Do not use Electron 44.0.0 because it was published on August 24, 2026 and removes macOS 12 support, which conflicts with AudioBash's current compatibility promise.
+- [x] Update Electron to the recorded `RELEASE_ELECTRON_VERSION` in a separate commit. Use that same version for every later package, test, workflow, document, and stop condition.
+- [x] If the selected supported Electron release fails a proven compatibility test, stop and diagnose. Do not silently downgrade or publish on unsupported Electron 39. Select another supported line only after documenting the exact incompatibility and getting user approval.
 - [ ] Test window startup, tray, global shortcuts, microphone permission, node-pty, preload APIs, preview capture, VAD WASM, all transcription providers, and app quit.
 - [x] Require `npm audit --omit=dev` to report zero findings for unbundled main-process runtime dependencies.
 - [x] Generate an inventory of renderer packages bundled by Vite. Moving a package to `devDependencies` is a package-size change, not a vulnerability fix.
-- [ ] Use full `npm audit` to cover renderer build inputs and release tooling. Require zero critical and zero high findings, and add a reachability note for each remaining moderate or low finding.
-- [ ] Record any moderate or low residual finding with reachability evidence and user approval before release.
+- [x] Use full `npm audit` to cover renderer build inputs and release tooling. Require zero critical and zero high findings, and add a reachability note for each remaining moderate or low finding.
+- [x] Record any moderate or low residual finding with reachability evidence and user approval before release. No residual finding remains after the Electron 43.4.1 update.
 - [x] Update Browserslist data and confirm the stale-data warning is gone.
 - [x] Complete an independent internal repository review after the low-risk dependency group.
-- [ ] Complete an independent internal repository review after the Electron 43.4.1 group.
+- [x] Complete an independent internal repository review after the Electron 43.4.1 group. The final review found four P2 evidence and package-policy gaps. Test-first corrections closed all four, and the correction review found no open P0-P2 item.
 
 ### First dependency group review
 
@@ -364,6 +381,17 @@ fix: keep cloud transcription bounded and self-contained in production
 - The production audit has zero findings. The full audit contains only the Electron 39 and extract-zip high-severity chain assigned to the next dependency group.
 - The full suite passes 636 tests in 36 files. The focused toolchain suite passes 26 tests. Static checks, the renderer build, and the rebuilt signed arm64 package control pass.
 - The rebuilt control embeds the current manifest and passes content, architecture, hardened-signature, secure-timestamp, native-file, and real packaged PTY checks. It is not notarized and is not a release candidate.
+
+### Electron group review
+
+- The first review found that clean test installs did not prepare Electron 43.4.1 before the compatibility test read its executable. All test entry points now prepare native binaries and Electron. A retained clean-state proof starts without Electron `dist` or `path.txt`, runs the real `pretest` lifecycle, and verifies the rebuilt 43.4.1 runtime.
+- The review also found missing package assertions for `trayLifecycle.cjs` and the macOS 12 floor. Both final packages contain the tray module, declare `LSMinimumSystemVersion` 12.0, and have a Mach-O `minos` value of 12.0.
+- A real arm64 GUI test found that the packaged mac window still received the omitted Windows icon path. Passing `undefined` also produced an Electron warning. The final code omits the `icon` property on macOS, and the rebuilt package starts with a clean log.
+- The final review found four P2 gaps: stale packaged source could pass, the bundle identity was not checked, only the main executable's deployment target was checked, and the retained quit proof and classification were incomplete. Test-first corrections compare the exact packaged `main.cjs` and `trayLifecycle.cjs` bytes, check the bundle identity and versions, and reject any packaged Mach-O deployment target later than macOS 12.0. The correction review found no open P0-P2 item. Its two P3 evidence-count notes are corrected here. The fresh package gate passes 38 tests for both architectures and skips only four final DMG and zip assertions. Both controls pass current-source, identity, Electron, PTY, deployment-target, architecture, hardened-signature, secure-timestamp, and native-file checks.
+- The final arm64 package quits promptly after a direct GUI launch. The first final x64 test used a direct pseudo-terminal launch; it reaped its PTY but did not exit and ignored `SIGTERM`. The exact process was killed only after its log and stack sample were saved. A first normal Launch Services run exited after about 27 seconds.
+- Five x64 Launch Services controls on August 28 accepted normal quit and exited after observed intervals of 6, 5, 4, 9, and 53 seconds. The fifth run used the fresh final x64 package, had a 54-second wall-clock interval, and retained explicit no-main-process and no-PTY results. The arm64 control exited in 1 second. Runs 2 through 5 retain explicit no-PTY results, and runs 4 and 5 also retain explicit no-main-process results. Run 1 did not retain the per-run PTY check. The x64 unified logs show `LSExceptions shared instance invalidated for timeout` before final process exit; the arm64 log does not. The observed fact is an x64-only Launch Services shutdown timeout under Rosetta, with a 4-to-54-second observed wall-clock range; the evidence does not assign its cause. The earlier unbounded direct-launch result remains harness-only evidence that did not reproduce through the normal launch path. No forced-exit workaround is justified. Native Intel quit timing remains a Task 13 release gate.
+- The final focused source gate passes 80 tests in six files, including six package-policy unit tests. The normal suite passes 649 tests in 39 files. TypeScript, CommonJS syntax, Ruff check and format, Prettier, the renderer build, both dependency-tree queries, both zero-finding audits, registry signature verification, and `git diff --check` pass. ESLint reports zero errors and 58 known warnings.
+- Live microphone, VAD, provider, preview, tray interaction, shortcut behavior, notarization, final archive, clean-download, and Monterey hardware tests remain later release gates.
 
 Expected commit messages:
 

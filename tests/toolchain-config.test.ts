@@ -166,9 +166,9 @@ describe('first dependency update group', () => {
     }
   });
 
-  it('uses the cooled protobufjs repair and keeps Electron in the separate group', () => {
+  it('uses the cooled protobufjs repair and selected Electron release', () => {
     expect(packageJson.overrides.protobufjs).toBe('7.6.5');
-    expect(packageJson.devDependencies.electron).toBe('^39.6.0');
+    expect(packageJson.devDependencies.electron).toBe('43.4.1');
   });
 
   it('forces the reviewed transitive security repairs', () => {

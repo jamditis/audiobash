@@ -21,6 +21,7 @@ const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
 // Enable Chromium feature flags before the app is ready (too late inside whenReady). This lets
 // global shortcuts register under Wayland, not just X11.
 const { enableWaylandShortcuts } = require('./featureFlags.cjs');
+const { ensureTray } = require('./trayLifecycle.cjs');
 enableWaylandShortcuts(app);
 
 // Global error handlers to prevent silent crashes (fixes #29)
@@ -187,7 +188,7 @@ function getWindowBounds() {
 function createWindow() {
   const bounds = getWindowBounds();
 
-  mainWindow = new BrowserWindow({
+  const windowOptions = {
     ...bounds,
     minWidth: 800,
     minHeight: 600,
@@ -199,8 +200,13 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
-    icon: path.join(__dirname, '../audiobash-logo.ico'),
-  });
+  };
+
+  if (process.platform !== 'darwin') {
+    windowOptions.icon = path.join(__dirname, '../audiobash-logo.ico');
+  }
+
+  mainWindow = new BrowserWindow(windowOptions);
 
   // Load the app
   if (isDev) {
@@ -294,7 +300,34 @@ function createWindow() {
   });
 }
 
+function createTrayContextMenu() {
+  return Menu.buildFromTemplate([
+    {
+      label: 'Show AudioBash',
+      click: () => mainWindow?.show(),
+    },
+    {
+      label: `Toggle Recording (${currentShortcuts.toggleRecording})`,
+      click: () => mainWindow?.webContents.send('toggle-recording'),
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+}
+
 function createTray() {
+  const contextMenu = createTrayContextMenu();
+  if (tray) {
+    tray = ensureTray({ currentTray: tray, contextMenu });
+    return;
+  }
+
   // Use ICO for Windows tray (better rendering), PNG for other platforms
   let iconPath;
   if (app.isPackaged) {
@@ -350,30 +383,13 @@ function createTray() {
     console.error('[AudioBash] Cannot create tray: all icon paths failed. Running without tray.');
     return;
   }
-  tray = new Tray(icon);
-
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Show AudioBash',
-      click: () => mainWindow?.show(),
-    },
-    {
-      label: `Toggle Recording (${currentShortcuts.toggleRecording})`,
-      click: () => mainWindow?.webContents.send('toggle-recording'),
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.isQuitting = true;
-        app.quit();
-      },
-    },
-  ]);
-
-  tray.setToolTip('AudioBash');
-  tray.setContextMenu(contextMenu);
-  tray.on('click', () => mainWindow?.show());
+  tray = ensureTray({
+    TrayClass: Tray,
+    icon,
+    contextMenu,
+    tooltip: 'AudioBash',
+    onClick: () => mainWindow?.show(),
+  });
 }
 
 function loadShortcuts() {
