@@ -336,21 +336,34 @@ fix: keep cloud transcription bounded and self-contained in production
 
 ## Task 7: Update vulnerable build and runtime dependencies in controlled groups
 
-- [ ] Add `engines.node` as `>=22.12.0`, add `.nvmrc`, pin `packageManager` to the npm version selected for CI, and add a CI command that fails when the active Node version is outside the supported range.
-- [ ] Update CI and build workflows to the same Node 22 line before packages that require Node 22.
-- [ ] Update the low-risk patched group first: `electron-builder` 26.15.3, Vite 6.4.3, Vitest 4.1.11, coverage 4.1.11, concurrently 9.2.4, PostCSS 8.5.26, and protobufjs 7.6.6.
-- [ ] Run install, audit, tests, lint, type checks, build, and arm64 directory package after this group.
+- [x] Add `engines.node` as `>=22.13.0 <23`, add `.nvmrc` with the tested `22.17.1` runtime, pin `packageManager` to `npm@10.9.2`, and add a release verifier that requires those exact tested Node and npm versions.
+- [x] Update CI and build workflows to the same Node 22 line before packages that require Node 22.
+- [x] Add Dependabot cooldowns of 30 days for major updates, 7 days for minor updates, and 3 days for patch updates. Keep security updates outside the cooldown and require the normal audit and test gates before merge.
+- [x] Update the low-risk group first: `electron-builder` 26.15.3, Vite 6.4.3, Vitest 4.1.11, coverage 4.1.11, concurrently 9.2.4, PostCSS 8.5.26, and protobufjs 7.6.5.
+- [x] Do not use protobufjs 7.6.6 before August 30, 2026. It was published on August 27 and has not passed the three-day cooldown.
+- [x] Run install, audit, tests, lint, type checks, build, and arm64 directory package after this group.
 - [ ] Treat the supported Electron major as the reason for the v3.4.0 minor release. Update it only after the signed Electron 39 baseline control packages and pruned Electron 39 packages both pass. Electron 39 is a compatibility baseline only and cannot ship in v3.4.0.
-- [ ] On the Task 7 execution day, verify the current stable Electron release and its support status from official Electron sources and `npm view electron version`. Record one exact `RELEASE_ELECTRON_VERSION` in this evidence file before changing dependencies. Electron 44.0.0 was the audit candidate, not a fixed release target.
+- [x] On August 27, 2026, verify the current stable Electron release and its support status from official Electron sources and `npm view electron version`. Record one exact `RELEASE_ELECTRON_VERSION` in the release evidence before changing dependencies.
+- [ ] Use `RELEASE_ELECTRON_VERSION=43.4.1`. Do not use Electron 44.0.0 because it was published on August 24, 2026 and removes macOS 12 support, which conflicts with AudioBash's current compatibility promise.
 - [ ] Update Electron to the recorded `RELEASE_ELECTRON_VERSION` in a separate commit. Use that same version for every later package, test, workflow, document, and stop condition.
 - [ ] If the selected supported Electron release fails a proven compatibility test, stop and diagnose. Do not silently downgrade or publish on unsupported Electron 39. Select another supported line only after documenting the exact incompatibility and getting user approval.
 - [ ] Test window startup, tray, global shortcuts, microphone permission, node-pty, preload APIs, preview capture, VAD WASM, all transcription providers, and app quit.
-- [ ] Require `npm audit --omit=dev` to report zero findings for unbundled main-process runtime dependencies.
-- [ ] Generate an inventory of renderer packages bundled by Vite. Moving a package to `devDependencies` is a package-size change, not a vulnerability fix.
+- [x] Require `npm audit --omit=dev` to report zero findings for unbundled main-process runtime dependencies.
+- [x] Generate an inventory of renderer packages bundled by Vite. Moving a package to `devDependencies` is a package-size change, not a vulnerability fix.
 - [ ] Use full `npm audit` to cover renderer build inputs and release tooling. Require zero critical and zero high findings, and add a reachability note for each remaining moderate or low finding.
 - [ ] Record any moderate or low residual finding with reachability evidence and user approval before release.
-- [ ] Update Browserslist data and confirm the stale-data warning is gone.
-- [ ] Complete an independent internal repository review after each dependency group.
+- [x] Update Browserslist data and confirm the stale-data warning is gone.
+- [x] Complete an independent internal repository review after the low-risk dependency group.
+- [ ] Complete an independent internal repository review after the Electron 43.4.1 group.
+
+### First dependency group review
+
+- The final internal review passes with no open finding.
+- Both npm tree queries pass. The invalid cross-major brace-expansion override is removed and covered by a regression test.
+- The final lock uses no package younger than 72 hours. All 152 changed package-version pairs match registry integrity data and carry registry signatures.
+- The production audit has zero findings. The full audit contains only the Electron 39 and extract-zip high-severity chain assigned to the next dependency group.
+- The full suite passes 636 tests in 36 files. The focused toolchain suite passes 26 tests. Static checks, the renderer build, and the rebuilt signed arm64 package control pass.
+- The rebuilt control embeds the current manifest and passes content, architecture, hardened-signature, secure-timestamp, native-file, and real packaged PTY checks. It is not notarized and is not a release candidate.
 
 Expected commit messages:
 

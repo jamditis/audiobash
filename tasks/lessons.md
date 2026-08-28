@@ -7,3 +7,4 @@
 - Verify reviewer claims with the source tool before changing evidence. A reviewer miscounted a valid 40-character Git commit hash as 41 characters.
 - Treat debloat as two related passes: remove shipped weight and remove cognitive weight from logic already changed. Preserve behavior, apply readability work in proportion to the branching, and judge the result by eye instead of a computed score.
 - Do not load or use external skills or plugins for this project. Follow the project instructions and use core repository tools only.
+- Do not use Node evaluation flags with the Electron CLI. Read package metadata, or set `ELECTRON_RUN_AS_NODE=1` in a controlled child environment. Internal audits must not launch GUI apps unless the current manual test requires it.
