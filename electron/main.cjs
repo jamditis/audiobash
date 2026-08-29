@@ -50,7 +50,9 @@ let pty = null;
 const whisperService = require('./whisperService.cjs');
 
 const { registerTranscriptionHandlers } = require('./transcriptionHandlers.cjs');
+const { registerLocalWhisperHandlers } = require('./localWhisperHandlers.cjs');
 const { createFileWatcherManager } = require('./fileWatcher.cjs');
+const { createAppShutdownCoordinator } = require('./appShutdown.cjs');
 
 // Simple persistent storage (replacement for electron-store)
 const storeFilePath = path.join(app.getPath('userData'), 'app-store.json');
@@ -92,6 +94,7 @@ const terminalReady = new Set(); // Set of tabIds whose renderer xterm is mounte
 const { getDefaultShell, buildCdCommand } = require('./shellQuote.cjs');
 let mainWindow = null;
 let tray = null;
+let localWhisperLifecycle = null;
 const MAX_OUTPUT_BUFFER = 2000; // Keep last 2000 characters of output
 const MAX_RECENT_DIRS = 10; // Keep last 10 recent directories
 
@@ -761,6 +764,8 @@ function registerShortcuts() {
 }
 
 function spawnShell(tabId) {
+  if (app.isQuitting) return null;
+
   // Load node-pty if not loaded
   if (!pty) {
     try {
@@ -841,7 +846,7 @@ function spawnShell(tabId) {
         terminalOutputBuffers.delete(tabId);
         terminalCwds.delete(tabId);
         terminalReady.delete(tabId);
-        if (mainWindow && !mainWindow.isDestroyed()) {
+        if (!app.isQuitting && mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
         }
       } catch (err) {
@@ -1398,15 +1403,13 @@ function setupIPC() {
     }
   });
 
-  // Whisper local transcription
-  ipcMain.handle('whisper-transcribe', async (_, audioPath) => {
-    try {
-      const result = await whisperService.transcribe(audioPath);
-      return result;
-    } catch (err) {
-      console.error('[AudioBash] Whisper transcription error:', err);
-      return { text: '', error: err.message };
-    }
+  localWhisperLifecycle = registerLocalWhisperHandlers({
+    ipcMain,
+    whisperService,
+    getTempPath: () => path.join(app.getPath('temp'), 'audiobash'),
+    logError: (error) => console.error('[AudioBash] Whisper transcription error:', error),
+    logWarning: (error) =>
+      console.warn('[AudioBash] Failed to remove local transcription files:', error.message),
   });
 
   ipcMain.handle('whisper-set-model', async (_, modelName) => {
@@ -1494,28 +1497,6 @@ function setupIPC() {
       return result;
     } catch (err) {
       console.error('[AudioBash] Whisper full setup error:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('save-temp-audio', async (_, base64Audio) => {
-    try {
-      const tempDir = path.join(app.getPath('temp'), 'audiobash');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      const filename = `audio-${Date.now()}.webm`;
-      const filepath = path.join(tempDir, filename);
-
-      // Convert base64 to buffer and save
-      const buffer = Buffer.from(base64Audio, 'base64');
-      fs.writeFileSync(filepath, buffer);
-
-      console.log(`[AudioBash] Saved temp audio: ${filepath} (${buffer.length} bytes)`);
-      return { success: true, path: filepath };
-    } catch (err) {
-      console.error('[AudioBash] Save temp audio error:', err);
       return { success: false, error: err.message };
     }
   });
@@ -1754,7 +1735,10 @@ app.on('activate', () => {
   }
 });
 
-app.on('will-quit', () => {
+let otherResourcesClosed = false;
+function closeOtherResources() {
+  if (otherResourcesClosed) return;
+  otherResourcesClosed = true;
   globalShortcut.unregisterAll();
 
   fileWatcherManager.closeAll();
@@ -1765,8 +1749,25 @@ app.on('will-quit', () => {
     console.log(`[AudioBash] Killed shell for tab ${tabId}`);
   }
   ptyProcesses.clear();
+}
+
+const shutdownCoordinator = createAppShutdownCoordinator({
+  closeTranscriptions: () =>
+    localWhisperLifecycle ? localWhisperLifecycle.shutdown() : whisperService.shutdown(),
+  closeOtherResources,
+  quit: () => app.quit(),
+  logError: (error) => {
+    appLog.error('Local transcription shutdown did not finish cleanly', error, {
+      code: error?.code,
+    });
+  },
 });
 
-app.on('before-quit', () => {
+app.on('will-quit', () => {
+  closeOtherResources();
+});
+
+app.on('before-quit', (event) => {
   app.isQuitting = true;
+  void shutdownCoordinator.beforeQuit(event);
 });

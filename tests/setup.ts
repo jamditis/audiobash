@@ -21,7 +21,7 @@ export interface MockElectronAPI {
   saveApiKeys: ReturnType<typeof vi.fn>;
   whisperSetModel: ReturnType<typeof vi.fn>;
   whisperTranscribe: ReturnType<typeof vi.fn>;
-  saveTempAudio: ReturnType<typeof vi.fn>;
+  whisperCancel: ReturnType<typeof vi.fn>;
   getSettings: ReturnType<typeof vi.fn>;
   saveSettings: ReturnType<typeof vi.fn>;
   getPlatform: ReturnType<typeof vi.fn>;
@@ -48,7 +48,7 @@ export function createMockElectronAPI(): MockElectronAPI {
     saveApiKeys: vi.fn(() => Promise.resolve()),
     whisperSetModel: vi.fn(() => Promise.resolve()),
     whisperTranscribe: vi.fn(() => Promise.resolve({ text: 'mock transcription' })),
-    saveTempAudio: vi.fn(() => Promise.resolve({ success: true, path: '/tmp/audio.webm' })),
+    whisperCancel: vi.fn(() => Promise.resolve({ cancelled: true, queued: false })),
     getSettings: vi.fn(() => Promise.resolve({})),
     saveSettings: vi.fn(() => Promise.resolve()),
     getPlatform: vi.fn(() => 'linux'),

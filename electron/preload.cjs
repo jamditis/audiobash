@@ -847,25 +847,26 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @function whisperTranscribe
    * @memberof window.electron
-   * @param {string} audioPath - Path to the audio file to transcribe
-   * @returns {Promise<{success: boolean, text?: string, error?: string}>} Transcription result
+   * @param {{requestId: string, modelName: string, audioBase64: string}} request - Owned job request
+   * @returns {Promise<{text: string, error?: string, errorCode?: string}>} Transcription result
    * @example
-   * const result = await window.electron.whisperTranscribe('/tmp/audio.wav');
-   * if (result.success) {
+   * const result = await window.electron.whisperTranscribe(request);
+   * if (!result.error) {
    *   console.log('Transcribed:', result.text);
    * }
    */
-  whisperTranscribe: (audioPath) => ipcRenderer.invoke('whisper-transcribe', audioPath),
+  whisperTranscribe: (request) => ipcRenderer.invoke('whisper-transcribe', request),
+  whisperCancel: (requestId) => ipcRenderer.invoke('whisper-cancel', requestId),
 
   /**
    * Sets the Whisper model to use for transcription.
    *
    * @function whisperSetModel
    * @memberof window.electron
-   * @param {string} modelName - Model name (e.g., 'tiny', 'base', 'small', 'medium', 'large')
+   * @param {string} modelName - Model name (`small.en`)
    * @returns {Promise<{success: boolean}>} Set result
    * @example
-   * await window.electron.whisperSetModel('base');
+   * await window.electron.whisperSetModel('small.en');
    */
   whisperSetModel: (modelName) => ipcRenderer.invoke('whisper-set-model', modelName),
 
@@ -877,7 +878,7 @@ contextBridge.exposeInMainWorld('electron', {
    * @returns {Promise<string[]>} List of available model names
    * @example
    * const models = await window.electron.whisperGetModels();
-   * // Returns: ['tiny', 'base', 'small', 'medium', 'large']
+   * // Returns: ['small.en']
    */
   whisperGetModels: () => ipcRenderer.invoke('whisper-get-models'),
 
@@ -887,10 +888,10 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @function whisperDownloadModel
    * @memberof window.electron
-   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @param {string} modelName - Model ID (`small.en`)
    * @returns {Promise<{success: boolean, error?: string}>} Download result
    * @example
-   * const result = await window.electron.whisperDownloadModel('base.en');
+   * const result = await window.electron.whisperDownloadModel('small.en');
    * if (result.success) console.log('Model downloaded!');
    */
   whisperDownloadModel: (modelName) => ipcRenderer.invoke('whisper-download-model', modelName),
@@ -900,7 +901,7 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @function whisperIsModelDownloaded
    * @memberof window.electron
-   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @param {string} modelName - Model ID (`small.en`)
    * @returns {Promise<{success: boolean, downloaded: boolean}>}
    */
   whisperIsModelDownloaded: (modelName) =>
@@ -911,7 +912,7 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @function whisperDeleteModel
    * @memberof window.electron
-   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @param {string} modelName - Model ID (`small.en`)
    * @returns {Promise<{success: boolean, error?: string}>}
    */
   whisperDeleteModel: (modelName) => ipcRenderer.invoke('whisper-delete-model', modelName),
@@ -940,26 +941,10 @@ contextBridge.exposeInMainWorld('electron', {
    *
    * @function whisperFullSetup
    * @memberof window.electron
-   * @param {string} modelName - Model to download (e.g., 'base.en')
+   * @param {string} modelName - Model to download (`small.en`)
    * @returns {Promise<{success: boolean, error?: string}>}
    */
   whisperFullSetup: (modelName) => ipcRenderer.invoke('whisper-full-setup', modelName),
-
-  /**
-   * Saves base64-encoded audio data to a temporary file.
-   * Used to prepare audio for Whisper transcription.
-   *
-   * @function saveTempAudio
-   * @memberof window.electron
-   * @param {string} base64Audio - Base64-encoded audio data
-   * @returns {Promise<{success: boolean, path?: string, error?: string}>} Save result with temp file path
-   * @example
-   * const result = await window.electron.saveTempAudio(base64AudioData);
-   * if (result.success) {
-   *   const transcription = await window.electron.whisperTranscribe(result.path);
-   * }
-   */
-  saveTempAudio: (base64Audio) => ipcRenderer.invoke('save-temp-audio', base64Audio),
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FONT ZOOM

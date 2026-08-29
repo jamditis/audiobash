@@ -73,5 +73,17 @@ describe('startup crash prevention (#29)', () => {
       );
       expect(precedingCode).toContain('try');
     });
+
+    it('does not create or announce a terminal while the app is quitting', () => {
+      const spawnShellCode = mainProcessCode.slice(
+        mainProcessCode.indexOf('function spawnShell(tabId)'),
+        mainProcessCode.indexOf('function killShell(tabId)'),
+      );
+
+      expect(spawnShellCode).toMatch(/function spawnShell\(tabId\) \{\s*if \(app\.isQuitting\)/);
+      expect(spawnShellCode).toMatch(
+        /if \(!app\.isQuitting && mainWindow && !mainWindow\.isDestroyed\(\)\)/,
+      );
+    });
   });
 });

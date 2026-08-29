@@ -312,7 +312,7 @@ perf: avoid loading voice activity detection during app startup
 - [x] Give real-time setup the same contract of at most three attempts with one-second and two-second abortable delays. Keep it in the renderer and do not move streaming audio into the main process.
 - [x] Replace the warning-only timeout stress test and local timeout simulation with assertions against the production request policy under fake time.
 - [x] Add a packaged Electron smoke test for both architectures. Load the native multipart helper from `app.asar`, inspect a fake request without network access, and prove that `form-data` is absent.
-- [x] Keep local Parakeet and local Whisper process work out of this task. Record Parakeet's missing deadline as a known limit; Task 10 owns Whisper and FFmpeg process-tree cleanup.
+- [x] Keep local Parakeet and local Whisper process work out of this task. Record Parakeet's missing HTTP deadline as a known limit; Task 10 owns Whisper and FFmpeg process-tree cleanup only.
 - [x] Run focused unit tests, stress tests, the normal suite, type checks, lint, formatting, main-process syntax checks, production audit, both macOS package builds, and the packaged suite.
 - [x] Complete three independent internal repository reviews and correct every finding.
 - [x] Commit the reviewed Task 9 tree.
@@ -327,7 +327,7 @@ Review:
 - ElevenLabs real-time setup has the same three-attempt timing contract, prevents reconnect after stop, rejects failed starts, treats server errors as terminal, and separates a graceful one-commit stop from discard cancellation.
 - Fresh v3.3.1 arm64 and x64 internal packages pass 32 package tests, including execution of the multipart helper from each packaged ASAR. Strict signature validation passes for both apps, and neither ASAR contains `form-data`. The app sizes are 278 MB and 287 MB. The arm64 DMG and zip are 112 MB and 107 MB. The x64 DMG and zip are 119 MB and 115 MB. These samples skip notarization and are not release candidates.
 - Three internal reviews covered the package boundary, privacy boundary, and release lifecycle. The final review found two stale-resource races and one stop-path test gap. Test-first corrections now prove replacement stream ownership, cleanup after five partial PCM setup failures, normal and repeated stop cleanup, and cleanup when final audio delivery throws.
-- Local Parakeet work still has no process-level deadline. Task 10 owns local Whisper, FFmpeg, and Parakeet process-tree cancellation and shutdown behavior.
+- Local Parakeet requests still have no HTTP deadline. AudioBash does not start or own the separate Parakeet server process. Task 10 owns local Whisper and FFmpeg process-tree cancellation and shutdown behavior.
 
 Expected commit message:
 
@@ -422,9 +422,9 @@ Evidence and review:
 - The first Terminal live-value test and a VoiceOverlay rerender test passed before source changes. The first VoiceOverlay test called the current prop callback and did not exercise the retained Electron listener. A stronger test kept the original listener, switched from `tab-1` to `tab-2`, and then failed because terminal context still used `tab-1`. The latest-actions ref correction makes that same saved listener use `tab-2` without a new subscription.
 - The Terminal keeps one xterm instance while live font-size and theme options change. Its data, selection, and Electron terminal-data listeners each remain single subscriptions. A strengthened test failed until a focused pane began using the defined accent ring while recording. Idle focus styling is unchanged; the pre-existing `ring-acid/60` utility is not defined by the Tailwind theme and is recorded for later visual cleanup.
 - ESLint warning counts were 58 at baseline, 50 after the hook and test corrections, and 34 after cleanup limited to release-touched files. The 34 remaining warnings are in 13 untouched files. The terminal control-character regex exceptions are unchanged.
-- `npm run lint` passes at exactly 34 warnings. An isolated temporary workspace copies Git-tracked and nonignored lint inputs, adds warning 35, and makes the same command fail against `--max-warnings 34`. ESLint also ignores local `.audit` and `.worktrees` content. This is a net-warning ratchet; the follow-up zero-warning issue will remove the identity-replacement gap.
+- Task 8 completed at 34 warnings. Later Task 10 changes reduced the current count to 33. `npm run lint` now passes at exactly 33 warnings. An isolated temporary workspace copies Git-tracked and nonignored lint inputs, adds warning 34, and makes the same command fail against `--max-warnings 33`. ESLint also ignores local `.audit` and `.worktrees` content. This is a net-warning ratchet; the follow-up zero-warning issue will remove the identity-replacement gap.
 - `npm run setup:ruff` prepares and reports Ruff 0.15.1 through `uv tool run`. `npm run lint:py` uses the same pinned uv environment for both `ruff check` and `ruff format --check`; both pass across seven Python files.
-- The focused gate passes 89 tests in five files. The normal suite passes 656 tests in 40 files. TypeScript, CommonJS syntax, Ruff, Prettier, the exact Node/npm toolchain check, the renderer build, generated `.ring-accent` CSS, and `git diff --check` pass. ESLint reports zero errors and 34 warnings.
+- The focused Task 8 gate passes 89 tests in five files. Its normal suite passed 656 tests in 40 files. TypeScript, CommonJS syntax, Ruff, Prettier, the exact Node/npm toolchain check, the renderer build, generated `.ring-accent` CSS, and `git diff --check` passed. The current tree reports zero ESLint errors and 33 warnings.
 - Three independent internal reviews found lifecycle, cleanup, portability, timeout, isolation, Ruff-version, evidence, mock-fidelity, and stale-count defects. All internal findings are corrected, and their correction reviews report no open P0-P3 item.
 - The cross-model review found that the first lint fixture could copy the primary checkout's 9.4 GB worktree store, that local evidence remained in the normal lint scope, and that several tests and evidence statements were not precise enough. Git-listed inputs, explicit ESLint ignores, zero-budget grammar, absent-path handling, npm-launch fallback, mock parity, and corrected evidence close those findings. The final cross-model correction review reports zero unresolved P0-P3 items.
 - The follow-up GitHub issue is specified but not created. It remains behind explicit user approval.
@@ -465,7 +465,7 @@ Evidence so far:
 - Review corrections cover startup races, canonical filename spelling, final-component symlinks, change and error callback failures, a rolling native watcher recovery bound, hard metadata errors, failed canonical path resolution, and shutdown during startup.
 - Replacing either watched parent directory remains a documented limit. Supporting that case needs ancestor watchers and is outside the approved atomic-file replacement scope.
 - A terminal native watcher failure is written to the structured main-process log but is not shown in the preview status bar. Close and reopen the preview pane or change the preview path to start a new watcher.
-- The final normal suite passes 692 tests in 42 files. ESLint passes with zero errors and the fixed 34-warning budget. Ruff, TypeScript, Prettier, CommonJS syntax, the renderer build, `git diff --check`, and the production dependency audit pass. The audit reports zero vulnerabilities.
+- The final Task 9 normal suite passes 692 tests in 42 files. The current ESLint ratchet permits 33 warnings. Ruff, TypeScript, Prettier, CommonJS syntax, the renderer build, `git diff --check`, and the production dependency audit pass. The audit reports zero vulnerabilities.
 - Three final internal correction reviews report no open P0-P3 finding. The independent Claude review found renderer URL, package freshness, evidence, formatting, contract, and timing gaps. Those findings are corrected and covered by the final gates. Two later narrow Claude correction runs stalled without output and were stopped after extended monitoring.
 
 Expected commit message:
@@ -478,20 +478,31 @@ fix: keep preview refresh attached after atomic file saves
 
 **Root cause:** FFmpeg and Whisper processes have no single lifecycle owner. Timeout, cancellation, and shutdown can finish while descendants or output streams still run.
 
-- [ ] Add a failing macOS integration test that starts a parent with a child, stops the parent, and proves the child remains without tree cleanup.
-- [ ] Add unit tests with injected process APIs for Windows `taskkill /T /F` and POSIX process-group termination.
-- [ ] Add an integration assertion that each POSIX transcription process is spawned with `detached: true` and has a process-group identifier different from the Electron process group. Never call `process.kill(-pid)` without this proof.
-- [ ] Add failing tests for timeout, explicit cancellation, app shutdown, output drain, double cancellation, and a process that ignores the first termination signal.
-- [ ] Run the targeted tests and confirm the descendant test fails.
-- [ ] Change FFmpeg and Whisper POSIX spawn options to create separate process groups. Keep Windows spawn behavior compatible with `taskkill /T /F`.
-- [ ] Implement `electron/processTree.cjs` with a three-second graceful stop and a two-second force-stop stage.
-- [ ] Implement `electron/transcriptionJob.cjs` as the owner of FFmpeg, Whisper, output streams, timers, abort state, and final status.
-- [ ] Do not publish `complete`, `failed`, or `cancelled` until all owned processes exit and streams close.
-- [ ] Refactor `electron/whisperService.cjs` to use the job owner.
-- [ ] Make app shutdown wait for job cleanup with a bounded deadline before the final quit.
+- [x] Add a failing macOS integration test that starts a parent with a child, stops the parent, and proves the child remains without tree cleanup.
+- [x] Add unit tests with injected process APIs for exact Windows launcher-handle termination and POSIX process-group termination.
+- [x] Add an integration assertion that each POSIX transcription launcher is spawned with `detached: true` and has a process-group identifier different from the Electron process group. Never call `process.kill(-pid)` without this proof.
+- [x] Add failing tests for timeout, explicit cancellation, app shutdown, output drain, double cancellation, and a process that ignores the first termination signal.
+- [x] Run the targeted tests and confirm the descendant test fails.
+- [x] Start each FFmpeg and Whisper target through a gated launcher. Use a proved POSIX process group or a Windows kill-on-close Job Object that receives the suspended target before resume.
+- [x] Implement `electron/processTree.cjs` with three-second graceful and two-second force stages on POSIX, plus one exact-handle Windows termination with a five-second total bound.
+- [x] Implement `electron/transcriptionJob.cjs` as the owner of FFmpeg, Whisper, output streams, timers, abort state, and final status.
+- [x] Do not publish `complete`, `failed`, or `cancelled` until all owned processes exit and streams close.
+- [x] Refactor `electron/whisperService.cjs` to use the job owner.
+- [x] Make app shutdown wait for job cleanup with a bounded deadline before the final quit.
 - [ ] Run macOS integration tests and Windows process-tree tests in GitHub Actions.
-- [ ] Verify no child FFmpeg or Whisper process remains after timeout, cancel, or quit.
-- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
+- [x] Verify no child FFmpeg or Whisper process remains after timeout, cancel, or quit.
+- [x] Complete three independent internal repository reviews and correct every finding.
+- [x] Prepare the reviewed Task 10 tree for commit.
+
+Review:
+
+- The exact focused local lifecycle gate passes 182 tests in nine files on macOS. CI uses the same eight shared files and one native integration file per host.
+- The platform-inclusive correction gate passes 182 tests and skips seven tests; nine files pass and one Windows-only file is skipped. The serialized normal suite passes 829 tests and skips seven tests; 51 files pass and one Windows-only file is skipped. ESLint passes with zero errors and 33 warnings. TypeScript, CommonJS syntax, Ruff, Prettier, `git diff --check`, the production renderer build, and the production dependency audit pass. The audit reports zero vulnerabilities.
+- Real macOS integration covers the unsafe direct-parent control, ownership proof, clean and nonzero exits, inherited output pipes, parent-status lease loss, graceful-to-force escalation, two separate stage groups, timeout, cancellation, and shutdown.
+- Injected Windows tests cover strict readiness and result ordering, saved-PID rejection, clean and nonzero target exits, one forceful exact-handle termination, separate signal and owner timeouts, failed-spawn handle safety, and malformed, duplicate, oversized, or missing status.
+- Native Windows tests cover difficult argument round trips, clean and nonzero target exits with detached descendants, and Job closure after Node-launcher status loss. Remote execution is pending.
+- The Windows build copies the Job owner to the physical resources directory and runs a packaged Electron process-tree probe before artifact upload. macOS packaging excludes the Windows-only helper. Fresh unsigned arm64 and x64 controls build successfully, and all 46 package tests pass. The package tests include bounded timeout cleanup and prove that the Windows-only helper is absent. Three final internal reviews and the independent Claude correction review report no remaining P0-P3 finding. The packaged Windows helper smoke and remote CI remain pending.
+- Windows stop completion uses launcher-handle closure and the Job Object's kill-on-close contract. It does not perform a second PID-based target liveness query because PID reuse would weaken the exact-handle boundary. Native Windows integration and package-probe tests remain the required proof of target-tree cleanup.
 
 Expected commit message:
 

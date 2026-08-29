@@ -286,10 +286,11 @@ sequenceDiagram
         TranscriptionService->>TranscriptionService: Blob → Base64
         TranscriptionService->>AIProvider: Gemini API (audio + prompt)
     else Local Whisper
-        TranscriptionService->>IPC: saveTempAudio(base64)
-        IPC->>MainProcess: Save to temp file
-        TranscriptionService->>IPC: whisperTranscribe(path)
-        IPC->>MainProcess: whisper.cpp transcription
+        TranscriptionService->>IPC: whisperTranscribe({requestId, modelName, audioBase64})
+        IPC->>MainProcess: Validate request and write unique temp input
+        MainProcess->>MainProcess: Run owned FFmpeg and Whisper stages
+        MainProcess-->>IPC: Transcript after process-tree cleanup
+        IPC-->>TranscriptionService: Transcript
     end
 
     AIProvider-->>TranscriptionService: Transcribed/converted text
@@ -415,6 +416,7 @@ flowchart LR
 
         subgraph Whisper["Whisper (10)"]
             whisper-transcribe
+            whisper-cancel
             whisper-set-model
             whisper-get-models
             whisper-download-model
@@ -423,7 +425,6 @@ flowchart LR
             whisper-install
             whisper-get-status
             whisper-full-setup
-            save-temp-audio
         end
 
     end
@@ -558,7 +559,7 @@ flowchart TB
 
             GeminiAdapter["Gemini Adapter<br/>• gemini-2.0-flash<br/>• gemini-2.5-flash"]
             ElevenLabsAdapter["ElevenLabs Adapter<br/>• scribe_v1 (batch)"]
-            LocalAdapter["Local Adapter<br/>• whisper-local-tiny<br/>• whisper-local-base<br/>• whisper-local-small<br/>• parakeet-local"]
+            LocalAdapter["Local Adapter<br/>• whisper-local-small<br/>• parakeet-local"]
         end
     end
 
@@ -573,9 +574,9 @@ flowchart TB
         ElevenLabsAPI["ElevenLabs API"]
     end
 
-    subgraph LocalServices["Local Services (Main Process)"]
+    subgraph LocalServices["Local services"]
         WhisperCPP["whisper.cpp"]
-        Parakeet["Parakeet Server<br/>(localhost:8003)"]
+        Parakeet["External Parakeet server<br/>(localhost:8003)"]
     end
 
     Manual --> TranscriptionService
@@ -778,10 +779,16 @@ audiobash/
 │   │   ├── IPC handlers (38+)
 │   │   ├── AI client initialization
 │   ├── fileWatcher.cjs               # Bounded preview file watching
+│   ├── localWhisperHandlers.cjs      # Local Whisper IPC validation and temp files
+│   ├── processTree.cjs               # Proved cross-platform process-tree cleanup
+│   ├── processTreeLauncher.cjs       # Gated process-tree ownership root
+│   ├── windowsJobOwner.ps1           # Native Windows Job Object owner
+│   ├── transcriptionJob.cjs          # One local transcription lifecycle owner
+│   ├── appShutdown.cjs               # Bounded asynchronous quit coordination
 │   ├── preload.cjs                   # IPC Bridge (53 APIs)
 │   ├── logger.cjs                    # Main process logging
 │   ├── error-handler.cjs             # Global error handlers
-│   └── whisperService.cjs            # Local Whisper
+│   └── whisperService.cjs            # Local Whisper job registry
 │
 ├── src/                               # Renderer Process
 │   ├── index.tsx                     # React entry point

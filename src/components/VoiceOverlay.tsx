@@ -3,6 +3,7 @@ import {
   transcriptionService,
   ModelId,
   MODELS,
+  readStoredModelId,
   TranscriptionError,
 } from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
@@ -365,7 +366,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
 
       // Check if current model has required key
-      const savedModel = (localStorage.getItem('audiobash-model') as ModelId) || 'gemini-2.0-flash';
+      const savedModel = readStoredModelId();
       setModel(savedModel);
 
       const modelInfo = MODELS.find((m) => m.id === savedModel);
@@ -393,8 +394,9 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   // following principle of least privilege.
   useEffect(() => {
     const handleStorageChange = async () => {
-      const savedModel = localStorage.getItem('audiobash-model') as ModelId;
-      if (savedModel && savedModel !== model) {
+      const storedModel = localStorage.getItem('audiobash-model');
+      const savedModel = readStoredModelId();
+      if (storedModel && savedModel !== model) {
         log.info('Model changed via settings', { from: model, to: savedModel });
         setModel(savedModel);
 

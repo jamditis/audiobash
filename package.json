@@ -25,8 +25,9 @@
     "pretest:ui": "npm run prepare:native && npm run prepare:electron",
     "test:ui": "vitest --ui",
     "test:package:mac": "vitest run --config vitest.package.config.ts",
-    "lint": "eslint . --max-warnings 34",
-    "lint:fix": "eslint . --fix --max-warnings 34",
+    "test:package:win": "node scripts/verify-windows-package.cjs",
+    "lint": "eslint . --max-warnings 33",
+    "lint:fix": "eslint . --fix --max-warnings 33",
     "setup:ruff": "uv tool run --from ruff==0.15.1 ruff --version",
     "lint:py": "uv tool run --from ruff==0.15.1 ruff check scripts build && uv tool run --from ruff==0.15.1 ruff format --check scripts build",
     "format": "prettier --write .",
@@ -129,7 +130,8 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "node_modules/node-pty/**/*"
+      "node_modules/node-pty/**/*",
+      "!electron/windowsJobOwner.ps1"
     ],
     "extraResources": [
       {
@@ -144,6 +146,10 @@
         {
           "from": "audiobash-logo.ico",
           "to": "audiobash-logo.ico"
+        },
+        {
+          "from": "electron/windowsJobOwner.ps1",
+          "to": "windowsJobOwner.ps1"
         }
       ]
     },
@@ -191,7 +197,8 @@
         "!node_modules/json-schema-to-ts{,/**/*}",
         "!node_modules/ts-algebra{,/**/*}",
         "!node_modules/@babel/runtime{,/**/*}",
-        "!node_modules/@remotion/captions{,/**/*}"
+        "!node_modules/@remotion/captions{,/**/*}",
+        "!electron/windowsJobOwner.ps1"
       ]
     },
     "dmg": {

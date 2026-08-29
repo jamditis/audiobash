@@ -9,10 +9,11 @@
  */
 
 const path = require('path');
-const os = require('os');
 const fs = require('fs');
 const { app } = require('electron');
-const { spawn, execSync } = require('child_process');
+const { execSync } = require('child_process');
+const { createProcessTreeController } = require('./processTree.cjs');
+const { createTranscriptionJob } = require('./transcriptionJob.cjs');
 
 // Model configurations - only small.en is supported now
 const MODEL_CONFIGS = {
@@ -26,59 +27,7 @@ const MODEL_CONFIGS = {
 
 // Whisper.cpp version to use
 const WHISPER_CPP_VERSION = '1.5.5';
-
-/**
- * Convert audio file to 16kHz WAV format required by whisper.cpp
- * @param {string} inputPath - Path to input audio file (WebM, MP3, etc.)
- * @param {string} outputPath - Path for output WAV file
- * @returns {Promise<void>}
- */
-async function convertToWav(inputPath, outputPath) {
-  return new Promise((resolve, reject) => {
-    // Use ffmpeg to convert to 16kHz mono WAV
-    const ffmpeg = spawn(
-      'ffmpeg',
-      [
-        '-i',
-        inputPath,
-        '-ar',
-        '16000', // 16kHz sample rate (required by whisper.cpp)
-        '-ac',
-        '1', // Mono audio
-        '-c:a',
-        'pcm_s16le', // 16-bit PCM
-        '-y', // Overwrite output file
-        outputPath,
-      ],
-      {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      },
-    );
-
-    let stderr = '';
-    ffmpeg.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    ffmpeg.on('close', (code) => {
-      if (code === 0) {
-        console.log('[WhisperService] Audio converted to WAV successfully');
-        resolve();
-      } else {
-        console.error('[WhisperService] FFmpeg conversion failed:', stderr);
-        reject(new Error(`FFmpeg conversion failed with code ${code}: ${stderr.slice(-500)}`));
-      }
-    });
-
-    ffmpeg.on('error', (err) => {
-      if (err.code === 'ENOENT') {
-        reject(new Error('FFmpeg not found. Please install FFmpeg and add it to your PATH.'));
-      } else {
-        reject(err);
-      }
-    });
-  });
-}
+const MAX_ACTIVE_JOBS = 2;
 
 /**
  * Fallback zip extraction when @remotion/install-whisper-cpp fails
@@ -154,12 +103,23 @@ async function fallbackExtractZip(zipPath, destDir) {
 }
 
 class WhisperService {
-  constructor() {
+  constructor({
+    processTree = createProcessTreeController(),
+    createJob = createTranscriptionJob,
+    now = Date.now,
+  } = {}) {
     // Store whisper.cpp and models in app's userData directory
     this.whisperDir = null; // Set after app is ready
     this.currentModel = 'small.en';
     this.whisperInstalled = false;
     this.installPromise = null;
+    this.processTree = processTree;
+    this.createJob = createJob;
+    this.now = now;
+    this.activeJobs = new Map();
+    this.activeRequests = new Set();
+    this.earlyCancellations = new Map();
+    this.shuttingDown = false;
   }
 
   /**
@@ -287,7 +247,7 @@ class WhisperService {
 
   /**
    * Download a Whisper model
-   * @param {string} modelName - Model name (e.g., 'base.en')
+   * @param {string} modelName - Supported model name (`small.en`)
    * @returns {Promise<{success: boolean, error?: string}>}
    */
   async downloadModel(modelName) {
@@ -329,11 +289,53 @@ class WhisperService {
    * @param {string} audioPath - Path to audio file (WebM, WAV, etc.)
    * @returns {Promise<{text: string, error?: string}>}
    */
-  async transcribe(audioPath) {
+  transcribe(audioPath, request = {}) {
+    if (this.shuttingDown) {
+      return Promise.resolve({
+        text: '',
+        error: 'Local transcription is shutting down',
+        errorCode: 'TRANSCRIPTION_SHUTDOWN',
+      });
+    }
+    if (this.activeRequests.size >= MAX_ACTIVE_JOBS) {
+      return Promise.resolve({
+        text: '',
+        error: 'Too many local transcription requests are active',
+        errorCode: 'TRANSCRIPTION_BUSY',
+      });
+    }
+
+    const requestPromise = this.runTranscription(audioPath, request);
+    this.activeRequests.add(requestPromise);
+    void requestPromise.then(
+      () => this.activeRequests.delete(requestPromise),
+      () => this.activeRequests.delete(requestPromise),
+    );
+    return requestPromise;
+  }
+
+  async runTranscription(audioPath, { requestId, modelName = this.currentModel } = {}) {
     let wavPath = null;
+    let job = null;
 
     try {
-      console.log(`[WhisperService] Transcribing with model ${this.currentModel}: ${audioPath}`);
+      if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) {
+        throw new Error('Invalid local transcription request ID');
+      }
+      if (this.activeJobs.has(requestId)) {
+        throw new Error('A local transcription request with this ID is already active');
+      }
+      this.pruneEarlyCancellations();
+      if (this.earlyCancellations.delete(requestId)) {
+        const error = new Error('Transcription cancelled');
+        error.code = 'TRANSCRIPTION_CANCELLED';
+        throw error;
+      }
+      if (!MODEL_CONFIGS[modelName]) {
+        throw new Error(`Unknown model: ${modelName}`);
+      }
+
+      console.log(`[WhisperService] Transcribing with model ${modelName}: ${audioPath}`);
 
       // Validate audio file exists
       if (!fs.existsSync(audioPath)) {
@@ -346,86 +348,53 @@ class WhisperService {
       }
 
       // Ensure model is downloaded
-      if (!this.isModelDownloaded(this.currentModel)) {
+      if (!this.isModelDownloaded(modelName)) {
         throw new Error(
-          `Model ${this.currentModel} is not downloaded. Please download it first in Settings.`,
+          `Model ${modelName} is not downloaded. Please download it first in Settings.`,
         );
       }
 
-      // Convert to WAV if not already a WAV file
       let inputPath = audioPath;
+      let conversion;
       if (!audioPath.toLowerCase().endsWith('.wav')) {
         wavPath = audioPath.replace(/\.[^.]+$/, '.wav');
         console.log(`[WhisperService] Converting ${audioPath} to ${wavPath}`);
-        await convertToWav(audioPath, wavPath);
         inputPath = wavPath;
+        conversion = {
+          command: 'ffmpeg',
+          args: ['-i', audioPath, '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-y', wavPath],
+        };
       }
 
-      // Call whisper.cpp binary directly (more reliable than remotion package)
       const binaryPath = this.getWhisperBinaryPath();
-      const modelPath = path.join(this.whisperDir, `ggml-${this.currentModel}.bin`);
+      const modelPath = path.join(this.whisperDir, `ggml-${modelName}.bin`);
 
       console.log(`[WhisperService] Running: ${binaryPath} -m ${modelPath} -f ${inputPath}`);
-
-      const text = await new Promise((resolve, reject) => {
-        const whisperProcess = spawn(
-          binaryPath,
-          [
-            '-m',
-            modelPath,
-            '-f',
-            inputPath,
-            '-nt', // No timestamps
-            '-np', // No prints (cleaner output)
-          ],
-          {
-            stdio: ['pipe', 'pipe', 'pipe'],
-            windowsHide: true,
-          },
-        );
-
-        let stdout = '';
-        let stderr = '';
-
-        whisperProcess.stdout.on('data', (data) => {
-          stdout += data.toString();
-        });
-
-        whisperProcess.stderr.on('data', (data) => {
-          stderr += data.toString();
-        });
-
-        whisperProcess.on('close', (code) => {
-          if (code === 0) {
-            // Clean up the output - remove whisper.cpp log lines
-            const lines = stdout.split('\n');
-            const textLines = lines.filter(
-              (line) =>
-                !line.startsWith('whisper_') &&
-                !line.startsWith('main:') &&
-                !line.includes('system_info') &&
-                line.trim().length > 0,
-            );
-            const transcribedText = textLines.join(' ').trim();
-            resolve(transcribedText);
-          } else {
-            console.error('[WhisperService] whisper.cpp stderr:', stderr);
-            reject(
-              new Error(`Whisper transcription failed with code ${code}: ${stderr.slice(-500)}`),
-            );
-          }
-        });
-
-        whisperProcess.on('error', (err) => {
-          reject(new Error(`Failed to run whisper.cpp: ${err.message}`));
-        });
-
-        // Timeout after 60 seconds
-        setTimeout(() => {
-          whisperProcess.kill();
-          reject(new Error('Transcription timed out after 60 seconds'));
-        }, 60000);
+      job = this.createJob({
+        processTree: this.processTree,
+        timeoutMs: 60_000,
       });
+      this.activeJobs.set(requestId, job);
+
+      const result = await job.run({
+        conversion,
+        transcription: {
+          command: binaryPath,
+          args: ['-m', modelPath, '-f', inputPath, '-nt', '-np'],
+        },
+      });
+
+      const lines = result.stdout.split('\n');
+      const text = lines
+        .filter(
+          (line) =>
+            !line.startsWith('whisper_') &&
+            !line.startsWith('main:') &&
+            !line.includes('system_info') &&
+            line.trim().length > 0,
+        )
+        .join(' ')
+        .trim();
 
       console.log(
         `[WhisperService] Transcription complete: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`,
@@ -434,11 +403,17 @@ class WhisperService {
       return { text };
     } catch (error) {
       console.error('[WhisperService] Transcription error:', error);
+      const errorCode =
+        error.code === 'TRANSCRIPTION_SHUTDOWN' ? 'TRANSCRIPTION_CANCELLED' : error.code;
       return {
         text: '',
         error: error.message || 'Unknown transcription error',
+        errorCode,
       };
     } finally {
+      if (job && this.activeJobs.get(requestId) === job) {
+        this.activeJobs.delete(requestId);
+      }
       // Clean up temporary WAV file
       if (wavPath && fs.existsSync(wavPath)) {
         try {
@@ -450,9 +425,46 @@ class WhisperService {
     }
   }
 
+  pruneEarlyCancellations() {
+    const currentTime = this.now();
+    for (const [requestId, expiresAt] of this.earlyCancellations) {
+      if (expiresAt <= currentTime) this.earlyCancellations.delete(requestId);
+    }
+  }
+
+  cancel(requestId) {
+    if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) {
+      return { cancelled: false, queued: false, error: 'Invalid local transcription request ID' };
+    }
+    const job = this.activeJobs.get(requestId);
+    if (job) {
+      void job.cancel().catch((error) => {
+        console.error('[WhisperService] Cancellation cleanup failed:', error);
+      });
+      return { cancelled: true, queued: false };
+    }
+
+    this.pruneEarlyCancellations();
+    this.earlyCancellations.set(requestId, this.now() + 10_000);
+    while (this.earlyCancellations.size > 100) {
+      this.earlyCancellations.delete(this.earlyCancellations.keys().next().value);
+    }
+    return { cancelled: false, queued: true };
+  }
+
+  async shutdown() {
+    this.shuttingDown = true;
+    const jobs = [...this.activeJobs.values()];
+    const shutdownResults = await Promise.allSettled(jobs.map((job) => job.shutdown()));
+    await Promise.allSettled([...this.activeRequests]);
+    const failure = shutdownResults.find((result) => result.status === 'rejected');
+    if (failure) throw failure.reason;
+    return { remainingJobs: this.activeJobs.size };
+  }
+
   /**
    * Set the active model
-   * @param {string} modelName - Model ID (tiny.en, base.en, small.en)
+   * @param {string} modelName - Model ID (small.en)
    */
   setModel(modelName) {
     if (!MODEL_CONFIGS[modelName]) {
@@ -503,7 +515,7 @@ class WhisperService {
 
   /**
    * Delete a downloaded model
-   * @param {string} modelName - Model name (e.g., 'base.en')
+   * @param {string} modelName - Supported model name (`small.en`)
    * @returns {{success: boolean, error?: string}}
    */
   deleteModel(modelName) {
@@ -565,5 +577,6 @@ class WhisperService {
   }
 }
 
-// Export singleton instance
+// Export the production singleton and the class for dependency-injected tests.
 module.exports = new WhisperService();
+module.exports.WhisperService = WhisperService;

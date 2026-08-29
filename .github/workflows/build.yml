@@ -86,6 +86,9 @@ jobs:
       - name: Build Windows
         run: npm run electron:build:win -- --publish never
 
+      - name: Smoke-test packaged Windows process owner
+        run: npm run test:package:win
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:

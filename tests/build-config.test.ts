@@ -33,6 +33,7 @@ describe('electron-builder configuration', () => {
   it('includes required files in build', () => {
     expect(buildConfig.files).toContain('dist/**/*');
     expect(buildConfig.files).toContain('electron/**/*');
+    expect(buildConfig.files).toContain('!electron/windowsJobOwner.ps1');
   });
 
   it('keeps renderer and package output in separate directories', () => {
@@ -141,6 +142,7 @@ describe('macOS build configuration', () => {
         '!node_modules/ts-algebra{,/**/*}',
         '!node_modules/@babel/runtime{,/**/*}',
         '!node_modules/@remotion/captions{,/**/*}',
+        '!electron/windowsJobOwner.ps1',
       ]),
     );
   });
@@ -186,6 +188,17 @@ describe('Windows build configuration', () => {
 
     expect(globalSources).not.toContain('audiobash-logo.ico');
     expect(windowsSources).toContain('audiobash-logo.ico');
+  });
+
+  it('copies the Windows Job owner as a physical PowerShell file', () => {
+    expect(buildConfig.win.extraResources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: 'electron/windowsJobOwner.ps1',
+          to: 'windowsJobOwner.ps1',
+        }),
+      ]),
+    );
   });
 });
 
@@ -284,6 +297,11 @@ describe('npm scripts', () => {
 
   it('has an explicit fail-closed macOS package test command', () => {
     expect(scripts['test:package:mac']).toBe('vitest run --config vitest.package.config.ts');
+  });
+
+  it('has an explicit packaged Windows process-owner probe', () => {
+    expect(scripts['test:package:win']).toBe('node scripts/verify-windows-package.cjs');
+    expect(existsSync(join(rootDir, 'scripts/verify-windows-package.cjs'))).toBe(true);
   });
 
   it('runs the Vite build before each direct package build', () => {

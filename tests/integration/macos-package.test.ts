@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import { extractFile } from '@electron/asar';
 import {
   existsSync,
@@ -20,6 +20,10 @@ import {
   assertMaximumMacOsDeploymentTarget,
   parseMacOsDeploymentTargets,
 } from '../helpers/macosPackagePolicy';
+import {
+  terminatePackagedProbeTree,
+  terminateReportedProbeGroups,
+} from '../helpers/packagedProbeProcess';
 
 const rootDir = join(__dirname, '../..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
@@ -27,6 +31,7 @@ const releaseDir = process.env.AUDIOBASH_MAC_PACKAGE_DIR || join(rootDir, 'relea
 const requireArtifacts = process.env.AUDIOBASH_REQUIRE_MAC_ARTIFACTS !== 'false';
 const asarBin = join(rootDir, 'node_modules/.bin/asar');
 const inheritedProbeEnvironmentNames = ['LANG', 'LC_ALL', 'LC_CTYPE', 'PATH', 'TMPDIR'];
+const packagedProbeOutputLimitBytes = 64 * 1024;
 
 const packages = [
   {
@@ -380,6 +385,80 @@ terminal.write("printf '" + token + "\\n'; exit 0\\r");
   ].join('\n');
 }
 
+function packagedProcessTreeProbeScript(
+  packagedProcessTree: string,
+  expectedArchitecture: string,
+): string {
+  return `
+const { createProcessTreeController } = require(${JSON.stringify(packagedProcessTree)});
+
+(async () => {
+  if (process.arch !== ${JSON.stringify(expectedArchitecture)}) {
+    throw new Error(
+      'Package architecture mismatch: expected ${expectedArchitecture}, received ' + process.arch,
+    );
+  }
+
+  const token = 'AUDIOBASH_PACKAGED_PROCESS_TREE_OK_${expectedArchitecture}';
+  const controller = createProcessTreeController();
+  let owned;
+  let stdout = '';
+  let stderr = '';
+  let failure;
+  try {
+    owned = await controller.spawn('/usr/bin/printf', [token], {
+      onOwned: (process) => {
+        owned = process;
+        console.log('AUDIOBASH_PACKAGED_PROCESS_TREE_GROUP_' + process.groupId);
+      },
+    });
+    owned.child.stdout.setEncoding('utf8');
+    owned.child.stderr.setEncoding('utf8');
+    owned.child.stdout.on('data', (chunk) => { stdout += chunk; });
+    owned.child.stderr.on('data', (chunk) => { stderr += chunk; });
+
+    const targetResult = await owned.closeTracker.exitPromise;
+    const cleanupResult = await controller.stop(owned);
+    const closeResult = await owned.closeTracker.closePromise;
+
+    if (
+      targetResult.code !== 0 ||
+      closeResult.code !== 0 ||
+      closeResult.processError ||
+      stdout !== token ||
+      stderr !== '' ||
+      cleanupResult.forced
+    ) {
+      throw new Error(
+        'Packaged process-tree probe failed: ' +
+          JSON.stringify({ targetResult, closeResult, stdout, stderr, cleanupResult }),
+      );
+    }
+  } catch (error) {
+    failure = error;
+  } finally {
+    if (owned && !owned.closeTracker.closed) {
+      try {
+        await controller.stop(owned);
+      } catch (cleanupError) {
+        failure = failure
+          ? new AggregateError([failure, cleanupError], 'Package probe and cleanup failed')
+          : cleanupError;
+      }
+    }
+    owned?.child.stdout?.destroy();
+    owned?.child.stderr?.destroy();
+  }
+  if (failure) throw failure;
+
+  console.log(token);
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+`.trim();
+}
+
 function createPackagedProbeEnvironment(isolatedRoot: string): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     ELECTRON_RUN_AS_NODE: '1',
@@ -412,6 +491,84 @@ function runPackagedDependencyProbe(appExecutable: string, script: string): stri
   } finally {
     rmSync(isolatedWorkingDirectory, { recursive: true, force: true });
   }
+}
+
+function runPackagedProcessTreeProbe(appExecutable: string, script: string): Promise<string> {
+  const isolatedWorkingDirectory = mkdtempSync(join(tmpdir(), 'audiobash-package-tree-probe-'));
+  const probePath = join(isolatedWorkingDirectory, 'probe.cjs');
+  writeFileSync(probePath, script);
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(appExecutable, [probePath], {
+      cwd: isolatedWorkingDirectory,
+      detached: true,
+      env: createPackagedProbeEnvironment(isolatedWorkingDirectory),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    let timeoutError: Error | undefined;
+    const reportedGroupIds = new Set<number>();
+    const appendBounded = (current: string, chunk: unknown): string => {
+      const remaining = packagedProbeOutputLimitBytes - Buffer.byteLength(current, 'utf8');
+      if (remaining <= 0) return current;
+      return current + Buffer.from(String(chunk)).subarray(0, remaining).toString('utf8');
+    };
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      rmSync(isolatedWorkingDirectory, { recursive: true, force: true });
+      if (error) reject(error);
+      else resolve(stdout);
+    };
+    const timer = setTimeout(() => {
+      try {
+        if (reportedGroupIds.size > 0) {
+          terminateReportedProbeGroups(child.pid, reportedGroupIds);
+        } else {
+          const snapshot = execFileSync('/bin/ps', ['-axo', 'pid=,ppid=,pgid='], {
+            encoding: 'utf8',
+          });
+          terminatePackagedProbeTree(child.pid, snapshot);
+        }
+        timeoutError = new Error('Packaged process-tree probe exceeded 60 seconds');
+      } catch (error) {
+        timeoutError = new Error('Could not stop the timed-out packaged process-tree probe', {
+          cause: error,
+        });
+        child.kill('SIGKILL');
+      }
+    }, 60_000);
+    child.stdout.on('data', (chunk) => {
+      stdout = appendBounded(stdout, chunk);
+      for (const match of stdout.matchAll(/AUDIOBASH_PACKAGED_PROCESS_TREE_GROUP_(\d+)/g)) {
+        const groupId = Number(match[1]);
+        if (Number.isSafeInteger(groupId) && groupId > 0) reportedGroupIds.add(groupId);
+      }
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr = appendBounded(stderr, chunk);
+    });
+    child.once('error', (error) => {
+      clearTimeout(timer);
+      finish(error);
+    });
+    child.once('close', (code, signal) => {
+      clearTimeout(timer);
+      if (timeoutError) {
+        finish(timeoutError);
+      } else if (code !== 0 || signal !== null) {
+        finish(
+          new Error(
+            `Packaged process-tree probe failed with code ${code} and signal ${signal}\n${stdout}\n${stderr}`,
+          ),
+        );
+      } else {
+        finish();
+      }
+    });
+  });
 }
 
 function runFailingPackagedDependencyProbe(appExecutable: string, script: string): string {
@@ -582,9 +739,17 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
 
   it('contains the exact current main-process source', () => {
     for (const entry of [
+      'electron/appShutdown.cjs',
       'electron/fileWatcher.cjs',
+      'electron/localWhisperHandlers.cjs',
       'electron/main.cjs',
+      'electron/preload.cjs',
+      'electron/processTree.cjs',
+      'electron/processTreeLauncher.cjs',
+      'electron/transcriptionJob.cjs',
       'electron/trayLifecycle.cjs',
+      'electron/whisperService.cjs',
+      'electron/windowsOwnerProtocol.cjs',
     ]) {
       assertExactPackageBytes(
         entry,
@@ -678,12 +843,20 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     const entries = packageEntries();
     const requiredEntries = [
       '/dist/index.html',
+      '/electron/appShutdown.cjs',
       '/electron/elevenLabsRequest.cjs',
       '/electron/fileWatcher.cjs',
+      '/electron/localWhisperHandlers.cjs',
       '/electron/main.cjs',
+      '/electron/preload.cjs',
+      '/electron/processTree.cjs',
+      '/electron/processTreeLauncher.cjs',
       '/electron/trayLifecycle.cjs',
       '/electron/transcriptionHandlers.cjs',
+      '/electron/transcriptionJob.cjs',
       '/electron/transcriptionRequest.cjs',
+      '/electron/whisperService.cjs',
+      '/electron/windowsOwnerProtocol.cjs',
       '/node_modules/@anthropic-ai/sdk',
       '/node_modules/@google/generative-ai',
       '/node_modules/@remotion/install-whisper-cpp',
@@ -695,6 +868,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     for (const entry of requiredEntries) {
       expect(entries).toContain(entry);
     }
+    expect(entries).not.toContain('/electron/windowsJobOwner.ps1');
 
     expect(entries.some((entry) => /^\/dist\/assets\/index-.*\.js$/.test(entry))).toBe(true);
   });
@@ -765,6 +939,15 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     expect(output).toContain(
       `AUDIOBASH_PACKAGED_PTY_OK_${packageTarget.architecture}_ELECTRON_${packageJson.devDependencies.electron}`,
     );
+  }, 70_000);
+
+  it('runs and cleans a process tree through the packaged launcher', async () => {
+    const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);
+    const packagedProcessTree = join(resourcesPath, 'app.asar', 'electron', 'processTree.cjs');
+    const script = packagedProcessTreeProbeScript(packagedProcessTree, packageTarget.architecture);
+    const output = await runPackagedProcessTreeProbe(appExecutable, script);
+
+    expect(output).toContain(`AUDIOBASH_PACKAGED_PROCESS_TREE_OK_${packageTarget.architecture}`);
   }, 70_000);
 
   it('builds a native ElevenLabs request from the packaged ASAR', () => {

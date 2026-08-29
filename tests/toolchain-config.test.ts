@@ -55,8 +55,44 @@ describe('toolchain contract', () => {
   });
 
   it('enforces the same toolchain before every CI install', () => {
-    expectWorkflowToolchain(ciWorkflow, 1);
+    expectWorkflowToolchain(ciWorkflow, 2);
     expectWorkflowToolchain(buildWorkflow, 3);
+  });
+
+  it('runs the complete focused process lifecycle gate on both CI platforms', () => {
+    const sharedLifecycleTests = [
+      'tests/unit/processTree.test.ts',
+      'tests/unit/windowsJobOwnerSource.test.ts',
+      'tests/unit/transcriptionJob.test.ts',
+      'tests/unit/appShutdown.test.ts',
+      'tests/unit/whisperService.test.ts',
+      'tests/unit/localWhisperHandlers.test.ts',
+      'tests/unit/transcriptionService.test.ts',
+      'tests/startup-crash.test.ts',
+    ];
+
+    for (const testPath of sharedLifecycleTests) {
+      expect(occurrenceIndexes(ciWorkflow, testPath), testPath).toHaveLength(2);
+    }
+    expect(
+      occurrenceIndexes(ciWorkflow, 'tests/integration/processTree.macos.test.ts'),
+    ).toHaveLength(1);
+    expect(
+      occurrenceIndexes(ciWorkflow, 'tests/integration/processTree.windows.test.ts'),
+    ).toHaveLength(1);
+  });
+
+  it('smoke-tests the physical Windows package helper before artifact upload', () => {
+    const windowsBuild = buildWorkflow.indexOf('- name: Build Windows');
+    const packageProbe = buildWorkflow.indexOf('- name: Smoke-test packaged Windows process owner');
+    const windowsUpload = buildWorkflow.indexOf('- name: Upload Windows artifacts');
+
+    expect(windowsBuild).toBeGreaterThan(-1);
+    expect(packageProbe).toBeGreaterThan(windowsBuild);
+    expect(windowsUpload).toBeGreaterThan(packageProbe);
+    expect(buildWorkflow.slice(packageProbe, windowsUpload)).toContain(
+      'run: npm run test:package:win',
+    );
   });
 
   it('passes the real local toolchain check', () => {

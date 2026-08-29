@@ -182,7 +182,10 @@ export interface ElectronAPI {
   onCaptureScreenshot: (callback: () => void) => () => void;
 
   // Whisper local transcription
-  whisperTranscribe: (audioPath: string) => Promise<WhisperTranscribeResult>;
+  whisperTranscribe: (request: WhisperTranscribeRequest) => Promise<WhisperTranscribeResult>;
+  whisperCancel: (
+    requestId: string,
+  ) => Promise<{ cancelled: boolean; queued: boolean; error?: string }>;
   whisperSetModel: (modelName: string) => Promise<WhisperSetModelResult>;
   whisperGetModels: () => Promise<WhisperGetModelsResult>;
   whisperDownloadModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
@@ -197,7 +200,6 @@ export interface ElectronAPI {
   }>;
   whisperFullSetup: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   whisperDeleteModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
-  saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
 
   // Font zoom
   onZoomIn: (callback: () => void) => () => void;
@@ -269,6 +271,13 @@ export interface ValidatePathResult {
 export interface WhisperTranscribeResult {
   text: string;
   error?: string;
+  errorCode?: string;
+}
+
+export interface WhisperTranscribeRequest {
+  requestId: string;
+  modelName: string;
+  audioBase64: string;
 }
 
 export interface WhisperSetModelResult {
@@ -290,11 +299,5 @@ export interface WhisperGetModelsResult {
   success: boolean;
   models?: WhisperModelInfo[];
   currentModel?: string;
-  error?: string;
-}
-
-export interface SaveTempAudioResult {
-  success: boolean;
-  path?: string;
   error?: string;
 }

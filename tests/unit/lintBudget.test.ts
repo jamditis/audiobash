@@ -17,7 +17,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const rootDir = join(__dirname, '../..');
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
-const warningBudget = 34;
+const warningBudget = 33;
 const lintableRootExtensions = new Set(['.cjs', '.js', '.jsx', '.json', '.mjs', '.ts', '.tsx']);
 let fixtureDirectory: string | null = null;
 

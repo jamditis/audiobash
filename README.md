@@ -32,7 +32,7 @@ A voice-controlled terminal for developers. Speak commands, execute them instant
 - **Window persistence** - Window position and size saved across sessions
 - **Multi-tab support** - Run up to 4 terminal sessions simultaneously
 - **Quick directory navigation** - Jump to recent or favorite folders with one click
-- **Multiple AI providers** - Gemini 2.0/2.5 Flash, ElevenLabs Scribe (real-time or batch), or fully offline with bundled local Whisper (plus Parakeet, if you run your own NVIDIA GPU server)
+- **Multiple AI providers** - Gemini 2.0/2.5 Flash, ElevenLabs Scribe (real-time or batch), or local Whisper after FFmpeg is on PATH and its binary and model are downloaded (plus Parakeet, if you run your own NVIDIA GPU server)
 - **Auto-copy** - Selected text is automatically copied to clipboard
 - **Always-on-top mode** - Pin the voice panel while you work
 - **System tray** - Runs quietly in background, accessible via global shortcuts
