@@ -1,40 +1,50 @@
-name: Build
+name: Build release candidate
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
-      build_mac:
-        description: 'Build for macOS'
-        required: false
-        default: true
-        type: boolean
-      build_windows:
-        description: 'Build for Windows'
-        required: false
-        default: true
-        type: boolean
-      build_linux:
-        description: 'Build for Linux'
-        required: false
-        default: true
-        type: boolean
+      release_commit:
+        description: Exact reviewed 40-character commit SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
-  build-mac:
-    if: github.event_name == 'push' || inputs.build_mac
+  build-macos:
+    name: macOS ${{ matrix.architecture }}
     runs-on: macos-latest
+    environment: release-signing
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [arm64, x64]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout exact release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_commit }}
+          persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Verify exact release commit
+        shell: bash
+        env:
+          DISPATCH_COMMIT: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$DISPATCH_REF" = "refs/heads/master"
+          test "$DISPATCH_COMMIT" = "$REQUESTED_COMMIT"
+          test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
@@ -46,32 +56,130 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS (arm64 + x64)
-        run: npm run electron:build:mac
+      - name: Import release signing credentials
+        shell: bash
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY_SECRET: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY_SECRET APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID; do
+            test -n "${!name:-}" || { echo "Required release credential is missing: $name" >&2; exit 1; }
+          done
+          expected_team_id="$(node -p "require('./package.json').releasePolicy.appleTeamId")"
+          [[ "$expected_team_id" =~ ^[A-Z0-9]{10}$ ]]
+          test "$APPLE_TEAM_ID" = "$expected_team_id"
 
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
+          certificate_path="$RUNNER_TEMP/audiobash-release.p12"
+          api_key_path="$RUNNER_TEMP/AuthKey_AudioBash.p8"
+          keychain_path="$RUNNER_TEMP/audiobash-release.keychain-db"
+          keychain_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$keychain_password"
+
+          printf '%s' "$CSC_LINK" | /usr/bin/base64 -D > "$certificate_path"
+          printf '%s' "$APPLE_API_KEY_SECRET" > "$api_key_path"
+          chmod 600 "$certificate_path" "$api_key_path"
+
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -k "$keychain_path" \
+            -P "$CSC_KEY_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path" \
+            | grep -F 'Developer ID Application' \
+            | grep -F "($expected_team_id)" > /dev/null
+          echo 'Developer ID signing identity verified.'
+
+          {
+            echo "CSC_KEYCHAIN=$keychain_path"
+            echo "APPLE_API_KEY=$api_key_path"
+          } >> "$GITHUB_ENV"
+
+      - name: Build signed and notarized macOS package
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run electron:build:mac:release:${{ matrix.architecture }}
+
+      - name: Remove temporary signing credentials
+        if: always()
+        shell: bash
+        run: |
+          keychain_path="$RUNNER_TEMP/audiobash-release.keychain-db"
+          security delete-keychain "$keychain_path" 2>/dev/null || true
+          rm -f \
+            "$RUNNER_TEMP/audiobash-release.p12" \
+            "$RUNNER_TEMP/AuthKey_AudioBash.p8" \
+            "$keychain_path"
+
+      - name: Resolve exact macOS artifacts
+        id: artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$(node scripts/releaseArtifacts.cjs mac-${{ matrix.architecture }}-dmg)"
+          zip="$(node scripts/releaseArtifacts.cjs mac-${{ matrix.architecture }}-zip)"
+          printf 'dmg=%s\n' "$dmg" >> "$GITHUB_OUTPUT"
+          printf 'zip=%s\n' "$zip" >> "$GITHUB_OUTPUT"
+
+      - name: Verify signed and notarized macOS package
+        run: >-
+          node scripts/verify-macos-release.cjs
+          --architecture "${{ matrix.architecture }}"
+          --release-dir release
+
+      - name: Upload exact macOS artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: macos-builds
+          name: macos-${{ matrix.architecture }}
           path: |
-            release/*.dmg
-            release/*.zip
+            release/${{ steps.artifacts.outputs.dmg }}
+            release/${{ steps.artifacts.outputs.zip }}
+            release/SHA256-macos-${{ matrix.architecture }}.txt
+          if-no-files-found: error
           retention-days: 30
 
   build-windows:
-    if: github.event_name == 'push' || inputs.build_windows
+    name: Windows x64
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout exact release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_commit }}
+          persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Verify exact release commit
+        shell: bash
+        env:
+          DISPATCH_COMMIT: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$DISPATCH_REF" = "refs/heads/master"
+          test "$DISPATCH_COMMIT" = "$REQUESTED_COMMIT"
+          test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
@@ -83,32 +191,71 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows
+      - name: Build Windows package
         run: npm run electron:build:win -- --publish never
 
       - name: Smoke-test packaged Windows process owner
         run: npm run test:package:win
 
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+      - name: Resolve and hash exact Windows artifact
+        id: artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $artifact = node scripts/releaseArtifacts.cjs windows-nsis
+          if ($LASTEXITCODE -ne 0) {
+            throw "Windows artifact resolver failed with exit code $LASTEXITCODE"
+          }
+          $artifact = $artifact.Trim()
+          if ([string]::IsNullOrWhiteSpace($artifact)) {
+            throw 'Windows artifact resolver returned an empty filename'
+          }
+          $path = Join-Path release $artifact
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Required Windows artifact is missing: $path"
+          }
+          "name=$artifact" >> $env:GITHUB_OUTPUT
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLowerInvariant()
+          "$hash  $artifact" | Set-Content -Encoding ascii release/SHA256-windows-x64.txt
+
+      - name: Upload exact Windows artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: windows-builds
+          name: windows-x64
           path: |
-            release/*.exe
+            release/${{ steps.artifact.outputs.name }}
+            release/SHA256-windows-x64.txt
+          if-no-files-found: error
           retention-days: 30
 
   build-linux:
-    if: github.event_name == 'push' || inputs.build_linux
+    name: Linux x64
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout exact release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_commit }}
+          persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Verify exact release commit
+        shell: bash
+        env:
+          DISPATCH_COMMIT: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$DISPATCH_REF" = "refs/heads/master"
+          test "$DISPATCH_COMMIT" = "$REQUESTED_COMMIT"
+          test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
@@ -120,43 +267,100 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Linux
+      - name: Build Linux packages
         run: npm run electron:build:linux -- --publish never
 
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+      - name: Resolve exact Linux artifacts
+        id: artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          appimage="$(node scripts/releaseArtifacts.cjs linux-appimage)"
+          deb="$(node scripts/releaseArtifacts.cjs linux-deb)"
+          printf 'appimage=%s\n' "$appimage" >> "$GITHUB_OUTPUT"
+          printf 'deb=%s\n' "$deb" >> "$GITHUB_OUTPUT"
+
+      - name: Hash exact Linux artifacts
+        shell: bash
+        env:
+          APPIMAGE_NAME: ${{ steps.artifacts.outputs.appimage }}
+          DEB_NAME: ${{ steps.artifacts.outputs.deb }}
+        run: |
+          set -euo pipefail
+          test -f "release/$APPIMAGE_NAME"
+          test -f "release/$DEB_NAME"
+          (cd release && sha256sum "$APPIMAGE_NAME" "$DEB_NAME" > SHA256-linux-x64.txt)
+
+      - name: Upload exact Linux artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: linux-builds
+          name: linux-x64
           path: |
-            release/*.AppImage
-            release/*.deb
+            release/${{ steps.artifacts.outputs.appimage }}
+            release/${{ steps.artifacts.outputs.deb }}
+            release/SHA256-linux-x64.txt
+          if-no-files-found: error
           retention-days: 30
 
-  release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-mac, build-windows, build-linux]
+  verify-release-candidate:
+    name: Verify release candidate set
+    needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout exact release commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.release_commit }}
+          persist-credentials: false
+
+      - name: Verify exact release commit
+        shell: bash
+        env:
+          DISPATCH_COMMIT: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$DISPATCH_REF" = "refs/heads/master"
+          test "$DISPATCH_COMMIT" = "$REQUESTED_COMMIT"
+          test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Pin npm
+        run: npm install --global npm@10.9.2
+
+      - name: Verify toolchain
+        run: npm run verify:toolchain
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all platform artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
 
-      - name: Display artifacts
-        run: ls -R artifacts
+      - name: Verify exact release candidate set
+        env:
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+          WORKFLOW_REPOSITORY: ${{ github.repository }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+        run: node scripts/verify-release-artifact-set.cjs artifacts "$RELEASE_COMMIT" "$WORKFLOW_REPOSITORY" "$WORKFLOW_RUN_ID" "$WORKFLOW_RUN_ATTEMPT"
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload release candidate manifest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          draft: true
-          generate_release_notes: true
-          fail_on_unmatched_files: false
-          files: |
-            artifacts/**/*.dmg
-            artifacts/**/*.zip
-            artifacts/**/*.exe
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
-          token: ${{ secrets.GITHUB_TOKEN }}
+          name: release-candidate-manifest
+          path: |
+            artifacts/release-candidate-manifest.json
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30

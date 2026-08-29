@@ -512,28 +512,39 @@ fix: reap local transcription process trees before jobs finish
 
 ## Task 11: Make signing, notarization, and release assets fail closed
 
-- [ ] Add tests that development mode can use explicit ad hoc signing and explicit notarization skip.
-- [ ] Add failing tests that release mode rejects missing Developer ID, missing Apple credentials, skipped notarization, failed native signing, failed stapling, and a missing expected asset.
-- [ ] Change `scripts/notarize.cjs` to accept a keychain profile or the documented Apple credentials.
-- [ ] Use `CSC_KEY_PASSWORD` as the only PKCS #12 password variable name across code, CI, and docs. Do not reuse it for App Store Connect API-key authentication.
-- [ ] Use only the credential method approved in Task 0. If CI signing is approved, import the encrypted PKCS #12 file into a temporary build keychain, set key partition access for codesign, verify the identity, and delete the temporary keychain after the job.
-- [ ] In release mode, throw when credentials are absent or notarization fails.
-- [ ] Keep `SKIP_NOTARIZE=true` valid only for an explicit development build.
-- [ ] Update `.github/workflows/build.yml` to Node 22 and a two-entry macOS architecture matrix.
-- [ ] Make the release-candidate build run from `workflow_dispatch` on an exact reviewed commit. Do not rebuild different bytes from a tag push.
-- [ ] Remove the `push.tags: v*` build trigger, or make every package and release-upload job refuse tag-push events. Add a workflow test that proves a tag push cannot build or upload release assets.
-- [ ] Keep architecture outputs separate and upload one named artifact per architecture.
-- [ ] Define the artifact templates in `package.json`: macOS `${productName}-${version}-${arch}.${ext}`, Windows `${productName}.Setup.${version}.${ext}`, and Linux `${productName}-${version}.${ext}`. Implement `scripts/releaseArtifacts.cjs` to resolve these templates from package metadata. Make tests, workflows, docs, and `scripts/verify-macos-release.cjs` consume the resolved names instead of duplicating filename rules.
-- [ ] Add `scripts/verify-macos-release.cjs` checks for the resolved exact names, current version, expected architecture, SHA-256, executable modes, nested signatures, app signature, notarization ticket, and staple.
-- [ ] Enumerate every nested executable and verify it with `codesign --verify --strict --verbose=4`. Verify the top-level `.app` with the same command. Do not use `--deep` as a substitute for nested-file checks.
-- [ ] Run `spctl --assess --type execute --verbose=4` only after notarization and stapling complete.
-- [ ] Run `xcrun stapler validate` on each `.app` and DMG. For each zip, verify its hash, extract it, and run the app signature, ticket, and Gatekeeper checks on the extracted app.
-- [ ] Make the workflow fail when any expected arm64, x64, Windows, or Linux artifact is absent.
-- [ ] Set `fail_on_unmatched_files: true` and keep the release draft.
-- [ ] Preserve the verified workflow artifact hashes so Task 14 can attach those exact files to the tag and draft release.
+- [x] Add tests that development mode can use explicit ad hoc signing and explicit notarization skip.
+- [x] Add failing tests that release mode rejects missing Developer ID, missing Apple credentials, skipped notarization, failed native signing, failed stapling, and a missing expected asset.
+- [x] Change `scripts/notarize.cjs` to accept a keychain profile or the documented Apple credentials.
+- [x] Use `CSC_KEY_PASSWORD` as the only PKCS #12 password variable name across code, CI, and docs. Do not reuse it for App Store Connect API-key authentication.
+- [x] Use only the credential method approved in Task 0. CI imports the encrypted PKCS #12 file into a temporary build keychain, sets key partition access for codesign, verifies the identity, and deletes the temporary keychain before artifact verification and upload.
+- [x] In release mode, throw when credentials are absent or notarization fails.
+- [x] Keep `SKIP_NOTARIZE=true` valid only for an explicit development build.
+- [x] Update `.github/workflows/build.yml` to Node 22 and a two-entry macOS architecture matrix.
+- [x] Make the release-candidate build run from `workflow_dispatch` on an exact reviewed commit. Do not rebuild different bytes from a tag push.
+- [x] Remove the `push.tags: v*` build trigger. Add a workflow test that proves a tag push cannot build or upload release assets.
+- [x] Keep architecture outputs separate and upload one named artifact per architecture.
+- [x] Define the artifact templates in `package.json`: macOS `${productName}-${version}-${arch}.${ext}`, Windows `${productName}.Setup.${version}.${ext}`, and Linux `${productName}-${version}.${ext}`. Implement `scripts/releaseArtifacts.cjs` to resolve these templates from package metadata. Make tests, workflows, and `scripts/verify-macos-release.cjs` consume the resolved names instead of duplicating filename rules. Task 12 owns the public download metadata because the current v3.3.1 links must remain valid until v3.4.0 artifacts exist.
+- [x] Add `scripts/verify-macos-release.cjs` checks for the resolved exact names, current version, expected architecture, SHA-256, executable modes, nested signatures, app signature, notarization ticket, and staple.
+- [x] Enumerate every nested executable and verify it with `codesign --verify --strict --verbose=4`. Verify the top-level `.app` with the same command. Do not use `--deep` as a substitute for nested-file checks.
+- [x] Run `spctl --assess --type execute --verbose=4` only after notarization and stapling complete.
+- [x] Run `xcrun stapler validate` on each `.app` and DMG. For each zip, verify its hash, extract it, and run the app signature, ticket, and Gatekeeper checks on the extracted app.
+- [x] Make the workflow fail when any expected arm64, x64, Windows, or Linux artifact is absent.
+- [x] Remove release creation from the candidate workflow. Task 14 creates the draft from the downloaded and reverified exact seven files. Exact upload paths and the aggregate inventory replace `fail_on_unmatched_files`.
+- [x] Preserve the verified workflow artifact hashes so Task 14 can attach those exact files to the tag and draft release.
 - [ ] Keep the current entitlement set in v3.4.0. Create a follow-up issue to test removal of `com.apple.security.network.server` after the first clean notarized release.
-- [ ] Do not export the local signing private key or add GitHub secrets unless Task 0 records separate user approval for that exact credential step.
-- [ ] Complete separate internal security and release reviews, correct every finding, and commit.
+- [x] Do not export the local signing private key or add GitHub secrets unless Task 0 records separate user approval for that exact credential step.
+- [x] Complete separate internal security and release reviews, correct every finding, and prepare the exact tree for commit.
+
+Review:
+
+- Red tests first proved that the old build and notarization paths did not enforce the Task 11 trust boundary. The focused Task 11 gate now passes 140 tests in seven files. Controlled mutations prove that the wrapper, hardened-runtime, DMG release-skip, DMG credential, and extracted-app path tests fail when their exact guards are removed.
+- The normal suite passes 914 tests and skips seven tests. ESLint passes with zero errors and 33 allowed warnings. Ruff, TypeScript, Prettier, CommonJS syntax, Actionlint, the production renderer build, `git diff --check`, and the production dependency audit pass. The audit reports zero vulnerabilities.
+- Fresh arm64 and x64 development packages use explicit ad hoc signing and explicit notarization skip. The package gate passes 46 tests. A release-mode negative control removes all signing and Apple variables and then proves that the build stops before release qualification.
+- The candidate workflow accepts only an exact lowercase commit from the current `master` branch. It imports credentials into temporary files and a temporary keychain, deletes them before artifact verification and upload, and records the repository, workflow run, run attempt, commit, file sizes, and hashes in one aggregate manifest.
+- The shared artifact resolver defines seven exact files. The macOS verifier checks each nested Mach-O file, the top-level app, both notarization tickets, Gatekeeper, both archive hashes, and the extracted zip app. The aggregate verifier rejects missing, extra, empty, duplicate, or mismatched files.
+- The independent release, security, and Claude reviews found trust-anchor, symbolic-link, action-pin, checkout-token, certificate-log, secure-timestamp, hardened-runtime, exact-team-test, hook-loader, runbook, and documentation-boundary defects. Test-first corrections pass the focused, normal, and static gates. The final internal and Claude correction reviews report no remaining P0-P3 finding.
+- No live signed or notarized candidate exists yet. The `release-signing` environment is referenced by the workflow, but its remote protection rules are not yet proved. The first live candidate must use the exact Task 11–13 commit after it reaches the current `master` branch.
+- The Task 0 temporary credential holding directory remains pending. Its permanent removal needs separate explicit user approval. The entitlement follow-up issue also remains pending.
 
 Expected commit message:
 
@@ -544,6 +555,7 @@ build: make mac release trust checks mandatory
 ## Task 12: Make one source control the release version and update documentation
 
 - [ ] Add failing tests that compare `package.json`, the lock file, `docs/js/version.js`, release notes, bundle metadata, and artifact names.
+- [ ] Update the public download metadata from the shared artifact rules. Replace the Intel alias with the resolved x64 filename only after the v3.4.0 artifacts exist.
 - [ ] Implement `scripts/sync-version.cjs` with `package.json` as the source.
 - [ ] Add `version:check` and `version:sync` scripts.
 - [ ] Run all targeted code gates and one directory package per mac architecture before changing the version. The final versioned package and manual gates run in Task 13.

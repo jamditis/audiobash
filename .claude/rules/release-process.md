@@ -16,12 +16,17 @@ Update the version in these locations:
 
 If the release includes new features, update the Features section in README.md to reflect them.
 
-## 3. Build the installer
+## 3. Build the release candidate
+
+Do not use the local macOS package command for release files. It creates development packages with ad hoc signing and an explicit notarization skip. After the exact reviewed commit reaches the current `master` branch, dispatch the release-candidate workflow for that commit:
 
 ```bash
-npm run electron:build:win    # Windows
-npm run electron:build:mac    # macOS (both architectures)
+gh workflow run .github/workflows/build.yml \
+  --ref master \
+  -f release_commit=EXACT_REVIEWED_COMMIT
 ```
+
+Wait for all five job runs to pass: macOS arm64, macOS x64, Windows, Linux, and aggregate verification. Download all workflow artifacts, then run `scripts/verify-release-artifact-set.cjs` with the exact commit, repository, run ID, and run attempt before creating a tag or draft release.
 
 ## 4. Run tests
 
@@ -85,7 +90,7 @@ M1 / M2 / M3 / M4
 <td align="center" width="250">
 
 **💻 macOS — Intel**
-**[AudioBash-X.X.X.dmg](https://github.com/jamditis/audiobash/releases/download/vX.X.X/AudioBash-X.X.X.dmg)**
+**[AudioBash-X.X.X-x64.dmg](https://github.com/jamditis/audiobash/releases/download/vX.X.X/AudioBash-X.X.X-x64.dmg)**
 x64 Macs
 
 </td>
@@ -148,33 +153,30 @@ If Gatekeeper still blocks: `xattr -cr /Applications/AudioBash.app`
 
 ### All platforms in every release
 
-Every release MUST include downloads for all three platforms (Windows, macOS Apple Silicon, macOS Intel), even if only one platform was rebuilt. If Mac builds weren't rebuilt for this release, download the `.dmg` files from the previous release and re-upload them to the new release. The download table always shows all three platforms — no dead links.
+Every release must attach the exact seven files from the verified release-candidate workflow: two macOS DMGs, two macOS zip files, one Windows installer, one Linux AppImage, and one Linux Debian package. Task 14 must download the workflow artifacts, verify their manifest and hashes again, and attach those same bytes. Do not rebuild files from a tag or reuse files from an earlier release.
 
 ```bash
-# Download previous Mac builds and re-upload to new release
-gh release download vPREVIOUS --pattern "*.dmg" --dir /tmp/mac-builds
-gh release upload vX.X.X /tmp/mac-builds/AudioBash-PREVIOUS-arm64.dmg#AudioBash-X.X.X-arm64.dmg /tmp/mac-builds/AudioBash-PREVIOUS.dmg#AudioBash-X.X.X.dmg
-```
-
-If re-uploading unchanged Mac builds, add a note in the release body under the download table:
-```markdown
-> macOS builds are unchanged from vPREVIOUS.
+node scripts/verify-release-artifact-set.cjs artifacts RELEASE_COMMIT OWNER/REPOSITORY RUN_ID RUN_ATTEMPT
 ```
 
 ### Command
 ```bash
-gh release create vX.X.X \
+gh release create vX.X.X --draft \
   --title "vX.X.X — Short description" \
   --notes "$(cat <<'EOF'
 [paste release notes here]
 EOF
-)" "dist/AudioBash Setup X.X.X.exe"
+)" \
+  "artifacts/macos-arm64/AudioBash-X.X.X-arm64.dmg" \
+  "artifacts/macos-arm64/AudioBash-X.X.X-arm64.zip" \
+  "artifacts/macos-x64/AudioBash-X.X.X-x64.dmg" \
+  "artifacts/macos-x64/AudioBash-X.X.X-x64.zip" \
+  "artifacts/windows-x64/AudioBash.Setup.X.X.X.exe" \
+  "artifacts/linux-x64/AudioBash-X.X.X.AppImage" \
+  "artifacts/linux-x64/AudioBash-X.X.X.deb"
 ```
 
-To add Mac builds later (or re-upload from previous release):
-```bash
-gh release upload vX.X.X "dist/AudioBash-X.X.X-arm64.dmg" "dist/AudioBash-X.X.X.dmg"
-```
+Do not publish the draft until Task 14 downloads every attachment again and verifies its hash against the candidate manifest.
 
 ## Checklist
 
@@ -183,9 +185,19 @@ gh release upload vX.X.X "dist/AudioBash-X.X.X-arm64.dmg" "dist/AudioBash-X.X.X.
 - [ ] Version bumped in `docs/index.html` (4 hardcoded fallback locations)
 - [ ] Version bumped in `docs/manual.html`
 - [ ] README.md updated with new features (if applicable)
-- [ ] Installer built successfully for target platform(s)
+- [ ] Release-candidate workflow dispatched from `master` with `release_commit` set to the exact reviewed commit
+- [ ] All five job runs passed for the exact reviewed commit
+- [ ] `scripts/verify-release-artifact-set.cjs` passed on the downloaded workflow artifacts
+- [ ] `AudioBash-X.X.X-arm64.dmg` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-arm64.zip` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-x64.dmg` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-x64.zip` verified and ready for the draft release
+- [ ] `AudioBash.Setup.X.X.X.exe` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X.AppImage` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X.deb` verified and ready for the draft release
 - [ ] All tests passing
 - [ ] Changes committed and pushed
 - [ ] Git tag created and pushed
 - [ ] GitHub release created with hero screenshot + download table template
-- [ ] Installer(s) uploaded to release
+- [ ] The exact seven verified files uploaded to the draft release
+- [ ] Every draft attachment downloaded again and matched to the candidate manifest before publication

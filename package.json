@@ -1,6 +1,9 @@
 {
   "name": "audiobash",
   "version": "3.3.1",
+  "releasePolicy": {
+    "appleTeamId": "5624SD289G"
+  },
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
@@ -42,9 +45,13 @@
     "preelectron:build:mac": "npm run prepare:native && npm run prepare:electron",
     "electron:build:mac": "npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64",
     "preelectron:build:mac:arm64": "npm run prepare:native && npm run prepare:electron",
-    "electron:build:mac:arm64": "npm run build && electron-builder --mac --arm64 --publish never",
+    "electron:build:mac:arm64": "npm run build && AUDIOBASH_BUILD_MODE=development SKIP_NOTARIZE=true electron-builder --mac --arm64 --publish never --config.mac.identity=-",
     "preelectron:build:mac:x64": "npm run prepare:native && npm run prepare:electron",
-    "electron:build:mac:x64": "npm run build && electron-builder --mac --x64 --publish never",
+    "electron:build:mac:x64": "npm run build && AUDIOBASH_BUILD_MODE=development SKIP_NOTARIZE=true electron-builder --mac --x64 --publish never --config.mac.identity=-",
+    "preelectron:build:mac:release:arm64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:release:arm64": "npm run build && AUDIOBASH_BUILD_MODE=release electron-builder --mac --arm64 --publish never --config.forceCodeSigning=true",
+    "preelectron:build:mac:release:x64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:release:x64": "npm run build && AUDIOBASH_BUILD_MODE=release electron-builder --mac --x64 --publish never --config.forceCodeSigning=true",
     "preelectron:build:linux": "npm run prepare:native && npm run prepare:electron",
     "electron:build:linux": "npm run build && electron-builder --linux",
     "preview": "vite preview"
@@ -141,6 +148,7 @@
     ],
     "win": {
       "target": "nsis",
+      "artifactName": "${productName}.Setup.${version}.${ext}",
       "icon": "audiobash-logo.png",
       "extraResources": [
         {
@@ -166,6 +174,7 @@
       "shortcutName": "AudioBash"
     },
     "afterSign": "./scripts/notarize.cjs",
+    "afterAllArtifactBuild": "./scripts/notarizeArtifacts.cjs",
     "mac": {
       "artifactName": "${productName}-${version}-${arch}.${ext}",
       "target": [
@@ -176,6 +185,7 @@
       "category": "public.app-category.developer-tools",
       "minimumSystemVersion": "12.0",
       "hardenedRuntime": true,
+      "notarize": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.inherit.plist",

@@ -56,7 +56,7 @@ describe('toolchain contract', () => {
 
   it('enforces the same toolchain before every CI install', () => {
     expectWorkflowToolchain(ciWorkflow, 2);
-    expectWorkflowToolchain(buildWorkflow, 3);
+    expectWorkflowToolchain(buildWorkflow, 4);
   });
 
   it('runs the complete focused process lifecycle gate on both CI platforms', () => {
@@ -85,7 +85,7 @@ describe('toolchain contract', () => {
   it('smoke-tests the physical Windows package helper before artifact upload', () => {
     const windowsBuild = buildWorkflow.indexOf('- name: Build Windows');
     const packageProbe = buildWorkflow.indexOf('- name: Smoke-test packaged Windows process owner');
-    const windowsUpload = buildWorkflow.indexOf('- name: Upload Windows artifacts');
+    const windowsUpload = buildWorkflow.indexOf('- name: Upload exact Windows artifact');
 
     expect(windowsBuild).toBeGreaterThan(-1);
     expect(packageProbe).toBeGreaterThan(windowsBuild);

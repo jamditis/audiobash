@@ -13,6 +13,7 @@ const buildConfig = packageJson.build;
 const gitignoreEntries = readFileSync(join(rootDir, '.gitignore'), 'utf8')
   .split(/\r?\n/)
   .map((entry) => entry.trim());
+const buildWorkflow = readFileSync(join(rootDir, '.github/workflows/build.yml'), 'utf8');
 
 describe('electron-builder configuration', () => {
   it('has valid appId format', () => {
@@ -74,6 +75,13 @@ describe('macOS build configuration', () => {
     expect(macConfig.identity).toBeUndefined();
     expect(macConfig.hardenedRuntime).toBe(true);
     expect(macConfig.gatekeeperAssess).toBe(false);
+  });
+
+  it('notarizes the app and final DMG through separate fail-closed hooks', () => {
+    expect(buildConfig.afterSign).toBe('./scripts/notarize.cjs');
+    expect(buildConfig.afterAllArtifactBuild).toBe('./scripts/notarizeArtifacts.cjs');
+    expect(existsSync(join(rootDir, 'scripts/notarizeArtifacts.cjs'))).toBe(true);
+    expect(macConfig.notarize).toBe(false);
   });
 
   it('declares macOS 12 as the minimum supported release', () => {
@@ -170,6 +178,10 @@ describe('Windows build configuration', () => {
     expect(buildConfig.win.target).toBe('nsis');
   });
 
+  it('uses the exact Windows release artifact template', () => {
+    expect(buildConfig.win.artifactName).toBe('${productName}.Setup.${version}.${ext}');
+  });
+
   it('has NSIS installer configuration', () => {
     expect(buildConfig.nsis).toBeDefined();
     expect(buildConfig.nsis.oneClick).toBe(false);
@@ -232,6 +244,127 @@ describe('Linux build configuration', () => {
   });
 });
 
+describe('release-candidate workflow', () => {
+  it('binds Apple signing checks to the reviewed repository policy', () => {
+    expect(packageJson.releasePolicy.appleTeamId).toBe('5624SD289G');
+    expect(buildWorkflow).toContain("require('./package.json').releasePolicy.appleTeamId");
+    expect(buildWorkflow).toContain('test "$APPLE_TEAM_ID" = "$expected_team_id"');
+    expect(buildWorkflow).not.toContain(
+      'APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}\n        run: >-',
+    );
+  });
+
+  it('pins release actions to reviewed immutable commits', () => {
+    expect(buildWorkflow).toContain(
+      'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2',
+    );
+    expect(buildWorkflow).toContain(
+      'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0',
+    );
+    expect(buildWorkflow).toContain(
+      'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4',
+    );
+    expect(buildWorkflow).toContain(
+      'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4',
+    );
+    expect(buildWorkflow).not.toMatch(/uses:\s+actions\/[\w-]+@v\d+/);
+  });
+
+  it('removes checkout credentials before release commands run', () => {
+    expect(buildWorkflow.match(/persist-credentials: false/g)).toHaveLength(4);
+  });
+
+  it('cannot build or upload release assets from a tag push', () => {
+    expect(buildWorkflow).not.toMatch(/push:\s*\n\s*tags:/);
+    expect(buildWorkflow).not.toContain("startsWith(github.ref, 'refs/tags/v')");
+  });
+
+  it('requires an exact reviewed commit for manual release builds', () => {
+    expect(buildWorkflow).toMatch(/release_commit:\s*\n\s*description:/);
+    expect(buildWorkflow).toContain('required: true');
+    expect(buildWorkflow).toContain('ref: ${{ inputs.release_commit }}');
+    expect(buildWorkflow).toContain('git rev-parse HEAD');
+    expect(buildWorkflow).toContain('test "$DISPATCH_REF" = "refs/heads/master"');
+    expect(buildWorkflow).toContain('test "$DISPATCH_COMMIT" = "$REQUESTED_COMMIT"');
+  });
+
+  it('protects signing credentials and uses repository policy for final verification', () => {
+    expect(buildWorkflow).toContain('environment: release-signing');
+    const verificationStep = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Verify signed and notarized macOS package'),
+      buildWorkflow.indexOf('- name: Upload exact macOS artifacts'),
+    );
+    expect(verificationStep).not.toContain('secrets.APPLE_TEAM_ID');
+    expect(verificationStep).toContain('node scripts/verify-macos-release.cjs');
+  });
+
+  it('limits temporary signing credentials to the package build', () => {
+    const importStart = buildWorkflow.indexOf('- name: Import release signing credentials');
+    const buildStart = buildWorkflow.indexOf('- name: Build signed and notarized macOS package');
+    const cleanupStart = buildWorkflow.indexOf('- name: Remove temporary signing credentials');
+    const resolverStart = buildWorkflow.indexOf('- name: Resolve exact macOS artifacts');
+    const importStep = buildWorkflow.slice(importStart, buildStart);
+    const cleanupStep = buildWorkflow.slice(cleanupStart, resolverStart);
+
+    expect(importStart).toBeGreaterThan(-1);
+    expect(importStart).toBeLessThan(buildStart);
+    expect(buildStart).toBeLessThan(cleanupStart);
+    expect(cleanupStart).toBeLessThan(resolverStart);
+    expect(importStep).toContain('umask 077');
+    expect(importStep).not.toContain('security list-keychains');
+    expect(importStep).toContain('> /dev/null');
+    expect(importStep).toContain('Developer ID signing identity verified.');
+    expect(importStep).not.toContain('AUDIOBASH_RELEASE_KEYCHAIN');
+    expect(cleanupStep).toContain('if: always()');
+    expect(cleanupStep).toContain('security delete-keychain');
+    expect(cleanupStep).toContain('audiobash-release.p12');
+    expect(cleanupStep).toContain('AuthKey_AudioBash.p8');
+  });
+
+  it('builds one named macOS architecture artifact per matrix job', () => {
+    expect(buildWorkflow).toContain('architecture: [arm64, x64]');
+    expect(buildWorkflow).toContain('name: macos-${{ matrix.architecture }}');
+  });
+
+  it('does not mask artifact resolver failures inside output commands', () => {
+    const macResolver = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Resolve exact macOS artifacts'),
+      buildWorkflow.indexOf('- name: Verify signed and notarized macOS package'),
+    );
+    const linuxResolver = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Resolve exact Linux artifacts'),
+      buildWorkflow.indexOf('- name: Hash exact Linux artifacts'),
+    );
+    const windowsResolver = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Resolve and hash exact Windows artifact'),
+      buildWorkflow.indexOf('- name: Upload exact Windows artifact'),
+    );
+
+    expect(macResolver).toContain('set -euo pipefail');
+    expect(macResolver).toContain('dmg="$(node scripts/releaseArtifacts.cjs');
+    expect(macResolver).toContain('zip="$(node scripts/releaseArtifacts.cjs');
+    expect(macResolver).not.toContain('echo "dmg=$(node');
+    expect(linuxResolver).toContain('set -euo pipefail');
+    expect(linuxResolver).toContain('appimage="$(node scripts/releaseArtifacts.cjs');
+    expect(linuxResolver).toContain('deb="$(node scripts/releaseArtifacts.cjs');
+    expect(linuxResolver).not.toContain('echo "appimage=$(node');
+    expect(windowsResolver).toContain('if ($LASTEXITCODE -ne 0)');
+  });
+
+  it('preserves workflow provenance in the candidate manifest', () => {
+    const candidateVerification = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Verify exact release candidate set'),
+      buildWorkflow.indexOf('- name: Upload release candidate manifest'),
+    );
+    expect(candidateVerification).toContain('WORKFLOW_REPOSITORY: ${{ github.repository }}');
+    expect(candidateVerification).toContain('WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}');
+    expect(candidateVerification).toContain('WORKFLOW_RUN_ID: ${{ github.run_id }}');
+    expect(candidateVerification).toContain(
+      'artifacts "$RELEASE_COMMIT" "$WORKFLOW_REPOSITORY" "$WORKFLOW_RUN_ID" "$WORKFLOW_RUN_ATTEMPT"',
+    );
+  });
+});
+
 describe('npm scripts', () => {
   const scripts = packageJson.scripts;
 
@@ -285,6 +418,23 @@ describe('npm scripts', () => {
     expect(scripts['electron:build:mac:x64']).toContain('--x64');
     expect(scripts['electron:build:mac:x64']).not.toContain('--arm64');
     expect(scripts['electron:build:mac:x64']).toContain('--publish never');
+    expect(scripts['electron:build:mac:release:arm64']).toContain('--config.forceCodeSigning=true');
+    expect(scripts['electron:build:mac:release:x64']).toContain('--config.forceCodeSigning=true');
+  });
+
+  it('separates explicit development and release macOS trust modes', () => {
+    for (const architecture of ['arm64', 'x64']) {
+      const development = scripts[`electron:build:mac:${architecture}`];
+      const release = scripts[`electron:build:mac:release:${architecture}`];
+
+      expect(development).toContain('AUDIOBASH_BUILD_MODE=development');
+      expect(development).toContain('SKIP_NOTARIZE=true');
+      expect(development).toContain('--config.mac.identity=-');
+      expect(release).toContain('AUDIOBASH_BUILD_MODE=release');
+      expect(release).toContain('--config.forceCodeSigning=true');
+      expect(release).not.toContain('SKIP_NOTARIZE');
+      expect(release).not.toContain('identity=-');
+    }
   });
 
   it('builds both macOS architectures in sequence when explicitly requested', () => {
