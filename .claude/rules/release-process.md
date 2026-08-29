@@ -4,7 +4,7 @@ When creating a new release, follow these steps in order:
 
 ## 1. Update the release version
 
-`package.json` is the only release version source. Before changing it, freeze the previous release card and author the new current release card. Historical cards must not contain `data-version` or `data-download` attributes.
+`package.json` carries two version states. The top-level `version` is the build and artifact version. `releasePolicy.publicVersion` is the version that the website advertises. Update the build version here. Do not change the public version or freeze the current release card before the new release assets are published.
 
 Update `package.json` and the root package fields in `package-lock.json` without creating a tag. Then synchronize and check every generated documentation fallback and download filename:
 
@@ -14,7 +14,7 @@ npm run version:sync
 npm run version:check
 ```
 
-Review every generated change. The sync command changes only text inside `{version}` templates and download filenames resolved by `scripts/releaseArtifacts.cjs`. It must not change historical release text, dependency versions, dates, or release evidence.
+Review every generated change. While the build and public versions differ, the sync command pins documentation fallbacks to the existing public version and leaves download filenames unchanged. It must not change historical release text, dependency versions, dates, or release evidence.
 
 ## 2. Update README.md
 
@@ -186,10 +186,23 @@ EOF
 
 Do not publish the draft until Task 14 downloads every attachment again and verifies its hash against the candidate manifest.
 
+## 8. Activate the public version
+
+Do this only after the GitHub release is published, all seven direct asset URLs return the verified files, and the release manifest still passes. Freeze the previous release card, remove all `data-version` and `data-download` attributes from it, and author the new current release card. Update current release copy on the homepage, latest page, release page, and macOS page.
+
+Set `releasePolicy.publicVersion` in `package.json` to the top-level package version. Then synchronize, check, test, and review every generated documentation change:
+
+```bash
+npm run version:sync
+npm run version:check
+npx vitest run tests/unit/docsReleases.test.ts tests/unit/syncVersion.test.ts
+```
+
+Commit and push the public activation separately. Confirm the deployed site resolves each download button to the already-published verified asset. If any URL or hash differs, revert the public activation and stop.
+
 ## Checklist
 
 - [ ] Version bumped in `package.json` and the root `package-lock.json` fields without a tag
-- [ ] Previous release card frozen before the current version changed
 - [ ] `npm run version:sync` completed and every generated change reviewed
 - [ ] `npm run version:check` passed
 - [ ] README.md updated with new features (if applicable)
@@ -210,3 +223,7 @@ Do not publish the draft until Task 14 downloads every attachment again and veri
 - [ ] GitHub release created with hero screenshot + download table template
 - [ ] The exact seven verified files uploaded to the draft release
 - [ ] Every draft attachment downloaded again and matched to the candidate manifest before publication
+- [ ] GitHub release published and all seven direct asset URLs returned the verified files
+- [ ] Previous release card frozen and the new current release card authored
+- [ ] `releasePolicy.publicVersion` advanced only after publication
+- [ ] Public activation tests, version check, deployed links, and hashes passed

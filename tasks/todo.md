@@ -554,19 +554,19 @@ build: make mac release trust checks mandatory
 
 ## Task 12: Make one source control the release version and update documentation
 
-- [ ] Add failing tests that compare `package.json`, the lock file, `docs/js/version.js`, release notes, bundle metadata, and artifact names.
+- [x] Add failing tests that compare `package.json`, the lock file, `docs/js/version.js`, release notes, bundle metadata, and artifact names.
 - [ ] Update the public download metadata from the shared artifact rules. Replace the Intel alias with the resolved x64 filename only after the v3.4.0 artifacts exist.
-- [ ] Implement `scripts/sync-version.cjs` with `package.json` as the source.
-- [ ] Add `version:check` and `version:sync` scripts.
-- [ ] Run all targeted code gates and one directory package per mac architecture before changing the version. The final versioned package and manual gates run in Task 13.
-- [ ] Bump `package.json` and the lock file to `3.4.0` with no tag.
-- [ ] Run `version:sync` and review every generated version change.
+- [x] Implement `scripts/sync-version.cjs` with `package.json` as the source.
+- [x] Add `version:check` and `version:sync` scripts.
+- [x] Run all targeted code gates and one directory package per mac architecture before changing the version. The final versioned package and manual gates run in Task 13.
+- [x] Bump `package.json` and the lock file to `3.4.0` with no tag.
+- [x] Run `version:sync` and review every generated version change.
 - [ ] Add the v3.4.0 release card, date, fixes, measured size changes, security changes, and platform downloads.
 - [ ] Use `scripts/releaseArtifacts.cjs` to update and test every documented download. For v3.4.0, require `AudioBash-3.4.0-arm64.dmg`, `AudioBash-3.4.0-x64.dmg`, `AudioBash-3.4.0-arm64.zip`, `AudioBash-3.4.0-x64.zip`, `AudioBash.Setup.3.4.0.exe`, `AudioBash-3.4.0.AppImage`, and `AudioBash-3.4.0.deb`.
-- [ ] Update `.claude/rules/release-process.md` to use `release/`, the verified pre-tag artifact flow, current signed macOS installation steps, and exact current-version assets.
-- [ ] Remove the rule that renames and reuses an older-version DMG in a new release. Every v3.4.0 binary must contain v3.4.0 bundle metadata and come from the reviewed commit.
+- [x] Update `.claude/rules/release-process.md` with the verified pre-tag artifact flow, current signed macOS installation steps, and exact current-version assets.
+- [x] Remove the rule that renames and reuses an older-version DMG in a new release. Every v3.4.0 binary must contain v3.4.0 bundle metadata and come from the reviewed commit.
 - [ ] Update README and macOS docs to describe signed and notarized behavior only after it is proven.
-- [ ] Update the manual checklist to expect normal Gatekeeper launch for the release build.
+- [x] Update the manual checklist to expect normal Gatekeeper launch for the release build.
 - [ ] Keep the existing SVG favicons and add missing release-page Open Graph and Twitter metadata using the existing on-brand image.
 - [ ] Test every public page locally and run the documentation tests.
 - [ ] Complete separate internal writing and release reviews, correct every finding, and commit.

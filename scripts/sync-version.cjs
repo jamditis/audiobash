@@ -161,12 +161,7 @@ function createVersionPlan(rootDirectory = path.join(__dirname, '..')) {
 
   for (const relativePath of listHtmlFiles(path.join(rootDirectory, 'docs'), rootDirectory)) {
     const contents = fs.readFileSync(path.join(rootDirectory, relativePath), 'utf8');
-    updates.set(
-      relativePath,
-      publicVersion === version
-        ? updateHtmlFallbacks(contents, relativePath, publicVersion)
-        : contents,
-    );
+    updates.set(relativePath, updateHtmlFallbacks(contents, relativePath, publicVersion));
   }
 
   return { errors, metadata, publicVersion, updates, version };
@@ -181,10 +176,53 @@ function checkVersion(rootDirectory = path.join(__dirname, '..')) {
   return { errors: plan.errors, publicVersion: plan.publicVersion, version: plan.version };
 }
 
+function restoreBackup(fileSystem, record) {
+  try {
+    fileSystem.renameSync(record.absolutePath, record.temporaryPath);
+  } catch (error) {
+    throw new Error(
+      `${record.absolutePath} kept its replacement; the original remains at ${record.backupPath}`,
+      { cause: error },
+    );
+  }
+  try {
+    fileSystem.renameSync(record.backupPath, record.absolutePath);
+  } catch (error) {
+    try {
+      fileSystem.renameSync(record.temporaryPath, record.absolutePath);
+    } catch (reinstallError) {
+      throw new AggregateError(
+        [error, reinstallError],
+        `${record.absolutePath} was left missing; restore it from ${record.backupPath}; its replacement could not be reinstalled`,
+      );
+    }
+    throw error;
+  }
+}
+
+function removeFiles(fileSystem, filePaths) {
+  const errors = [];
+  for (const filePath of filePaths) {
+    try {
+      fileSystem.rmSync(filePath, { force: true });
+    } catch (error) {
+      errors.push({ error, filePath });
+    }
+  }
+  return errors;
+}
+
+function describeFileErrors(fileErrors) {
+  return fileErrors
+    .map(({ error, filePath }) => `${filePath}: ${error?.message ?? String(error)}`)
+    .join('; ');
+}
+
 function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
   const fileSystem = options.fileSystem ?? fs;
   const temporaryId =
-    options.temporaryId ?? `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    options.temporaryId ??
+    `version-sync-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const plan = createVersionPlan(rootDirectory);
   if (plan.errors.length > 0) {
     throw new Error(plan.errors.join('\n'));
@@ -202,20 +240,28 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
     for (const relativePath of changedFiles) {
       const absolutePath = path.join(rootDirectory, relativePath);
       const temporaryPath = `${absolutePath}.${temporaryId}.tmp`;
+      const record = {
+        absolutePath,
+        backupPath: `${absolutePath}.${temporaryId}.bak`,
+        temporaryPath,
+      };
+      stagedFiles.push(record);
       fileSystem.writeFileSync(temporaryPath, plan.updates.get(relativePath), {
         encoding: 'utf8',
         flag: 'wx',
         mode: fs.statSync(absolutePath).mode,
       });
-      stagedFiles.push({
-        absolutePath,
-        backupPath: `${absolutePath}.${temporaryId}.bak`,
-        temporaryPath,
-      });
     }
   } catch (error) {
-    for (const { temporaryPath } of stagedFiles) {
-      fileSystem.rmSync(temporaryPath, { force: true });
+    const cleanupErrors = removeFiles(
+      fileSystem,
+      stagedFiles.map(({ temporaryPath }) => temporaryPath),
+    );
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors.map(({ error: cleanupError }) => cleanupError)],
+        `Version synchronization staging failed: ${error.message}; temporary file cleanup was incomplete: ${describeFileErrors(cleanupErrors)}`,
+      );
     }
     throw error;
   }
@@ -227,7 +273,14 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
       try {
         fileSystem.renameSync(record.temporaryPath, record.absolutePath);
       } catch (error) {
-        fileSystem.renameSync(record.backupPath, record.absolutePath);
+        try {
+          fileSystem.renameSync(record.backupPath, record.absolutePath);
+        } catch (restoreError) {
+          throw new AggregateError(
+            [error, restoreError],
+            `Version synchronization failed and ${record.absolutePath} was left missing; restore it from ${record.backupPath}`,
+          );
+        }
         throw error;
       }
       replacedFiles.push(record);
@@ -236,25 +289,43 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
     const rollbackErrors = [];
     for (const record of replacedFiles.reverse()) {
       try {
-        fileSystem.rmSync(record.absolutePath, { force: true });
-        fileSystem.renameSync(record.backupPath, record.absolutePath);
+        restoreBackup(fileSystem, record);
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError);
       }
     }
-    for (const record of stagedFiles) {
-      fileSystem.rmSync(record.temporaryPath, { force: true });
-    }
+    const cleanupErrors = removeFiles(
+      fileSystem,
+      stagedFiles.map(({ temporaryPath }) => temporaryPath),
+    );
+    const cleanupCauses = cleanupErrors.map(({ error: cleanupError }) => cleanupError);
+    const cleanupDetails = describeFileErrors(cleanupErrors);
     if (rollbackErrors.length > 0) {
+      const rollbackDetails = rollbackErrors
+        .map((rollbackError) => rollbackError?.message ?? String(rollbackError))
+        .join('; ');
       throw new AggregateError(
-        [error, ...rollbackErrors],
-        `Version synchronization failed and rollback was incomplete: ${error.message}`,
+        [error, ...rollbackErrors, ...cleanupCauses],
+        `Version synchronization failed and rollback was incomplete: ${error.message}; recovery details: ${rollbackDetails}${cleanupDetails ? `; temporary cleanup failures: ${cleanupDetails}` : ''}`,
+      );
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupCauses],
+        `Version synchronization failed; rollback restored original files, but temporary file cleanup was incomplete: ${cleanupDetails}`,
       );
     }
     throw error;
   }
-  for (const { backupPath } of stagedFiles) {
-    fileSystem.rmSync(backupPath, { force: true });
+  const backupCleanupErrors = removeFiles(
+    fileSystem,
+    stagedFiles.map(({ backupPath }) => backupPath),
+  );
+  if (backupCleanupErrors.length > 0) {
+    throw new AggregateError(
+      backupCleanupErrors.map(({ error }) => error),
+      `Version synchronization completed, but backup file cleanup was incomplete: ${describeFileErrors(backupCleanupErrors)}`,
+    );
   }
   return { changedFiles, publicVersion: plan.publicVersion, version: plan.version };
 }

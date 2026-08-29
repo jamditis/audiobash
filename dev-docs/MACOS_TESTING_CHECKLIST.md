@@ -18,26 +18,19 @@ This checklist covers macOS-specific functionality that requires manual verifica
   - Expected: Clean unmount
   - Check: No "in use" errors
 
-### 2. Gatekeeper Bypass (Unsigned App)
+### 2. Gatekeeper launch (signed release build)
 
-- [ ] **First Launch Attempt**: Double-click AudioBash in Applications
-  - Expected: macOS blocks with "cannot be opened" dialog
-  - This is NORMAL for unsigned apps
+- [ ] **First launch**: Double-click AudioBash in Applications
+  - Expected: The app opens without a Gatekeeper warning
+  - Check: No "unidentified developer," "cannot be verified," or "damaged" dialog appears
 
-- [ ] **Right-click → Open**: Right-click AudioBash.app → Open
-  - Expected: Dialog appears with "Open" button option
-  - Check: Clicking "Open" launches the app
+- [ ] **Trust failure**: If any Gatekeeper warning appears, stop the release
+  - Record the exact message, macOS version, chip, file name, and downloaded file hash
+  - Do not use right-click Open, `xattr`, or another bypass on a release candidate
 
-- [ ] **Subsequent Launches**: Double-click after first successful launch
-  - Expected: App launches without Gatekeeper prompt
-  - Check: No security dialogs appear
-
-- [ ] **Alternative: xattr method** (if right-click fails):
-  ```bash
-  xattr -cr /Applications/AudioBash.app
-  ```
-  - Expected: Removes quarantine attribute
-  - Check: App launches normally after this
+- [ ] **Subsequent launch**: Quit and double-click AudioBash again
+  - Expected: The app opens without a security dialog
+  - Check: The application starts and exits normally
 
 ### 3. System Permissions
 
@@ -151,6 +144,13 @@ This checklist covers macOS-specific functionality that requires manual verifica
   - Expected: FDs cleaned up properly
   - Check: `lsof -p $(pgrep -f AudioBash) | wc -l` stays reasonable
 
+## Local unsigned development builds
+
+These steps apply only to a local unsigned development build. Never use them to approve a release candidate.
+
+- Right-click AudioBash.app, select Open, and confirm the local build.
+- If the local build remains quarantined, run `xattr -cr /path/to/AudioBash.app`.
+
 ## Post-Release Verification
 
 After uploading to GitHub:
@@ -164,7 +164,7 @@ After uploading to GitHub:
 
 | Issue | Workaround |
 |-------|------------|
-| Gatekeeper blocks app | Right-click → Open, or `xattr -cr` |
+| Gatekeeper blocks a signed release build | Stop the release and record the warning and file hash |
 | Microphone not working | Check System Preferences → Privacy |
 | Global shortcuts don't work | May need Accessibility permission |
 | App won't quit | Force quit from Activity Monitor |

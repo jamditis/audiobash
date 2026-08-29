@@ -8,6 +8,10 @@ dist-electron/
 *.exe
 *.blockmap
 
+# Version sync temporary files
+*.version-sync-*.tmp
+*.version-sync-*.bak
+
 # VAD runtime assets copied from node_modules at build time (scripts/copy-vad-assets.cjs)
 public/vad/
 
