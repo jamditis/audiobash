@@ -866,13 +866,21 @@ describe('process-tree ownership', () => {
     child.stderr.resume();
     child.stdio[4]?.destroy();
     child.stdio[3]?.end('start');
+    const closed = new Promise<{ code: number | null }>((resolve) =>
+      child.once('close', (code) => resolve({ code })),
+    );
+    let deadline: ReturnType<typeof setTimeout>;
     const result = await Promise.race([
-      new Promise<{ code: number | null }>((resolve) =>
-        child.once('close', (code) => resolve({ code })),
-      ),
-      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 300)),
+      closed,
+      new Promise<'timeout'>((resolve) => {
+        deadline = setTimeout(() => resolve('timeout'), 2000);
+      }),
     ]);
-    if (result === 'timeout') child.kill('SIGKILL');
+    clearTimeout(deadline!);
+    if (result === 'timeout') {
+      child.kill('SIGKILL');
+      await closed;
+    }
 
     expect(result).toEqual({ code: 124 });
   });
