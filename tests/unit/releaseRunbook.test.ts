@@ -16,6 +16,15 @@ const placeholderArtifactNames = createReleaseArtifactManifest(packageJson).map(
 );
 
 describe('release operator runbook', () => {
+  it('uses package.json as the version source and checks generated surfaces', () => {
+    expect(runbook).toContain('`package.json` is the only release version source');
+    expect(runbook).toContain('npm run version:sync');
+    expect(runbook).toContain('npm run version:check');
+    expect(runbook).not.toContain('docs/js/version.js` — the `AUDIOBASH_VERSION` constant');
+    expect(runbook).toContain('git add package.json package-lock.json');
+    expect(runbook).toContain('stage every reviewed file reported by `git status --short`');
+  });
+
   it('uses the exact-commit candidate workflow as the only release artifact source', () => {
     expect(runbook).not.toMatch(/npm run electron:build:mac\s+# macOS \(both architectures\)/);
     expect(runbook).toContain('.github/workflows/build.yml');
@@ -30,5 +39,12 @@ describe('release operator runbook', () => {
     expect(checklist).toContain('All five job runs');
     for (const fileName of placeholderArtifactNames) expect(checklist).toContain(fileName);
     expect(checklist).not.toContain('Installer(s) uploaded to release');
+  });
+
+  it('requires normal Gatekeeper launch and stops on a trust failure', () => {
+    expect(runbook).toContain('Open AudioBash normally from Applications');
+    expect(runbook).toContain('stop the release');
+    expect(runbook).not.toContain('Right-click → Open');
+    expect(runbook).not.toContain('xattr -cr');
   });
 });

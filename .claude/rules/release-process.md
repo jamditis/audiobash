@@ -2,15 +2,19 @@
 
 When creating a new release, follow these steps in order:
 
-## 1. Update version numbers
+## 1. Update the release version
 
-Update the version in these locations:
-- `package.json` — the `version` field
-- `docs/js/version.js` — the `AUDIOBASH_VERSION` constant (this is the single source of truth for all docs pages and download URLs)
-- `docs/index.html` — hardcoded fallback text in `data-version` attributes (4 locations: header badge, nav badge, "NEW IN" heading, footer)
-- `docs/manual.html` — any hardcoded version references
+`package.json` is the only release version source. Before changing it, freeze the previous release card and author the new current release card. Historical cards must not contain `data-version` or `data-download` attributes.
 
-**Note:** `docs/releases.html`, `docs/macos.html`, and `docs/latest.html` use `data-version` templates that are populated dynamically by `version.js`. Historical release entries in those files should NOT be updated — they document past releases.
+Update `package.json` and the root package fields in `package-lock.json` without creating a tag. Then synchronize and check every generated documentation fallback and download filename:
+
+```bash
+npm version X.X.X --no-git-tag-version
+npm run version:sync
+npm run version:check
+```
+
+Review every generated change. The sync command changes only text inside `{version}` templates and download filenames resolved by `scripts/releaseArtifacts.cjs`. It must not change historical release text, dependency versions, dates, or release evidence.
 
 ## 2. Update README.md
 
@@ -38,9 +42,13 @@ All tests must pass before proceeding. Do not skip this step.
 
 ## 5. Commit and push
 
+Review `git status --short` and every diff. Start with both package identity files, then stage every reviewed file reported by `git status --short`, including all files reported by `version:sync`:
+
 ```bash
-git add package.json docs/js/version.js docs/index.html docs/manual.html [any changed source files]
-git commit -m "vX.X.X: Brief description of changes"
+git status --short
+git add package.json package-lock.json
+git add [every reviewed generated, test, documentation, and source file]
+git commit -m "release: explain why this version is needed"
 git push origin [branch]
 ```
 
@@ -130,10 +138,10 @@ x64 Macs
 ### macOS
 1. Download the `.dmg` for your Mac type
 2. Drag AudioBash to Applications
-3. **Right-click → Open** on first launch (bypasses Gatekeeper)
+3. Open AudioBash normally from Applications
 4. Grant microphone permission when prompted
 
-If Gatekeeper still blocks: `xattr -cr /Applications/AudioBash.app`
+If Gatekeeper warns or blocks the verified download, stop the release and investigate its signature, notarization ticket, stapling, quarantine path, and uploaded hash. Do not publish bypass instructions.
 
 </details>
 
@@ -180,14 +188,15 @@ Do not publish the draft until Task 14 downloads every attachment again and veri
 
 ## Checklist
 
-- [ ] Version bumped in `package.json`
-- [ ] Version bumped in `docs/js/version.js`
-- [ ] Version bumped in `docs/index.html` (4 hardcoded fallback locations)
-- [ ] Version bumped in `docs/manual.html`
+- [ ] Version bumped in `package.json` and the root `package-lock.json` fields without a tag
+- [ ] Previous release card frozen before the current version changed
+- [ ] `npm run version:sync` completed and every generated change reviewed
+- [ ] `npm run version:check` passed
 - [ ] README.md updated with new features (if applicable)
 - [ ] Release-candidate workflow dispatched from `master` with `release_commit` set to the exact reviewed commit
 - [ ] All five job runs passed for the exact reviewed commit
 - [ ] `scripts/verify-release-artifact-set.cjs` passed on the downloaded workflow artifacts
+- [ ] Both downloaded macOS DMGs opened normally under Gatekeeper without a bypass
 - [ ] `AudioBash-X.X.X-arm64.dmg` verified and ready for the draft release
 - [ ] `AudioBash-X.X.X-arm64.zip` verified and ready for the draft release
 - [ ] `AudioBash-X.X.X-x64.dmg` verified and ready for the draft release

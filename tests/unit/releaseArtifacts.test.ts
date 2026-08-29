@@ -19,29 +19,30 @@ const { createReleaseArtifactManifest, resolveReleaseArtifacts } =
 
 describe('release artifact names', () => {
   it('resolves every package name from package metadata and templates', () => {
+    expect(packageJson.version).toBe('3.4.0');
     const artifacts = resolveReleaseArtifacts(packageJson);
 
     expect(artifacts.mac.arm64).toEqual({
-      dmg: 'AudioBash-3.3.1-arm64.dmg',
-      zip: 'AudioBash-3.3.1-arm64.zip',
+      dmg: 'AudioBash-3.4.0-arm64.dmg',
+      zip: 'AudioBash-3.4.0-arm64.zip',
     });
     expect(artifacts.mac.x64).toEqual({
-      dmg: 'AudioBash-3.3.1-x64.dmg',
-      zip: 'AudioBash-3.3.1-x64.zip',
+      dmg: 'AudioBash-3.4.0-x64.dmg',
+      zip: 'AudioBash-3.4.0-x64.zip',
     });
-    expect(artifacts.windows.nsis).toBe('AudioBash.Setup.3.3.1.exe');
+    expect(artifacts.windows.nsis).toBe('AudioBash.Setup.3.4.0.exe');
     expect(artifacts.linux).toEqual({
-      AppImage: 'AudioBash-3.3.1.AppImage',
-      deb: 'AudioBash-3.3.1.deb',
+      AppImage: 'AudioBash-3.4.0.AppImage',
+      deb: 'AudioBash-3.4.0.deb',
     });
     expect(artifacts.all).toEqual([
-      'AudioBash-3.3.1-arm64.dmg',
-      'AudioBash-3.3.1-arm64.zip',
-      'AudioBash-3.3.1-x64.dmg',
-      'AudioBash-3.3.1-x64.zip',
-      'AudioBash.Setup.3.3.1.exe',
-      'AudioBash-3.3.1.AppImage',
-      'AudioBash-3.3.1.deb',
+      'AudioBash-3.4.0-arm64.dmg',
+      'AudioBash-3.4.0-arm64.zip',
+      'AudioBash-3.4.0-x64.dmg',
+      'AudioBash-3.4.0-x64.zip',
+      'AudioBash.Setup.3.4.0.exe',
+      'AudioBash-3.4.0.AppImage',
+      'AudioBash-3.4.0.deb',
     ]);
   });
 
