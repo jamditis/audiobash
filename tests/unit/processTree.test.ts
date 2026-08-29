@@ -912,7 +912,6 @@ describe('process-tree ownership', () => {
     async () => {
       const controller = createProcessTreeController({
         platform: process.platform,
-        helperTimeoutMs: 100,
       });
 
       const owned = await controller.spawn('audiobash-command-that-does-not-exist', []);
