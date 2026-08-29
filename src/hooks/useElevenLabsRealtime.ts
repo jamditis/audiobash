@@ -1,20 +1,20 @@
 /**
- * ElevenLabs Real-time Transcription Hook
- * Combines PCM audio capture with WebSocket streaming for real-time speech-to-text
+ * ElevenLabs real-time transcription hook.
+ * Combines PCM audio capture with WebSocket speech-to-text.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ElevenLabsRealtimeService,
   ElevenLabsRealtimeConfig,
+  ElevenLabsRealtimeService,
 } from '../services/elevenLabsRealtimeService';
 import { usePCMCapture } from './usePCMCapture';
 
 export interface UseElevenLabsRealtimeOptions {
   apiKey: string;
-  language?: string; // 'eng' or null for auto-detect
-  keyterms?: string[]; // Up to 100 vocabulary terms
-  deviceId?: string; // Specific microphone device ID
+  language?: string;
+  keyterms?: string[];
+  deviceId?: string;
   onFinalTranscript: (text: string) => void;
   onError: (error: Error) => void;
   onSessionStart?: () => void;
@@ -22,17 +22,15 @@ export interface UseElevenLabsRealtimeOptions {
 }
 
 export interface UseElevenLabsRealtimeResult {
-  start: () => Promise<void>;
+  start: () => Promise<boolean>;
   stop: () => void;
-  commit: () => void; // Force commit / manual stop
+  cancel: () => void;
+  commit: () => void;
   isConnected: boolean;
   isListening: boolean;
   error: string | null;
 }
 
-/**
- * Hook for real-time speech-to-text with ElevenLabs Scribe v2
- */
 export function useElevenLabsRealtime(
   options: UseElevenLabsRealtimeOptions,
 ): UseElevenLabsRealtimeResult {
@@ -52,104 +50,181 @@ export function useElevenLabsRealtime(
   const [error, setError] = useState<string | null>(null);
 
   const serviceRef = useRef<ElevenLabsRealtimeService | null>(null);
+  const mountedRef = useRef(true);
   const isStoppingRef = useRef(false);
+  const operationGenerationRef = useRef(0);
+  const disconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopFinalDeliveredRef = useRef(false);
 
-  // Handle incoming audio data from PCM capture
   const handleAudioData = useCallback((pcmBase64: string) => {
     if (serviceRef.current?.isConnected && !isStoppingRef.current) {
       serviceRef.current.sendAudio(pcmBase64);
     }
   }, []);
 
-  // Handle PCM capture errors
-  const handleCaptureError = useCallback(
-    (err: Error) => {
-      setError(err.message);
-      onError(err);
-    },
-    [onError],
-  );
+  const handleCaptureError = useCallback((captureError: Error) => {
+    if (!mountedRef.current) {
+      return;
+    }
+    setError(captureError.message);
+  }, []);
 
-  // Set up PCM capture
   const pcmCapture = usePCMCapture({
     sampleRate: 16000,
     onAudioData: handleAudioData,
     onError: handleCaptureError,
     deviceId,
   });
+  const pcmCaptureRef = useRef(pcmCapture);
+  pcmCaptureRef.current = pcmCapture;
 
-  // Clean up service on unmount
-  useEffect(() => {
-    return () => {
-      if (serviceRef.current) {
-        serviceRef.current.disconnect();
-        serviceRef.current = null;
-      }
-    };
+  const clearDisconnectTimer = useCallback(() => {
+    if (disconnectTimerRef.current !== null) {
+      clearTimeout(disconnectTimerRef.current);
+      disconnectTimerRef.current = null;
+    }
   }, []);
 
-  // Start real-time transcription
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      isStoppingRef.current = true;
+      operationGenerationRef.current += 1;
+      clearDisconnectTimer();
+      pcmCaptureRef.current.stop();
+      serviceRef.current?.disconnect();
+      serviceRef.current = null;
+    };
+  }, [clearDisconnectTimer]);
+
   const start = useCallback(async () => {
-    if (isListening || !apiKey) {
-      if (!apiKey) {
-        const err = new Error('No ElevenLabs API key configured');
-        setError(err.message);
-        onError(err);
-      }
-      return;
+    if (!apiKey) {
+      const missingKeyError = new Error('No ElevenLabs API key configured');
+      setError(missingKeyError.message);
+      throw missingKeyError;
     }
 
+    if (isListening || serviceRef.current) {
+      return false;
+    }
+
+    clearDisconnectTimer();
     setError(null);
     isStoppingRef.current = false;
+    stopFinalDeliveredRef.current = false;
+    const generation = ++operationGenerationRef.current;
 
-    try {
-      // Create and configure the service
-      const config: ElevenLabsRealtimeConfig = {
-        apiKey,
-        language,
-        keyterms,
-        onFinalTranscript: (text) => {
-          // Only process if we haven't explicitly stopped
-          if (!isStoppingRef.current) {
-            onFinalTranscript(text);
+    const service = new ElevenLabsRealtimeService({
+      apiKey,
+      language,
+      keyterms,
+      onFinalTranscript: (text) => {
+        if (
+          mountedRef.current &&
+          operationGenerationRef.current === generation &&
+          serviceRef.current === service
+        ) {
+          if (isStoppingRef.current && stopFinalDeliveredRef.current) {
+            return;
           }
-        },
-        onError: (err) => {
-          setError(err.message);
-          onError(err);
-        },
-        onSessionStart: () => {
+          if (isStoppingRef.current) {
+            stopFinalDeliveredRef.current = true;
+          }
+          try {
+            onFinalTranscript(text);
+          } finally {
+            clearDisconnectTimer();
+            service.disconnect();
+          }
+        }
+      },
+      onError: (serviceError) => {
+        if (
+          mountedRef.current &&
+          operationGenerationRef.current === generation &&
+          serviceRef.current === service
+        ) {
+          setError(serviceError.message);
+          onError(serviceError);
+        }
+      },
+      onSessionStart: () => {
+        if (
+          mountedRef.current &&
+          operationGenerationRef.current === generation &&
+          serviceRef.current === service
+        ) {
           setIsConnected(true);
           onSessionStart?.();
-        },
-        onSessionEnd: () => {
+        }
+      },
+      onSessionEnd: () => {
+        if (
+          mountedRef.current &&
+          operationGenerationRef.current === generation &&
+          serviceRef.current === service
+        ) {
+          isStoppingRef.current = true;
+          clearDisconnectTimer();
+          pcmCaptureRef.current.stop();
+          serviceRef.current = null;
           setIsConnected(false);
           setIsListening(false);
           onSessionEnd?.();
-        },
-      };
+        }
+      },
+    } satisfies ElevenLabsRealtimeConfig);
+    serviceRef.current = service;
 
-      serviceRef.current = new ElevenLabsRealtimeService(config);
+    const isCurrentOperation = () =>
+      mountedRef.current &&
+      !isStoppingRef.current &&
+      operationGenerationRef.current === generation &&
+      serviceRef.current === service;
 
-      // Connect to WebSocket
-      await serviceRef.current.connect();
+    try {
+      await service.connect();
+
+      if (!isCurrentOperation()) {
+        if (serviceRef.current === service) {
+          service.disconnect();
+          serviceRef.current = null;
+        }
+        return false;
+      }
+
       setIsConnected(true);
-
-      // Start capturing audio
       await pcmCapture.start();
-      setIsListening(true);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(errorMessage);
-      onError(err instanceof Error ? err : new Error(errorMessage));
 
-      // Clean up on failure
-      if (serviceRef.current) {
-        serviceRef.current.disconnect();
+      if (!isCurrentOperation()) {
+        pcmCapture.stop();
+        if (serviceRef.current === service) {
+          service.disconnect();
+          serviceRef.current = null;
+        }
+        return false;
+      }
+
+      setIsListening(true);
+      return true;
+    } catch (caughtError) {
+      if (!mountedRef.current || operationGenerationRef.current !== generation) {
+        return false;
+      }
+
+      const operationError =
+        caughtError instanceof Error ? caughtError : new Error(String(caughtError));
+
+      service.disconnect();
+      if (serviceRef.current === service) {
         serviceRef.current = null;
       }
       setIsConnected(false);
       setIsListening(false);
+      setError(operationError.message);
+      throw operationError;
     }
   }, [
     apiKey,
@@ -161,35 +236,56 @@ export function useElevenLabsRealtime(
     onError,
     onSessionStart,
     onSessionEnd,
+    clearDisconnectTimer,
   ]);
 
-  // Stop real-time transcription
-  const stop = useCallback(() => {
+  const cancel = useCallback(() => {
     isStoppingRef.current = true;
-
-    // Stop audio capture first (this sends any remaining buffered audio)
+    operationGenerationRef.current += 1;
+    stopFinalDeliveredRef.current = false;
+    clearDisconnectTimer();
     pcmCapture.stop();
 
-    // Then commit to finalize transcription
-    if (serviceRef.current?.isConnected) {
-      serviceRef.current.commit();
+    const service = serviceRef.current;
+    serviceRef.current = null;
+    service?.disconnect();
 
-      // Give a brief moment for final transcript before disconnecting
-      setTimeout(() => {
-        if (serviceRef.current) {
-          serviceRef.current.disconnect();
-          serviceRef.current = null;
-        }
-        setIsConnected(false);
-        setIsListening(false);
-      }, 500);
-    } else {
+    if (mountedRef.current) {
       setIsConnected(false);
       setIsListening(false);
     }
-  }, [pcmCapture]);
+  }, [clearDisconnectTimer, pcmCapture]);
 
-  // Force commit (manual finalization without full stop)
+  const stop = useCallback(() => {
+    if (isStoppingRef.current) {
+      return;
+    }
+
+    const service = serviceRef.current;
+    if (!service?.isConnected) {
+      cancel();
+      return;
+    }
+
+    isStoppingRef.current = true;
+    stopFinalDeliveredRef.current = false;
+    clearDisconnectTimer();
+    pcmCapture.stop();
+
+    service.commit();
+    disconnectTimerRef.current = setTimeout(() => {
+      disconnectTimerRef.current = null;
+      service.disconnect();
+      if (serviceRef.current === service) {
+        serviceRef.current = null;
+      }
+      if (mountedRef.current) {
+        setIsConnected(false);
+        setIsListening(false);
+      }
+    }, 500);
+  }, [cancel, clearDisconnectTimer, pcmCapture]);
+
   const commit = useCallback(() => {
     if (serviceRef.current?.isConnected) {
       serviceRef.current.commit();
@@ -199,6 +295,7 @@ export function useElevenLabsRealtime(
   return {
     start,
     stop,
+    cancel,
     commit,
     isConnected,
     isListening,

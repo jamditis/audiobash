@@ -5,6 +5,7 @@
 
 import { blobToBase64 } from '../utils/audioUtils';
 import { transcriptionLog as log } from '../utils/logger';
+import type { TranscribeIpcRequest, TranscribeIpcResult } from '../types';
 
 // Cloud transcription runs in the Electron main process via IPC. The renderer never holds a
 // browser SDK client (no `dangerouslyAllowBrowser`) and never sends API keys over the network
@@ -80,6 +81,15 @@ export class TranscriptionError extends Error {
         return 'Audio format not supported. Please try again.';
       case 'LOCAL_SERVER_UNAVAILABLE':
         return 'Local transcription server not running. Please start the Parakeet server.';
+      case 'TRANSCRIPTION_CANCELLED':
+        return 'Transcription cancelled.';
+      case 'TRANSCRIPTION_ATTEMPT_TIMEOUT':
+      case 'TRANSCRIPTION_DEADLINE_EXCEEDED':
+      case 'TRANSCRIPTION_TIMEOUT':
+        if (this.provider === 'Whisper') {
+          return 'Whisper transcription timed out. Try a shorter recording and try again.';
+        }
+        return `${this.provider} transcription timed out. Check your connection and try again.`;
       default:
         return this.message;
     }
@@ -128,8 +138,6 @@ export type ModelId =
   | 'elevenlabs-scribe'
   | 'elevenlabs-scribe-realtime'
   | 'parakeet-local'
-  | 'whisper-local-tiny'
-  | 'whisper-local-base'
   | 'whisper-local-small';
 
 export interface ModelInfo {
@@ -186,6 +194,30 @@ export const MODELS: ModelInfo[] = [
     supportsAgent: false,
   },
 ];
+
+const REMOVED_LOCAL_WHISPER_MODELS = new Set(['whisper-local-tiny', 'whisper-local-base']);
+
+export function normalizeStoredModelId(
+  storedModel: string | null | undefined,
+  fallback: ModelId = 'gemini-2.0-flash',
+): ModelId {
+  if (storedModel && REMOVED_LOCAL_WHISPER_MODELS.has(storedModel)) {
+    return 'whisper-local-small';
+  }
+  if (storedModel && MODELS.some((model) => model.id === storedModel)) {
+    return storedModel as ModelId;
+  }
+  return fallback;
+}
+
+export function readStoredModelId(fallback: ModelId = 'gemini-2.0-flash'): ModelId {
+  const storedModel = localStorage.getItem('audiobash-model');
+  const model = normalizeStoredModelId(storedModel, fallback);
+  if (storedModel && storedModel !== model) {
+    localStorage.setItem('audiobash-model', model);
+  }
+  return model;
+}
 
 // Build vocabulary section for prompts
 function buildVocabularySection(vocabulary: VocabularyEntry[]): string {
@@ -303,9 +335,6 @@ ${customInstructions.agentModeInstructions}
 Convert the following speech to a ${shell} command:`;
 }
 
-// Fallback static prompt for when no context is available
-const AGENT_PROMPT = buildAgentPrompt();
-
 export class TranscriptionService {
   // Tracks which providers have a key configured (for the model picker and config checks).
   // The actual cloud calls happen in the main process, so the renderer does not construct
@@ -331,9 +360,18 @@ export class TranscriptionService {
    * Map an error string returned by a main-process transcription handler back into a
    * TranscriptionError with a code, so the UI can show a friendly, provider-specific message.
    */
-  private mapIpcError(message: string | undefined, provider: string): TranscriptionError {
+  private mapIpcError(
+    message: string | undefined,
+    provider: string,
+    errorCode?: string,
+  ): TranscriptionError {
     const msg = message || 'Transcription failed';
     const m = msg.toLowerCase();
+    if (errorCode) {
+      const mappedCode =
+        errorCode === 'TRANSCRIPTION_SHUTDOWN' ? 'TRANSCRIPTION_CANCELLED' : errorCode;
+      return new TranscriptionError(msg, provider, mappedCode);
+    }
     if (m.includes('no ') && m.includes('api key')) {
       return new TranscriptionError(msg, provider, 'NO_API_KEY');
     }
@@ -360,6 +398,36 @@ export class TranscriptionService {
       return new TranscriptionError(msg, provider, 'SERVER_ERROR');
     }
     return new TranscriptionError(msg, provider, 'UNKNOWN');
+  }
+
+  private throwIfCancelled(signal: AbortSignal | undefined, provider: string): void {
+    if (signal?.aborted) {
+      throw new TranscriptionError('Transcription cancelled', provider, 'TRANSCRIPTION_CANCELLED');
+    }
+  }
+
+  private async invokeCloudTranscription(
+    invoke: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>,
+    data: Omit<TranscribeIpcRequest, 'requestId'>,
+    signal?: AbortSignal,
+  ): Promise<TranscribeIpcResult> {
+    this.throwIfCancelled(signal, 'Cloud transcription');
+
+    const requestId = globalThis.crypto.randomUUID();
+    const cancel = () => {
+      void window.electron.cancelTranscription(requestId).catch((error) => {
+        log.warn('Failed to send transcription cancellation', { error: getErrorMessage(error) });
+      });
+    };
+
+    signal?.addEventListener('abort', cancel, { once: true });
+    try {
+      const result = await invoke({ ...data, requestId });
+      this.throwIfCancelled(signal, 'Cloud transcription');
+      return result;
+    } finally {
+      signal?.removeEventListener('abort', cancel);
+    }
   }
 
   /**
@@ -468,6 +536,7 @@ export class TranscriptionService {
     mode: TranscriptionMode = 'raw',
     modelId: ModelId = 'gemini-2.0-flash',
     durationMs: number = 0,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     const modelInfo = this.getModelInfo(modelId);
     if (!modelInfo) {
@@ -476,6 +545,8 @@ export class TranscriptionService {
         modelId,
       });
     }
+
+    this.throwIfCancelled(signal, modelInfo.name);
 
     // Validate the audio blob before doing any work or sending it across IPC. The main-process
     // handlers re-validate the base64 payload, but checking here gives a faster, friendlier error.
@@ -502,21 +573,21 @@ export class TranscriptionService {
 
       switch (modelInfo.provider) {
         case 'gemini':
-          result = await this.transcribeWithGemini(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithGemini(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'openai':
-          result = await this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithOpenAI(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'anthropic':
-          result = await this.transcribeWithClaude(audioBlob, mode, modelId, durationMs);
+          result = await this.transcribeWithClaude(audioBlob, mode, modelId, durationMs, signal);
           break;
         case 'elevenlabs':
-          result = await this.transcribeWithElevenLabs(audioBlob, durationMs);
+          result = await this.transcribeWithElevenLabs(audioBlob, durationMs, signal);
           break;
         case 'local':
           // Check if it's a Whisper local model or Parakeet local
           if (modelId.startsWith('whisper-local-')) {
-            result = await this.transcribeLocalWhisper(audioBlob, modelId);
+            result = await this.transcribeLocalWhisper(audioBlob, modelId, signal);
           } else {
             result = await this.transcribeLocal(audioBlob);
           }
@@ -528,6 +599,8 @@ export class TranscriptionService {
             'UNSUPPORTED_PROVIDER',
           );
       }
+
+      this.throwIfCancelled(signal, modelInfo.name);
 
       const elapsed = performance.now() - startTime;
       log.info('Transcription completed', {
@@ -556,6 +629,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: string,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('gemini')) {
       throw new TranscriptionError('No Gemini API key configured', 'Gemini', 'NO_API_KEY');
@@ -576,13 +650,13 @@ export class TranscriptionService {
 
       log.debug('Sending request to Gemini (via main process)', { modelId, mode });
 
-      const result = await window.electron.transcribeWithGemini({
-        audioBase64: base64Audio,
-        prompt,
-        modelId,
-      });
+      const result = await this.invokeCloudTranscription(
+        window.electron.transcribeWithGemini,
+        { audioBase64: base64Audio, prompt, modelId },
+        signal,
+      );
       if (!result.success) {
-        throw this.mapIpcError(result.error, 'Gemini');
+        throw this.mapIpcError(result.error, 'Gemini', result.errorCode);
       }
 
       const text = (result.text || '').trim();
@@ -604,6 +678,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: ModelId,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('openai')) {
       throw new TranscriptionError('No OpenAI API key configured.', 'OpenAI', 'NO_API_KEY');
@@ -618,13 +693,13 @@ export class TranscriptionService {
         ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
         : '';
 
-    const result = await window.electron.transcribeWithOpenAI({
-      audioBase64: base64Audio,
-      prompt,
-      modelId,
-    });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithOpenAI,
+      { audioBase64: base64Audio, prompt, modelId },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'OpenAI');
+      throw this.mapIpcError(result.error, 'OpenAI', result.errorCode);
     }
 
     let text = (result.text || '').trim();
@@ -652,6 +727,7 @@ export class TranscriptionService {
     mode: TranscriptionMode,
     modelId: ModelId,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     // Claude doesn't support audio directly, so main uses OpenAI Whisper first, then Claude.
     if (!this.hasApiKey('openai')) {
@@ -674,13 +750,13 @@ export class TranscriptionService {
         ? buildAgentPrompt(this.terminalContext || undefined, this.customInstructions)
         : '';
 
-    const result = await window.electron.transcribeWithAnthropic({
-      audioBase64: base64Audio,
-      prompt,
-      modelId,
-    });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithAnthropic,
+      { audioBase64: base64Audio, prompt, modelId },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'Claude');
+      throw this.mapIpcError(result.error, 'Claude', result.errorCode);
     }
 
     let text = (result.text || '').trim();
@@ -705,15 +781,20 @@ export class TranscriptionService {
   private async transcribeWithElevenLabs(
     audioBlob: Blob,
     durationMs: number,
+    signal?: AbortSignal,
   ): Promise<TranscribeResult> {
     if (!this.hasApiKey('elevenlabs')) {
       throw new TranscriptionError('No ElevenLabs API key configured.', 'ElevenLabs', 'NO_API_KEY');
     }
 
     const base64Audio = await blobToBase64(audioBlob);
-    const result = await window.electron.transcribeWithElevenLabs({ audioBase64: base64Audio });
+    const result = await this.invokeCloudTranscription(
+      window.electron.transcribeWithElevenLabs,
+      { audioBase64: base64Audio, modelId: 'elevenlabs-scribe' },
+      signal,
+    );
     if (!result.success) {
-      throw this.mapIpcError(result.error, 'ElevenLabs');
+      throw this.mapIpcError(result.error, 'ElevenLabs', result.errorCode);
     }
 
     const text = (result.text || '').trim();
@@ -782,14 +863,16 @@ export class TranscriptionService {
     }
   }
 
-  private async transcribeLocalWhisper(blob: Blob, modelId: ModelId): Promise<TranscribeResult> {
+  private async transcribeLocalWhisper(
+    blob: Blob,
+    modelId: ModelId,
+    signal?: AbortSignal,
+  ): Promise<TranscribeResult> {
     log.debug('Starting local Whisper transcription', { modelId });
 
     try {
       // Map model ID to Whisper model name
       const modelMap: Record<string, string> = {
-        'whisper-local-tiny': 'tiny.en',
-        'whisper-local-base': 'base.en',
         'whisper-local-small': 'small.en',
       };
 
@@ -803,42 +886,43 @@ export class TranscriptionService {
         );
       }
 
-      // Set the model via IPC
-      log.debug('Setting Whisper model', { whisperModel });
-      await window.electron.whisperSetModel(whisperModel);
-
-      // Convert blob to base64
       const base64Audio = await blobToBase64(blob);
       log.debug('Audio converted to base64', { sizeBytes: base64Audio.length });
+      this.throwIfCancelled(signal, 'Whisper');
 
-      // Save audio to temp file via IPC
-      const saveResult = await window.electron.saveTempAudio(base64Audio);
-      if (!saveResult.success || !saveResult.path) {
-        log.error('Failed to save temp audio file', new Error(saveResult.error || 'Unknown error'));
-        throw new TranscriptionError(
-          saveResult.error || 'Failed to save temp audio file',
-          'Whisper',
-          'UNKNOWN',
-          saveResult,
-        );
-      }
-      log.debug('Audio saved to temp file', { path: saveResult.path });
-
-      // Transcribe via IPC
-      const result = await window.electron.whisperTranscribe(saveResult.path);
-      if (result.error) {
-        log.error('Whisper transcription error', new Error(result.error));
-        throw new TranscriptionError(result.error, 'Whisper', 'UNKNOWN', result);
-      }
-
-      log.debug('Whisper transcription successful', { textLength: result.text?.length || 0 });
-      // whisper.cpp is invoked with no initial prompt, so custom vocabulary can't bias decoding.
-      // Apply the post-transcription corrections to match the cloud raw-mode paths (see issue #41).
-      const text = this.applyVocabularyCorrections((result.text || '').trim());
-      return {
-        text,
-        cost: '$0.00 (Local)',
+      const requestId = globalThis.crypto.randomUUID();
+      const cancel = () => {
+        void window.electron.whisperCancel(requestId).catch((error) => {
+          log.warn('Failed to stop local Whisper transcription', {
+            error: getErrorMessage(error),
+          });
+        });
       };
+      signal?.addEventListener('abort', cancel, { once: true });
+
+      try {
+        const result = await window.electron.whisperTranscribe({
+          requestId,
+          modelName: whisperModel,
+          audioBase64: base64Audio,
+        });
+        this.throwIfCancelled(signal, 'Whisper');
+        if (result.error) {
+          log.error('Whisper transcription error', new Error(result.error));
+          throw this.mapIpcError(result.error, 'Whisper', result.errorCode);
+        }
+
+        log.debug('Whisper transcription successful', { textLength: result.text?.length || 0 });
+        // whisper.cpp is invoked with no initial prompt, so custom vocabulary can't bias decoding.
+        // Apply the post-transcription corrections to match the cloud raw-mode paths (see issue #41).
+        const text = this.applyVocabularyCorrections((result.text || '').trim());
+        return {
+          text,
+          cost: '$0.00 (Local)',
+        };
+      } finally {
+        signal?.removeEventListener('abort', cancel);
+      }
     } catch (e: unknown) {
       if (e instanceof TranscriptionError) throw e;
       throw new TranscriptionError(

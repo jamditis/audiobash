@@ -11,7 +11,7 @@ import PreviewPane from './components/PreviewPane';
 import PaneDivider from './components/PaneDivider';
 import PaneManager, { PaneManagerHandle } from './components/PaneManager';
 import { TerminalTab, PreviewPosition, ScreenshotResult } from './types';
-import { transcriptionService, ModelId } from './services/transcriptionService';
+import { transcriptionService, ModelId, readStoredModelId } from './services/transcriptionService';
 import { appLog } from './utils/logger';
 import { preWarmAudioContext } from './utils/notificationSound';
 import { VoiceModeDetector } from './utils/voiceModeDetector';
@@ -138,8 +138,7 @@ const App: React.FC = () => {
       setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
     }
 
-    const savedModel = localStorage.getItem('audiobash-model');
-    if (savedModel) setModel(savedModel as ModelId);
+    if (localStorage.getItem('audiobash-model')) setModel(readStoredModelId());
 
     // Load ALL API keys and set them in the transcription service on startup
     const loadApiKeys = async () => {
@@ -190,8 +189,7 @@ const App: React.FC = () => {
       if (savedPreviewBeforeExecute !== null) {
         setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
       }
-      const savedModel = localStorage.getItem('audiobash-model');
-      if (savedModel) setModel(savedModel as ModelId);
+      if (localStorage.getItem('audiobash-model')) setModel(readStoredModelId());
 
       const savedCliNotifications = localStorage.getItem('audiobash-cli-notifications');
       if (savedCliNotifications !== null) {

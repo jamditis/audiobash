@@ -37,6 +37,13 @@ describe('shell detection', () => {
 });
 
 describe('icon handling', () => {
+  it('does not give the macOS window a missing Windows icon', () => {
+    expect(mainProcessCode).toMatch(
+      /if \(process\.platform !== 'darwin'\) \{\s*windowOptions\.icon = path\.join\(__dirname, '\.\.\/audiobash-logo\.ico'\);\s*\}/,
+    );
+    expect(mainProcessCode).not.toMatch(/icon:\s*process\.platform/);
+  });
+
   it('uses ICO for Windows tray, PNG for other platforms', () => {
     // Should have platform-specific icon selection for tray
     expect(mainProcessCode).toContain("process.platform === 'win32'");

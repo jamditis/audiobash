@@ -3,6 +3,7 @@ import {
   transcriptionService,
   MODELS,
   ModelId,
+  readStoredModelId,
   CustomInstructions,
   VocabularyEntry,
 } from '../services/transcriptionService';
@@ -143,7 +144,7 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
     const savedScanlines = localStorage.getItem('audiobash-scanlines');
 
     if (savedShell && isShellType(savedShell)) setShell(savedShell);
-    if (savedModel) setModel(savedModel as ModelId);
+    if (savedModel) setModel(readStoredModelId());
     if (savedAutoSend !== null) setAutoSend(savedAutoSend === 'true');
     if (savedPreviewBeforeExecute !== null)
       setPreviewBeforeExecute(savedPreviewBeforeExecute === 'true');
@@ -582,6 +583,9 @@ const Settings: React.FC<SettingsProps> = ({ isOpen, onClose, onReplayOnboarding
             </h3>
             <p className="text-[10px] text-crt-white/40">
               Free, unlimited offline transcription. No API keys required.
+            </p>
+            <p className="text-[10px] text-crt-white/40">
+              {'Requires FFmpeg on PATH. Setup downloads Whisper.cpp and the selected model.'}
             </p>
 
             {/* Status indicator */}

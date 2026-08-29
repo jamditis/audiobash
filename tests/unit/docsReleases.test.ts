@@ -12,6 +12,8 @@ import { join } from 'path';
 
 const releasesHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'releases.html'), 'utf8');
 const doc = new DOMParser().parseFromString(releasesHtml, 'text/html');
+const macosHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'macos.html'), 'utf8');
+const indexHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
 
 const versionJs = readFileSync(join(__dirname, '..', '..', 'docs', 'js', 'version.js'), 'utf8');
 const currentVersion = versionJs.match(/AUDIOBASH_VERSION\s*=\s*'([^']+)'/)?.[1];
@@ -83,6 +85,39 @@ describe('docs/releases.html version freezing', () => {
         `frozen card ${version} still has a templated [data-download] link`,
       ).toBe(0);
     }
+  });
+
+  it('uses no templated version badge on any non-latest release card', () => {
+    for (const card of nonLatestCards()) {
+      const version = card.querySelector('span')?.textContent?.trim() ?? '(unknown)';
+      expect(
+        card.querySelectorAll('[data-version]').length,
+        `frozen card ${version} still has a templated version badge`,
+      ).toBe(0);
+    }
+  });
+
+  it('keeps the macOS pane-color badge frozen at v3.2.0', () => {
+    expect(macosHtml).toContain('<span>v3.2.0</span> — customizable pane colors');
+    expect(macosHtml).not.toContain(
+      'data-version="v{version}">v3.2.0</span> — customizable pane colors',
+    );
+  });
+
+  it('keeps homepage release copy on static public-version labels', () => {
+    expect(currentVersion, 'could not parse AUDIOBASH_VERSION from version.js').toBeTruthy();
+    const indexDoc = new DOMParser().parseFromString(indexHtml, 'text/html');
+    const releaseBadge = Array.from(indexDoc.querySelectorAll('a[href="latest.html"] span')).find(
+      (element) => element.textContent?.trim() === `v${currentVersion}`,
+    );
+    const releaseHeading = Array.from(indexDoc.querySelectorAll('h3')).find(
+      (element) => element.textContent?.trim() === `NEW IN v${currentVersion}`,
+    );
+
+    expect(releaseBadge).toBeTruthy();
+    expect(releaseBadge?.hasAttribute('data-version')).toBe(false);
+    expect(releaseHeading).toBeTruthy();
+    expect(releaseHeading?.hasAttribute('data-version')).toBe(false);
   });
 
   it('never links a frozen historical entry at the current version download assets', () => {

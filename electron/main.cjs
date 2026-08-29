@@ -14,7 +14,6 @@ const {
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const crypto = require('crypto');
 
 // Centralized logger - must initialize after app ready
 const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
@@ -22,6 +21,7 @@ const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
 // Enable Chromium feature flags before the app is ready (too late inside whenReady). This lets
 // global shortcuts register under Wayland, not just X11.
 const { enableWaylandShortcuts } = require('./featureFlags.cjs');
+const { ensureTray } = require('./trayLifecycle.cjs');
 enableWaylandShortcuts(app);
 
 // Global error handlers to prevent silent crashes (fixes #29)
@@ -29,7 +29,7 @@ process.on('uncaughtException', (err) => {
   console.error('[AudioBash] Uncaught exception:', err);
   try {
     appLog.error('Uncaught exception', err);
-  } catch (_) {
+  } catch {
     /* logger may not be initialized */
   }
 });
@@ -38,7 +38,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[AudioBash] Unhandled rejection:', reason);
   try {
     appLog.error('Unhandled rejection', { reason: String(reason) });
-  } catch (_) {
+  } catch {
     /* logger may not be initialized */
   }
 });
@@ -49,15 +49,10 @@ let pty = null;
 // Whisper service for local transcription
 const whisperService = require('./whisperService.cjs');
 
-// AI SDK imports for transcription (moved from renderer to eliminate dangerouslyAllowBrowser)
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const OpenAI = require('openai').default;
-const Anthropic = require('@anthropic-ai/sdk').default;
-
-// AI client instances (initialized lazily when keys are set)
-let geminiClient = null;
-let openaiClient = null;
-let anthropicClient = null;
+const { registerTranscriptionHandlers } = require('./transcriptionHandlers.cjs');
+const { registerLocalWhisperHandlers } = require('./localWhisperHandlers.cjs');
+const { createFileWatcherManager } = require('./fileWatcher.cjs');
+const { createAppShutdownCoordinator } = require('./appShutdown.cjs');
 
 // Simple persistent storage (replacement for electron-store)
 const storeFilePath = path.join(app.getPath('userData'), 'app-store.json');
@@ -99,6 +94,7 @@ const terminalReady = new Set(); // Set of tabIds whose renderer xterm is mounte
 const { getDefaultShell, buildCdCommand } = require('./shellQuote.cjs');
 let mainWindow = null;
 let tray = null;
+let localWhisperLifecycle = null;
 const MAX_OUTPUT_BUFFER = 2000; // Keep last 2000 characters of output
 const MAX_RECENT_DIRS = 10; // Keep last 10 recent directories
 
@@ -129,8 +125,22 @@ let currentShortcuts = {
 };
 
 // File watchers for preview auto-refresh
-const fileWatchers = new Map(); // watcherId -> { filepath, watcher, debounceTimer }
-let watcherIdCounter = 0;
+const fileWatcherManager = createFileWatcherManager({
+  onChange: ({ watcherId, filepath }) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('file-changed', { watcherId, filepath });
+    }
+  },
+  onError: (error) => {
+    appLog.error('File watcher error', error, {
+      code: error.code,
+      causeCode: error.cause?.code,
+      causeMessage: error.cause instanceof Error ? error.cause.message : undefined,
+      filepath: error.filepath,
+      watcherId: error.watcherId,
+    });
+  },
+});
 
 const MAX_TABS = 4;
 const isDev = !app.isPackaged;
@@ -196,7 +206,7 @@ function getWindowBounds() {
 function createWindow() {
   const bounds = getWindowBounds();
 
-  mainWindow = new BrowserWindow({
+  const windowOptions = {
     ...bounds,
     minWidth: 800,
     minHeight: 600,
@@ -208,8 +218,13 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
-    icon: path.join(__dirname, '../audiobash-logo.ico'),
-  });
+  };
+
+  if (process.platform !== 'darwin') {
+    windowOptions.icon = path.join(__dirname, '../audiobash-logo.ico');
+  }
+
+  mainWindow = new BrowserWindow(windowOptions);
 
   // Load the app
   if (isDev) {
@@ -303,7 +318,34 @@ function createWindow() {
   });
 }
 
+function createTrayContextMenu() {
+  return Menu.buildFromTemplate([
+    {
+      label: 'Show AudioBash',
+      click: () => mainWindow?.show(),
+    },
+    {
+      label: `Toggle Recording (${currentShortcuts.toggleRecording})`,
+      click: () => mainWindow?.webContents.send('toggle-recording'),
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        app.isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+}
+
 function createTray() {
+  const contextMenu = createTrayContextMenu();
+  if (tray) {
+    tray = ensureTray({ currentTray: tray, contextMenu });
+    return;
+  }
+
   // Use ICO for Windows tray (better rendering), PNG for other platforms
   let iconPath;
   if (app.isPackaged) {
@@ -359,30 +401,13 @@ function createTray() {
     console.error('[AudioBash] Cannot create tray: all icon paths failed. Running without tray.');
     return;
   }
-  tray = new Tray(icon);
-
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'Show AudioBash',
-      click: () => mainWindow?.show(),
-    },
-    {
-      label: `Toggle Recording (${currentShortcuts.toggleRecording})`,
-      click: () => mainWindow?.webContents.send('toggle-recording'),
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.isQuitting = true;
-        app.quit();
-      },
-    },
-  ]);
-
-  tray.setToolTip('AudioBash');
-  tray.setContextMenu(contextMenu);
-  tray.on('click', () => mainWindow?.show());
+  tray = ensureTray({
+    TrayClass: Tray,
+    icon,
+    contextMenu,
+    tooltip: 'AudioBash',
+    onClick: () => mainWindow?.show(),
+  });
 }
 
 function loadShortcuts() {
@@ -739,6 +764,8 @@ function registerShortcuts() {
 }
 
 function spawnShell(tabId) {
+  if (app.isQuitting) return null;
+
   // Load node-pty if not loaded
   if (!pty) {
     try {
@@ -819,7 +846,7 @@ function spawnShell(tabId) {
         terminalOutputBuffers.delete(tabId);
         terminalCwds.delete(tabId);
         terminalReady.delete(tabId);
-        if (mainWindow && !mainWindow.isDestroyed()) {
+        if (!app.isQuitting && mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('terminal-closed', { tabId, exitCode, signal });
         }
       } catch (err) {
@@ -1268,15 +1295,6 @@ function setupIPC() {
         delete apiKeyMemoryCache[provider];
       }
 
-      // Reinitialize the corresponding AI client when key changes
-      if (provider === 'gemini' && key) {
-        geminiClient = new GoogleGenerativeAI(key);
-      } else if (provider === 'openai' && key) {
-        openaiClient = new OpenAI({ apiKey: key });
-      } else if (provider === 'anthropic' && key) {
-        anthropicClient = new Anthropic({ apiKey: key });
-      }
-
       return true;
     } catch (err) {
       console.error(`[AudioBash] Failed to save ${provider} API key:`, err);
@@ -1335,345 +1353,10 @@ function setupIPC() {
     return '';
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // AI TRANSCRIPTION HANDLERS (moved from renderer to eliminate dangerouslyAllowBrowser)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // --- Transcription pipeline hardening utilities ---
-
-  // Rate limiter: sliding window, max requests per window
-  const transcriptionRateLimiter = {
-    timestamps: [],
-    maxRequests: 15, // 15 requests per minute
-    windowMs: 60000, // 1 minute window
-    check() {
-      const now = Date.now();
-      this.timestamps = this.timestamps.filter((t) => now - t < this.windowMs);
-      if (this.timestamps.length >= this.maxRequests) {
-        return false;
-      }
-      this.timestamps.push(now);
-      return true;
-    },
-  };
-
-  // Audio blob validation
-  const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB max (base64 encoded)
-  function validateAudioInput(audioBase64) {
-    if (typeof audioBase64 !== 'string') {
-      return 'Audio data must be a string';
-    }
-    if (audioBase64.length === 0) {
-      return 'Audio data is empty';
-    }
-    if (audioBase64.length > MAX_AUDIO_SIZE) {
-      return `Audio data exceeds maximum size (${Math.round(audioBase64.length / 1024 / 1024)}MB > 25MB)`;
-    }
-    return null; // valid
-  }
-
-  // Retry with exponential backoff for transient API failures
-  async function withRetry(fn, { maxRetries = 2, baseDelayMs = 1000, label = 'API call' } = {}) {
-    let lastError;
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await fn();
-      } catch (err) {
-        lastError = err;
-        const isRetryable =
-          err.status === 429 ||
-          err.status === 503 ||
-          err.status === 502 ||
-          err.code === 'ECONNRESET' ||
-          err.code === 'ETIMEDOUT' ||
-          err.code === 'ENOTFOUND' ||
-          (err.message && err.message.includes('RESOURCE_EXHAUSTED'));
-        if (!isRetryable || attempt === maxRetries) {
-          throw err;
-        }
-        const delay = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
-        ipcLog.warn(
-          `${label}: retrying after transient error (attempt ${attempt + 1}/${maxRetries})`,
-          {
-            error: err.message,
-            delay: Math.round(delay),
-          },
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-    throw lastError;
-  }
-
-  // Gemini transcription
-  ipcMain.handle('transcribe-with-gemini', async (_, { audioBase64, prompt, modelId }) => {
-    try {
-      // Rate limit check
-      if (!transcriptionRateLimiter.check()) {
-        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
-      }
-
-      // Validate audio input
-      const audioError = validateAudioInput(audioBase64);
-      if (audioError) {
-        return { success: false, error: audioError };
-      }
-
-      const apiKey = await getApiKeyInternal('gemini');
-      if (!apiKey) {
-        return { success: false, error: 'No Gemini API key configured' };
-      }
-
-      // Initialize client if not already initialized
-      if (!geminiClient) {
-        geminiClient = new GoogleGenerativeAI(apiKey);
-      }
-
-      // Map model ID to actual Gemini model name
-      const geminiModel = modelId === 'gemini-2.5-flash' ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
-      const model = geminiClient.getGenerativeModel({ model: geminiModel });
-
-      ipcLog.info(`Transcribing with Gemini (${geminiModel})`);
-
-      const result = await withRetry(
-        async () => {
-          return await model.generateContent([
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: 'audio/webm',
-                data: audioBase64,
-              },
-            },
-          ]);
-        },
-        { label: 'Gemini transcription' },
-      );
-
-      const response = await result.response;
-      const text = response.text()?.trim() || '';
-
-      ipcLog.info(`Gemini transcription complete`, { textLength: text.length });
-      return { success: true, text };
-    } catch (err) {
-      ipcLog.error('Gemini transcription error', err);
-      return { success: false, error: err.message || String(err) };
-    }
-  });
-
-  // OpenAI Whisper transcription
-  ipcMain.handle('transcribe-with-openai', async (_, { audioBase64, prompt, modelId }) => {
-    try {
-      // Rate limit check
-      if (!transcriptionRateLimiter.check()) {
-        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
-      }
-
-      // Validate audio input
-      const audioError = validateAudioInput(audioBase64);
-      if (audioError) {
-        return { success: false, error: audioError };
-      }
-
-      const apiKey = await getApiKeyInternal('openai');
-      if (!apiKey) {
-        return { success: false, error: 'No OpenAI API key configured' };
-      }
-
-      // Initialize client if not already initialized
-      if (!openaiClient) {
-        openaiClient = new OpenAI({ apiKey });
-      }
-
-      ipcLog.info('Transcribing with OpenAI Whisper');
-
-      // Convert base64 to buffer and create a File-like object
-      const buffer = Buffer.from(audioBase64, 'base64');
-      const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
-
-      // Use Whisper for transcription with retry
-      const transcription = await withRetry(
-        async () => {
-          return await openaiClient.audio.transcriptions.create({
-            file: file,
-            model: 'whisper-1',
-          });
-        },
-        { label: 'OpenAI Whisper' },
-      );
-
-      let text = transcription.text?.trim() || '';
-
-      // If agent mode (has prompt with context), use GPT-4 to process the transcription
-      if (prompt && modelId === 'openai-gpt4' && text) {
-        ipcLog.info('Processing transcription with GPT-4');
-        const completion = await withRetry(
-          async () => {
-            return await openaiClient.chat.completions.create({
-              model: 'gpt-4-turbo-preview',
-              messages: [
-                { role: 'system', content: prompt },
-                { role: 'user', content: text },
-              ],
-              max_tokens: 200,
-            });
-          },
-          { label: 'OpenAI GPT-4' },
-        );
-        text = completion.choices[0]?.message?.content?.trim() || text;
-      }
-
-      ipcLog.info('OpenAI transcription complete', { textLength: text.length });
-      return { success: true, text };
-    } catch (err) {
-      ipcLog.error('OpenAI transcription error', err);
-      return { success: false, error: err.message || String(err) };
-    }
-  });
-
-  // Claude/Anthropic transcription (requires OpenAI for Whisper first)
-  ipcMain.handle('transcribe-with-anthropic', async (_, { audioBase64, prompt, modelId }) => {
-    try {
-      // Rate limit check
-      if (!transcriptionRateLimiter.check()) {
-        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
-      }
-
-      // Validate audio input
-      const audioError = validateAudioInput(audioBase64);
-      if (audioError) {
-        return { success: false, error: audioError };
-      }
-
-      const openaiKey = await getApiKeyInternal('openai');
-      const anthropicKey = await getApiKeyInternal('anthropic');
-
-      if (!openaiKey) {
-        return {
-          success: false,
-          error: 'OpenAI API key required for audio transcription with Claude',
-        };
-      }
-      if (!anthropicKey) {
-        return { success: false, error: 'No Anthropic API key configured' };
-      }
-
-      // Initialize clients if not already initialized
-      if (!openaiClient) {
-        openaiClient = new OpenAI({ apiKey: openaiKey });
-      }
-      if (!anthropicClient) {
-        anthropicClient = new Anthropic({ apiKey: anthropicKey });
-      }
-
-      ipcLog.info('Transcribing with Whisper + Claude');
-
-      // First, use Whisper for transcription with retry
-      const buffer = Buffer.from(audioBase64, 'base64');
-      const file = new File([buffer], 'audio.webm', { type: 'audio/webm' });
-
-      const transcription = await withRetry(
-        async () => {
-          return await openaiClient.audio.transcriptions.create({
-            file: file,
-            model: 'whisper-1',
-          });
-        },
-        { label: 'Whisper (for Claude)' },
-      );
-
-      let text = transcription.text?.trim() || '';
-
-      // If agent mode (has prompt with context), use Claude to process the transcription
-      if (prompt && text) {
-        ipcLog.info('Processing transcription with Claude');
-        const claudeModel =
-          modelId === 'claude-haiku' ? 'claude-3-haiku-20240307' : 'claude-sonnet-4-20250514';
-
-        const message = await withRetry(
-          async () => {
-            return await anthropicClient.messages.create({
-              model: claudeModel,
-              max_tokens: 200,
-              messages: [{ role: 'user', content: `${prompt}\n\n${text}` }],
-            });
-          },
-          { label: 'Claude processing' },
-        );
-
-        const content = message.content[0];
-        if (content.type === 'text') {
-          text = content.text.trim();
-        }
-      }
-
-      ipcLog.info('Claude transcription complete', { textLength: text.length });
-      return { success: true, text };
-    } catch (err) {
-      ipcLog.error('Claude transcription error', err);
-      return { success: false, error: err.message || String(err) };
-    }
-  });
-
-  // ElevenLabs transcription
-  ipcMain.handle('transcribe-with-elevenlabs', async (_, { audioBase64 }) => {
-    try {
-      // Rate limit check
-      if (!transcriptionRateLimiter.check()) {
-        return { success: false, error: 'Rate limit exceeded. Please wait before trying again.' };
-      }
-
-      // Validate audio input
-      const audioError = validateAudioInput(audioBase64);
-      if (audioError) {
-        return { success: false, error: audioError };
-      }
-
-      const apiKey = await getApiKeyInternal('elevenlabs');
-      if (!apiKey) {
-        return { success: false, error: 'No ElevenLabs API key configured' };
-      }
-
-      ipcLog.info('Transcribing with ElevenLabs Scribe');
-
-      // Convert base64 to buffer and create FormData
-      const buffer = Buffer.from(audioBase64, 'base64');
-      const FormData = require('form-data');
-      const formData = new FormData();
-      formData.append('audio', buffer, { filename: 'audio.webm', contentType: 'audio/webm' });
-      formData.append('model_id', 'scribe_v1');
-
-      const data = await withRetry(
-        async () => {
-          const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
-            method: 'POST',
-            headers: {
-              'xi-api-key': apiKey,
-              ...formData.getHeaders(),
-            },
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            const err = new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
-            err.status = response.status;
-            throw err;
-          }
-
-          return await response.json();
-        },
-        { label: 'ElevenLabs Scribe' },
-      );
-
-      const text = data.text?.trim() || '';
-
-      ipcLog.info('ElevenLabs transcription complete', { textLength: text.length });
-      return { success: true, text };
-    } catch (err) {
-      ipcLog.error('ElevenLabs transcription error', err);
-      return { success: false, error: err.message || String(err) };
-    }
+  registerTranscriptionHandlers({
+    ipcMain,
+    getApiKey: getApiKeyInternal,
+    log: ipcLog,
   });
 
   // Preview pane: File watching for auto-refresh
@@ -1687,22 +1370,7 @@ function setupIPC() {
         return { success: false, error: 'File does not exist' };
       }
 
-      const watcherId = `watcher-${watcherIdCounter++}`;
-      let debounceTimer;
-
-      const watcher = fs.watch(filepath, { persistent: false }, (eventType) => {
-        if (eventType === 'change') {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            // Check if watcher still exists before sending event (prevents race condition)
-            if (fileWatchers.has(watcherId) && mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('file-changed', { watcherId, filepath });
-            }
-          }, 300); // 300ms debounce
-        }
-      });
-
-      fileWatchers.set(watcherId, { filepath, watcher, debounceTimer });
+      const watcherId = await fileWatcherManager.watchFile(filepath);
       console.log(`[AudioBash] Watching file: ${filepath} (${watcherId})`);
       return { success: true, watcherId };
     } catch (err) {
@@ -1713,12 +1381,9 @@ function setupIPC() {
 
   ipcMain.handle('unwatch-file', async (_, watcherId) => {
     try {
-      const entry = fileWatchers.get(watcherId);
-      if (entry) {
-        clearTimeout(entry.debounceTimer);
-        entry.watcher.close();
-        fileWatchers.delete(watcherId);
-        console.log(`[AudioBash] Stopped watching: ${entry.filepath} (${watcherId})`);
+      const unwatched = fileWatcherManager.unwatchFile(watcherId);
+      if (unwatched) {
+        console.log(`[AudioBash] Stopped watching: ${unwatched.filepath} (${watcherId})`);
       }
       return { success: true };
     } catch (err) {
@@ -1738,15 +1403,13 @@ function setupIPC() {
     }
   });
 
-  // Whisper local transcription
-  ipcMain.handle('whisper-transcribe', async (_, audioPath) => {
-    try {
-      const result = await whisperService.transcribe(audioPath);
-      return result;
-    } catch (err) {
-      console.error('[AudioBash] Whisper transcription error:', err);
-      return { text: '', error: err.message };
-    }
+  localWhisperLifecycle = registerLocalWhisperHandlers({
+    ipcMain,
+    whisperService,
+    getTempPath: () => path.join(app.getPath('temp'), 'audiobash'),
+    logError: (error) => console.error('[AudioBash] Whisper transcription error:', error),
+    logWarning: (error) =>
+      console.warn('[AudioBash] Failed to remove local transcription files:', error.message),
   });
 
   ipcMain.handle('whisper-set-model', async (_, modelName) => {
@@ -1834,28 +1497,6 @@ function setupIPC() {
       return result;
     } catch (err) {
       console.error('[AudioBash] Whisper full setup error:', err);
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('save-temp-audio', async (_, base64Audio) => {
-    try {
-      const tempDir = path.join(app.getPath('temp'), 'audiobash');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
-      }
-
-      const filename = `audio-${Date.now()}.webm`;
-      const filepath = path.join(tempDir, filename);
-
-      // Convert base64 to buffer and save
-      const buffer = Buffer.from(base64Audio, 'base64');
-      fs.writeFileSync(filepath, buffer);
-
-      console.log(`[AudioBash] Saved temp audio: ${filepath} (${buffer.length} bytes)`);
-      return { success: true, path: filepath };
-    } catch (err) {
-      console.error('[AudioBash] Save temp audio error:', err);
       return { success: false, error: err.message };
     }
   });
@@ -1961,7 +1602,7 @@ function setupIPC() {
       sessions[name] = { name, tree, timestamp: Date.now() };
       store.set('paneSessions', sessions);
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -1971,7 +1612,7 @@ function setupIPC() {
       const sessions = store.get('paneSessions') || {};
       const session = sessions[name];
       return session ? { success: true, tree: session.tree } : { success: false };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -1980,7 +1621,7 @@ function setupIPC() {
     try {
       const sessions = store.get('paneSessions') || {};
       return { sessions: Object.values(sessions) };
-    } catch (err) {
+    } catch {
       return { sessions: [] };
     }
   });
@@ -1991,7 +1632,7 @@ function setupIPC() {
       delete sessions[name];
       store.set('paneSessions', sessions);
       return { success: true };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   });
@@ -2066,7 +1707,7 @@ app.whenReady().then(async () => {
     console.error('[AudioBash] Startup failed:', err);
     try {
       appLog.error('Startup failed', err);
-    } catch (_) {
+    } catch {
       /* logger may not be initialized */
     }
 
@@ -2074,7 +1715,7 @@ app.whenReady().then(async () => {
     if (!mainWindow) {
       try {
         createWindow();
-      } catch (_) {
+      } catch {
         /* last resort */
       }
     }
@@ -2094,19 +1735,13 @@ app.on('activate', () => {
   }
 });
 
-app.on('will-quit', () => {
+let otherResourcesClosed = false;
+function closeOtherResources() {
+  if (otherResourcesClosed) return;
+  otherResourcesClosed = true;
   globalShortcut.unregisterAll();
 
-  // Close all file watchers
-  for (const [watcherId, entry] of fileWatchers) {
-    try {
-      clearTimeout(entry.debounceTimer);
-      entry.watcher.close();
-    } catch (err) {
-      // Ignore cleanup errors during shutdown
-    }
-  }
-  fileWatchers.clear();
+  fileWatcherManager.closeAll();
 
   // Kill all PTY processes
   for (const [tabId, ptyProcess] of ptyProcesses) {
@@ -2114,8 +1749,25 @@ app.on('will-quit', () => {
     console.log(`[AudioBash] Killed shell for tab ${tabId}`);
   }
   ptyProcesses.clear();
+}
+
+const shutdownCoordinator = createAppShutdownCoordinator({
+  closeTranscriptions: () =>
+    localWhisperLifecycle ? localWhisperLifecycle.shutdown() : whisperService.shutdown(),
+  closeOtherResources,
+  quit: () => app.quit(),
+  logError: (error) => {
+    appLog.error('Local transcription shutdown did not finish cleanly', error, {
+      code: error?.code,
+    });
+  },
 });
 
-app.on('before-quit', () => {
+app.on('will-quit', () => {
+  closeOtherResources();
+});
+
+app.on('before-quit', (event) => {
   app.isQuitting = true;
+  void shutdownCoordinator.beforeQuit(event);
 });

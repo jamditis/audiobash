@@ -41,13 +41,16 @@ npm run electron:build:mac:x64    # For Intel Macs
 
 ### Output files
 
-After building, you'll find these in the `dist/` folder:
+After building, you'll find these in the `release/` folder:
 
 | File | Description |
 |------|-------------|
 | `AudioBash-{version}-arm64.dmg` | DMG installer (drag to Applications) |
-| `AudioBash-{version}-arm64-mac.zip` | Portable zip (extract and run) |
+| `AudioBash-{version}-arm64.zip` | Apple Silicon portable zip |
+| `AudioBash-{version}-x64.dmg` | Intel DMG installer |
+| `AudioBash-{version}-x64.zip` | Intel portable zip |
 | `mac-arm64/AudioBash.app` | Unpacked app bundle |
+| `mac/AudioBash.app` | Unpacked Intel app bundle |
 
 ## Installing the unsigned app
 
@@ -138,8 +141,8 @@ jobs:
         with:
           name: macos-build
           path: |
-            dist/*.dmg
-            dist/*.zip
+            release/*.dmg
+            release/*.zip
 ```
 
 ## Keyboard shortcuts on macOS
@@ -203,7 +206,7 @@ If the built app crashes on launch with no visible error, the most likely cause 
 
 ```bash
 # Check spawn-helper signature
-codesign -v dist/mac-arm64/AudioBash.app/Contents/Resources/app.asar.unpacked/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper
+codesign -v release/mac-arm64/AudioBash.app/Contents/Resources/app.asar.unpacked/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper
 
 # If invalid, re-sign manually
 codesign --force --sign - <path-to-spawn-helper>

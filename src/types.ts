@@ -96,15 +96,17 @@ export interface PaneSession {
 
 // Cloud transcription IPC request/response shapes
 export interface TranscribeIpcRequest {
+  requestId: string;
   audioBase64: string;
   prompt?: string;
-  modelId: string;
+  modelId?: string;
 }
 
 export interface TranscribeIpcResult {
   success: boolean;
   text?: string;
   error?: string;
+  errorCode?: string;
 }
 
 export interface ElectronAPI {
@@ -158,7 +160,10 @@ export interface ElectronAPI {
   transcribeWithGemini: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
   transcribeWithOpenAI: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
   transcribeWithAnthropic: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
-  transcribeWithElevenLabs: (data: { audioBase64: string }) => Promise<TranscribeIpcResult>;
+  transcribeWithElevenLabs: (data: TranscribeIpcRequest) => Promise<TranscribeIpcResult>;
+  cancelTranscription: (
+    requestId: string,
+  ) => Promise<{ cancelled: boolean; queued: boolean; error?: string }>;
 
   // Directory management
   getDirectories: () => Promise<DirectoriesResult>;
@@ -177,7 +182,10 @@ export interface ElectronAPI {
   onCaptureScreenshot: (callback: () => void) => () => void;
 
   // Whisper local transcription
-  whisperTranscribe: (audioPath: string) => Promise<WhisperTranscribeResult>;
+  whisperTranscribe: (request: WhisperTranscribeRequest) => Promise<WhisperTranscribeResult>;
+  whisperCancel: (
+    requestId: string,
+  ) => Promise<{ cancelled: boolean; queued: boolean; error?: string }>;
   whisperSetModel: (modelName: string) => Promise<WhisperSetModelResult>;
   whisperGetModels: () => Promise<WhisperGetModelsResult>;
   whisperDownloadModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
@@ -192,7 +200,6 @@ export interface ElectronAPI {
   }>;
   whisperFullSetup: (modelName: string) => Promise<{ success: boolean; error?: string }>;
   whisperDeleteModel: (modelName: string) => Promise<{ success: boolean; error?: string }>;
-  saveTempAudio: (base64Audio: string) => Promise<SaveTempAudioResult>;
 
   // Font zoom
   onZoomIn: (callback: () => void) => () => void;
@@ -264,6 +271,13 @@ export interface ValidatePathResult {
 export interface WhisperTranscribeResult {
   text: string;
   error?: string;
+  errorCode?: string;
+}
+
+export interface WhisperTranscribeRequest {
+  requestId: string;
+  modelName: string;
+  audioBase64: string;
 }
 
 export interface WhisperSetModelResult {
@@ -285,11 +299,5 @@ export interface WhisperGetModelsResult {
   success: boolean;
   models?: WhisperModelInfo[];
   currentModel?: string;
-  error?: string;
-}
-
-export interface SaveTempAudioResult {
-  success: boolean;
-  path?: string;
   error?: string;
 }

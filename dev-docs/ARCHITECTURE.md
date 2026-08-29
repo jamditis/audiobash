@@ -286,10 +286,11 @@ sequenceDiagram
         TranscriptionService->>TranscriptionService: Blob → Base64
         TranscriptionService->>AIProvider: Gemini API (audio + prompt)
     else Local Whisper
-        TranscriptionService->>IPC: saveTempAudio(base64)
-        IPC->>MainProcess: Save to temp file
-        TranscriptionService->>IPC: whisperTranscribe(path)
-        IPC->>MainProcess: whisper.cpp transcription
+        TranscriptionService->>IPC: whisperTranscribe({requestId, modelName, audioBase64})
+        IPC->>MainProcess: Validate request and write unique temp input
+        MainProcess->>MainProcess: Run owned FFmpeg and Whisper stages
+        MainProcess-->>IPC: Transcript after process-tree cleanup
+        IPC-->>TranscriptionService: Transcript
     end
 
     AIProvider-->>TranscriptionService: Transcribed/converted text
@@ -415,6 +416,7 @@ flowchart LR
 
         subgraph Whisper["Whisper (10)"]
             whisper-transcribe
+            whisper-cancel
             whisper-set-model
             whisper-get-models
             whisper-download-model
@@ -423,7 +425,6 @@ flowchart LR
             whisper-install
             whisper-get-status
             whisper-full-setup
-            save-temp-audio
         end
 
     end
@@ -558,7 +559,7 @@ flowchart TB
 
             GeminiAdapter["Gemini Adapter<br/>• gemini-2.0-flash<br/>• gemini-2.5-flash"]
             ElevenLabsAdapter["ElevenLabs Adapter<br/>• scribe_v1 (batch)"]
-            LocalAdapter["Local Adapter<br/>• whisper-local-tiny<br/>• whisper-local-base<br/>• whisper-local-small<br/>• parakeet-local"]
+            LocalAdapter["Local Adapter<br/>• whisper-local-small<br/>• parakeet-local"]
         end
     end
 
@@ -573,9 +574,9 @@ flowchart TB
         ElevenLabsAPI["ElevenLabs API"]
     end
 
-    subgraph LocalServices["Local Services (Main Process)"]
+    subgraph LocalServices["Local services"]
         WhisperCPP["whisper.cpp"]
-        Parakeet["Parakeet Server<br/>(localhost:8003)"]
+        Parakeet["External Parakeet server<br/>(localhost:8003)"]
     end
 
     Manual --> TranscriptionService
@@ -751,7 +752,23 @@ flowchart LR
 
 ---
 
-## File Structure Map
+## Preview file watching
+
+`useFileWatcher` requests a watcher through the preload bridge. The main process gives each request to `electron/fileWatcher.cjs`. The manager watches the target file's parent directory so an editor can replace the target inode without detaching the watcher. It resolves the filesystem's canonical filename before it filters events. An ordinary path owns one native watcher. A final-component symlink into another directory owns two: the requested-directory watcher detects replacement or retargeting of the symlink, and the canonical-directory watcher detects changes to the current target.
+
+Directory events are only signals. A known filename must match a basename owned by that watcher slot. A missing filename causes a safe check of the exact target path. Startup keeps fixed-size signal booleans instead of an event list. A known unrelated filename does not refresh an ordinary file. Adding a cross-directory canonical slot causes one conservative startup refresh because a target save can occur before that slot exists. A matching requested-directory signal resolves the topology again. A changed target directory attaches the new canonical watcher before it closes the old one. The manager owns at most two native watchers for one logical preview. Both share one 300 ms debounce, one stability bound, one publication signature, one native error budget, and one cleanup owner. After the debounce, two equal size and modification samples 100 ms apart prove stability. Device and inode values identify a stable replacement. An unchanged published signature does not cause another refresh.
+
+One recovery cycle performs at most 20 metadata checks over two seconds. A missing or changing target gets one error when that bound ends. The active watcher slots stay open so a later target or topology event can recover. A native watcher error replaces only the failed slot and reconciles the target again. More than 20 native errors across both slots in a rolling two-second window stop the logical watcher. Explicit unwatch and application shutdown close all owned native watchers and cancel all owned timers through the same idempotent path.
+
+The renderer remounts HTML frames and image elements when the watcher publishes a new `refreshKey`. Local `file:` image previews also add that key to the resource URL as `audiobash-refresh`. Chromium can reuse a decoded image when only the element changes, so the changed URL is required to load the new file bytes. HTTP and HTTPS image URLs stay unchanged because added query data can invalidate a signed URL.
+
+The manager does not watch either parent directory's parent. If an editor or build removes and replaces a watched requested or canonical parent directory, close and reopen the preview pane or change the preview path after that build. This limit keeps recovery bounded and avoids one native watcher for every ancestor directory.
+
+The directory watcher can receive unrelated directory events. The JavaScript callback rejects known non-target filenames before it reads metadata. No high-churn native event performance trace was run for this release.
+
+If native watcher replacement fails or exceeds its bound, the main process writes a structured error with the watcher ID, path, and safe cause details. The preview status bar does not show this terminal error. Close and reopen the preview pane or change the preview path to start a new watcher. A user-visible watcher error state is outside Task 9.
+
+## File structure map
 
 ```
 audiobash/
@@ -761,10 +778,17 @@ audiobash/
 │   │   ├── PTY management
 │   │   ├── IPC handlers (38+)
 │   │   ├── AI client initialization
+│   ├── fileWatcher.cjs               # Bounded preview file watching
+│   ├── localWhisperHandlers.cjs      # Local Whisper IPC validation and temp files
+│   ├── processTree.cjs               # Proved cross-platform process-tree cleanup
+│   ├── processTreeLauncher.cjs       # Gated process-tree ownership root
+│   ├── windowsJobOwner.ps1           # Native Windows Job Object owner
+│   ├── transcriptionJob.cjs          # One local transcription lifecycle owner
+│   ├── appShutdown.cjs               # Bounded asynchronous quit coordination
 │   ├── preload.cjs                   # IPC Bridge (53 APIs)
 │   ├── logger.cjs                    # Main process logging
 │   ├── error-handler.cjs             # Global error handlers
-│   └── whisperService.cjs            # Local Whisper
+│   └── whisperService.cjs            # Local Whisper job registry
 │
 ├── src/                               # Renderer Process
 │   ├── index.tsx                     # React entry point

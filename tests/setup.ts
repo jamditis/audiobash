@@ -21,7 +21,7 @@ export interface MockElectronAPI {
   saveApiKeys: ReturnType<typeof vi.fn>;
   whisperSetModel: ReturnType<typeof vi.fn>;
   whisperTranscribe: ReturnType<typeof vi.fn>;
-  saveTempAudio: ReturnType<typeof vi.fn>;
+  whisperCancel: ReturnType<typeof vi.fn>;
   getSettings: ReturnType<typeof vi.fn>;
   saveSettings: ReturnType<typeof vi.fn>;
   getPlatform: ReturnType<typeof vi.fn>;
@@ -29,6 +29,11 @@ export interface MockElectronAPI {
   minimize: ReturnType<typeof vi.fn>;
   maximize: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
+  transcribeWithGemini: ReturnType<typeof vi.fn>;
+  transcribeWithOpenAI: ReturnType<typeof vi.fn>;
+  transcribeWithAnthropic: ReturnType<typeof vi.fn>;
+  transcribeWithElevenLabs: ReturnType<typeof vi.fn>;
+  cancelTranscription: ReturnType<typeof vi.fn>;
 }
 
 export function createMockElectronAPI(): MockElectronAPI {
@@ -43,7 +48,7 @@ export function createMockElectronAPI(): MockElectronAPI {
     saveApiKeys: vi.fn(() => Promise.resolve()),
     whisperSetModel: vi.fn(() => Promise.resolve()),
     whisperTranscribe: vi.fn(() => Promise.resolve({ text: 'mock transcription' })),
-    saveTempAudio: vi.fn(() => Promise.resolve({ success: true, path: '/tmp/audio.webm' })),
+    whisperCancel: vi.fn(() => Promise.resolve({ cancelled: true, queued: false })),
     getSettings: vi.fn(() => Promise.resolve({})),
     saveSettings: vi.fn(() => Promise.resolve()),
     getPlatform: vi.fn(() => 'linux'),
@@ -51,18 +56,25 @@ export function createMockElectronAPI(): MockElectronAPI {
     minimize: vi.fn(),
     maximize: vi.fn(),
     close: vi.fn(),
+    transcribeWithGemini: vi.fn(),
+    transcribeWithOpenAI: vi.fn(),
+    transcribeWithAnthropic: vi.fn(),
+    transcribeWithElevenLabs: vi.fn(),
+    cancelTranscription: vi.fn(() => Promise.resolve({ cancelled: true })),
   };
 }
 
 // Global mock electron API
 const mockElectronAPI = createMockElectronAPI();
 
-// Attach to window
-Object.defineProperty(window, 'electron', {
-  value: mockElectronAPI,
-  writable: true,
-  configurable: true,
-});
+// Attach to window in browser-environment tests. Main-process tests use the Node environment.
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'electron', {
+    value: mockElectronAPI,
+    writable: true,
+    configurable: true,
+  });
+}
 
 // =============================================================================
 // Mock xterm.js
@@ -190,10 +202,12 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+  });
+}
 
 // Mock ResizeObserver
 class MockResizeObserver {
@@ -213,41 +227,45 @@ class MockResizeObserver {
   }
 }
 
-window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+if (typeof window !== 'undefined') {
+  window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+}
 
 // Mock requestAnimationFrame - use setTimeout to prevent infinite loops
 let rafId = 0;
-window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-  const id = ++rafId;
-  // Don't execute immediately to prevent stack overflow in components
-  // that check container dimensions and retry
-  Promise.resolve().then(() => callback(performance.now()));
-  return id;
-});
+if (typeof window !== 'undefined') {
+  window.requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+    const id = ++rafId;
+    // Don't execute immediately to prevent stack overflow in components
+    // that check container dimensions and retry
+    Promise.resolve().then(() => callback(performance.now()));
+    return id;
+  });
 
-window.cancelAnimationFrame = vi.fn();
+  window.cancelAnimationFrame = vi.fn();
 
-// Mock getBoundingClientRect to return valid dimensions
-Element.prototype.getBoundingClientRect = vi.fn(() => ({
-  width: 800,
-  height: 600,
-  top: 0,
-  left: 0,
-  bottom: 600,
-  right: 800,
-  x: 0,
-  y: 0,
-  toJSON: () => ({}),
-}));
+  // Mock getBoundingClientRect to return valid dimensions
+  Element.prototype.getBoundingClientRect = vi.fn(() => ({
+    width: 800,
+    height: 600,
+    top: 0,
+    left: 0,
+    bottom: 600,
+    right: 800,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  }));
 
-// Mock clipboard
-Object.defineProperty(navigator, 'clipboard', {
-  value: {
-    writeText: vi.fn(() => Promise.resolve()),
-    readText: vi.fn(() => Promise.resolve('')),
-  },
-  writable: true,
-});
+  // Mock clipboard
+  Object.defineProperty(navigator, 'clipboard', {
+    value: {
+      writeText: vi.fn(() => Promise.resolve()),
+      readText: vi.fn(() => Promise.resolve('')),
+    },
+    writable: true,
+  });
+}
 
 // Mock MediaRecorder
 export class MockMediaRecorder {
@@ -284,7 +302,9 @@ export class MockMediaRecorder {
   static isTypeSupported = vi.fn(() => true);
 }
 
-window.MediaRecorder = MockMediaRecorder as unknown as typeof MediaRecorder;
+if (typeof window !== 'undefined') {
+  window.MediaRecorder = MockMediaRecorder as unknown as typeof MediaRecorder;
+}
 
 // Mock MediaDevices
 const mockMediaDevices = {
@@ -306,10 +326,12 @@ const mockMediaDevices = {
   ),
 };
 
-Object.defineProperty(navigator, 'mediaDevices', {
-  value: mockMediaDevices,
-  writable: true,
-});
+if (typeof navigator !== 'undefined') {
+  Object.defineProperty(navigator, 'mediaDevices', {
+    value: mockMediaDevices,
+    writable: true,
+  });
+}
 
 // =============================================================================
 // Mock fetch for API tests
@@ -394,8 +416,10 @@ beforeEach(() => {
   // Clear localStorage
   localStorageMock.clear();
 
-  // Reset electron API mock
-  Object.assign(window.electron, createMockElectronAPI());
+  // Reset electron API mock in browser-environment tests.
+  if (typeof window !== 'undefined') {
+    Object.assign(window.electron, createMockElectronAPI());
+  }
 });
 
 afterEach(() => {

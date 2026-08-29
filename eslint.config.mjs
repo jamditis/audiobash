@@ -39,6 +39,8 @@ export default tseslint.config(
       'docs/**',
       'security-lab/**',
       '.claude/**',
+      '.audit/**',
+      '.worktrees/**',
       'release/**',
     ],
   },

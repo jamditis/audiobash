@@ -1,30 +1,61 @@
 {
   "name": "audiobash",
-  "version": "3.3.1",
+  "version": "3.4.0",
+  "releasePolicy": {
+    "appleTeamId": "5624SD289G",
+    "publicVersion": "3.3.1"
+  },
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",
   "author": "Joe Amditis",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "packageManager": "npm@10.9.2",
   "scripts": {
+    "verify:toolchain": "node scripts/verify-toolchain.cjs",
     "copy-vad-assets": "node scripts/copy-vad-assets.cjs",
+    "prepare:native": "node scripts/prepare-native-deps.cjs",
+    "prepare:electron": "node node_modules/electron/install.js",
     "dev": "npm run copy-vad-assets && vite",
     "build": "npm run copy-vad-assets && tsc && vite build",
+    "pretest": "npm run prepare:native && npm run prepare:electron",
     "test": "vitest run",
+    "pretest:watch": "npm run prepare:native && npm run prepare:electron",
     "test:watch": "vitest",
+    "pretest:coverage": "npm run prepare:native && npm run prepare:electron",
     "test:coverage": "vitest run --coverage",
+    "pretest:ui": "npm run prepare:native && npm run prepare:electron",
     "test:ui": "vitest --ui",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "lint:py": "ruff check scripts build",
+    "test:package:mac": "vitest run --config vitest.package.config.ts",
+    "test:package:win": "node scripts/verify-windows-package.cjs",
+    "lint": "eslint . --max-warnings 33",
+    "lint:fix": "eslint . --fix --max-warnings 33",
+    "setup:ruff": "uv tool run --from ruff==0.15.1 ruff --version",
+    "lint:py": "uv tool run --from ruff==0.15.1 ruff check scripts build && uv tool run --from ruff==0.15.1 ruff format --check scripts build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "version:check": "node scripts/sync-version.cjs --check",
+    "version:sync": "node scripts/sync-version.cjs --write",
+    "preelectron:dev": "npm run prepare:native && npm run prepare:electron",
     "electron:dev": "npm run copy-vad-assets && concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
+    "preelectron:build": "npm run prepare:native && npm run prepare:electron",
     "electron:build": "npm run build && electron-builder",
+    "preelectron:build:win": "npm run prepare:native && npm run prepare:electron",
     "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:mac:arm64": "npm run build && electron-builder --mac --arm64",
-    "electron:build:mac:x64": "npm run build && electron-builder --mac --x64",
+    "preelectron:build:mac": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac": "npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64",
+    "preelectron:build:mac:arm64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:arm64": "npm run build && AUDIOBASH_BUILD_MODE=development SKIP_NOTARIZE=true electron-builder --mac --arm64 --publish never --config.mac.identity=-",
+    "preelectron:build:mac:x64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:x64": "npm run build && AUDIOBASH_BUILD_MODE=development SKIP_NOTARIZE=true electron-builder --mac --x64 --publish never --config.mac.identity=-",
+    "preelectron:build:mac:release:arm64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:release:arm64": "npm run build && AUDIOBASH_BUILD_MODE=release electron-builder --mac --arm64 --publish never --config.forceCodeSigning=true",
+    "preelectron:build:mac:release:x64": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:mac:release:x64": "npm run build && AUDIOBASH_BUILD_MODE=release electron-builder --mac --x64 --publish never --config.forceCodeSigning=true",
+    "preelectron:build:linux": "npm run prepare:native && npm run prepare:electron",
     "electron:build:linux": "npm run build && electron-builder --linux",
     "preview": "vite preview"
   },
@@ -32,78 +63,106 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.21.0",
     "@remotion/install-whisper-cpp": "^4.0.405",
-    "@ricky0123/vad-web": "^0.0.30",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/xterm": "^5.5.0",
     "node-pty": "^1.1.0",
-    "openai": "^6.10.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "openai": "^6.10.0"
   },
   "devDependencies": {
+    "@electron/asar": "^3.4.1",
     "@electron/notarize": "^3.1.1",
     "@eslint/js": "^9.39.4",
+    "@ricky0123/vad-web": "^0.0.30",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "4.1.11",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "autoprefixer": "^10.4.19",
-    "concurrently": "^9.0.0",
-    "electron": "^39.6.0",
-    "electron-builder": "^26.7.0",
+    "concurrently": "9.2.4",
+    "electron": "43.4.1",
+    "electron-builder": "26.15.3",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.26",
     "globals": "^17.6.0",
     "jsdom": "^26.1.0",
-    "postcss": "^8.4.38",
+    "postcss": "8.5.26",
     "prettier": "^3.8.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.60.1",
-    "vite": "^6.0.0",
-    "vitest": "^4.0.16",
+    "vite": "6.4.3",
+    "vitest": "4.1.11",
     "wait-on": "^8.0.0"
   },
   "overrides": {
-    "protobufjs": "^7.6.2",
-    "ws": "^8.21.0"
+    "@babel/core": "7.29.7",
+    "@noble/hashes@>=2.0.0 <2.4.0": "2.3.0",
+    "axios": "1.18.0",
+    "baseline-browser-mapping": "2.11.19",
+    "brace-expansion@>=1.0.0 <1.1.18": "1.1.18",
+    "brace-expansion@>=5.0.0 <5.0.9": "5.0.9",
+    "browserslist": "4.28.8",
+    "caniuse-lite": "1.0.30001810",
+    "electron-to-chromium": "1.5.413",
+    "follow-redirects": "1.16.0",
+    "form-data": "4.0.6",
+    "joi": "18.2.1",
+    "js-yaml": "4.3.1",
+    "lodash": "4.18.1",
+    "node-abi": "4.33.0",
+    "node-releases": "2.0.53",
+    "minimatch@<3.1.4": "3.1.4",
+    "picomatch@<2.3.2": "2.3.2",
+    "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+    "protobufjs": "7.6.5",
+    "readdirp": {
+      "picomatch": "2.3.2"
+    },
+    "rollup": "4.59.0",
+    "update-browserslist-db": "1.3.1",
+    "ws": "8.21.0"
   },
   "build": {
     "appId": "com.audiobash.app",
     "productName": "AudioBash",
     "npmRebuild": false,
     "afterPack": "./scripts/afterPack.cjs",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "node_modules/node-pty/**/*"
-    ],
-    "asarUnpack": [
-      "node_modules/node-pty/**/*"
+      "node_modules/node-pty/**/*",
+      "!electron/windowsJobOwner.ps1"
     ],
     "extraResources": [
       {
-        "from": "assets",
-        "to": "assets"
-      },
-      {
         "from": "audiobash-logo.png",
         "to": "audiobash-logo.png"
-      },
-      {
-        "from": "audiobash-logo.ico",
-        "to": "audiobash-logo.ico"
       }
     ],
     "win": {
       "target": "nsis",
-      "icon": "audiobash-logo.png"
+      "artifactName": "${productName}.Setup.${version}.${ext}",
+      "icon": "audiobash-logo.png",
+      "extraResources": [
+        {
+          "from": "audiobash-logo.ico",
+          "to": "audiobash-logo.ico"
+        },
+        {
+          "from": "electron/windowsJobOwner.ps1",
+          "to": "windowsJobOwner.ps1"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -118,29 +177,42 @@
       "shortcutName": "AudioBash"
     },
     "afterSign": "./scripts/notarize.cjs",
+    "afterAllArtifactBuild": "./scripts/notarizeArtifacts.cjs",
     "mac": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
+        "dmg",
+        "zip"
       ],
       "icon": "audiobash-logo.png",
       "category": "public.app-category.developer-tools",
+      "minimumSystemVersion": "12.0",
       "hardenedRuntime": true,
+      "notarize": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "asar": {
+        "smartUnpack": false
+      },
+      "asarUnpack": [
+        "node_modules/node-pty/prebuilds/**/*"
+      ],
+      "files": [
+        "dist/**/*",
+        "electron/**/*",
+        "node_modules/node-pty/**/*",
+        "!node_modules/node-pty/prebuilds/!(darwin-${arch}){,/**/*}",
+        "!node_modules/node-pty/{deps,scripts,src}{,/**/*}",
+        "!node_modules/node-pty/**/*.test.{js,ts}",
+        "!node_modules/node-pty/**/*.{map,pdb}",
+        "!node_modules/node-addon-api{,/**/*}",
+        "!node_modules/json-schema-to-ts{,/**/*}",
+        "!node_modules/ts-algebra{,/**/*}",
+        "!node_modules/@babel/runtime{,/**/*}",
+        "!node_modules/@remotion/captions{,/**/*}",
+        "!electron/windowsJobOwner.ps1"
+      ]
     },
     "dmg": {
       "sign": false,

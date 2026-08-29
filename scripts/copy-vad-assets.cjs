@@ -15,11 +15,13 @@ const destDir = path.join(root, 'public', 'vad');
 const assets = [
   ['@ricky0123/vad-web/dist/vad.worklet.bundle.min.js', 'vad.worklet.bundle.min.js'],
   ['@ricky0123/vad-web/dist/silero_vad_legacy.onnx', 'silero_vad_legacy.onnx'],
-  ['@ricky0123/vad-web/dist/silero_vad_v5.onnx', 'silero_vad_v5.onnx'],
   ['onnxruntime-web/dist/ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.wasm'],
   ['onnxruntime-web/dist/ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.mjs'],
 ];
 
+// This directory is generated and gitignored. Recreate it so a removed model or renamed runtime
+// file cannot remain in a later build.
+fs.rmSync(destDir, { recursive: true, force: true });
 fs.mkdirSync(destDir, { recursive: true });
 
 let copied = 0;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { useTheme, themeToXtermTheme } from '../themes';
@@ -15,7 +15,7 @@ interface TerminalProps {
   isActive: boolean;
   isVisible?: boolean; // For split view - show terminal
   isFocused?: boolean; // For voice commands target
-  isRecording?: boolean; // For focus indicator animation
+  isRecording?: boolean; // Use the recording color on the focused pane ring
   onFocus?: () => void; // Click callback for split view
   cliNotificationsEnabled?: boolean; // Play sound when CLI requests input
   fontSize?: number; // Terminal font size (controlled by Ctrl+/-/0)
@@ -36,9 +36,16 @@ const Terminal: React.FC<TerminalProps> = ({
   const fitAddonRef = useRef<FitAddon | null>(null);
   const cliNotificationsRef = useRef(cliNotificationsEnabled);
   const { theme } = useTheme();
+  const latestThemeRef = useRef(theme);
+  const latestFontSizeRef = useRef(fontSize);
   const [scanlines, setScanlines] = useState(() => {
     return localStorage.getItem('audiobash-scanlines') === 'true';
   });
+
+  useLayoutEffect(() => {
+    latestThemeRef.current = theme;
+    latestFontSizeRef.current = fontSize;
+  }, [theme, fontSize]);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -73,9 +80,9 @@ const Terminal: React.FC<TerminalProps> = ({
       try {
         // Create xterm instance with theme
         xterm = new XTerm({
-          theme: themeToXtermTheme(theme),
+          theme: themeToXtermTheme(latestThemeRef.current),
           fontFamily: '"JetBrains Mono", "Berkeley Mono", Consolas, monospace',
-          fontSize,
+          fontSize: latestFontSizeRef.current,
           lineHeight: 1.2,
           cursorBlink: true,
           cursorStyle: 'block',
@@ -195,7 +202,7 @@ const Terminal: React.FC<TerminalProps> = ({
           requestAnimationFrame(() => {
             xtermRef.current?.focus();
           });
-        } catch (err) {
+        } catch {
           // Ignore fit errors
         }
       }, 50);
@@ -227,7 +234,7 @@ const Terminal: React.FC<TerminalProps> = ({
         if (xtermRef.current) {
           window.electron?.resizeTerminal(tabId, xtermRef.current.cols, xtermRef.current.rows);
         }
-      } catch (err) {
+      } catch {
         // ignore fit errors during font size change
       }
     }
@@ -282,7 +289,9 @@ const Terminal: React.FC<TerminalProps> = ({
 
   return (
     <div
-      className={`h-full w-full bg-void relative ${isFocused ? 'ring-1 ring-acid/60' : ''}`}
+      className={`h-full w-full bg-void relative ${
+        isFocused ? `ring-1 ${isRecording ? 'ring-accent' : 'ring-acid/60'}` : ''
+      }`}
       style={{ display: shouldShow ? 'block' : 'none' }}
       onClick={handleClick}
     >

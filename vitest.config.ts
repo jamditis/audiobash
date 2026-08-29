@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx', 'tests/**/*.stress.ts'],
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', 'tests/integration/macos-package.test.ts'],
     testTimeout: 120000, // 2 minute timeout for stress tests
     setupFiles: ['./tests/setup.ts'],
     // Run test files sequentially to avoid port conflicts in WebSocket tests

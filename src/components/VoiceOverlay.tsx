@@ -1,13 +1,15 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 import {
   transcriptionService,
   ModelId,
   MODELS,
+  readStoredModelId,
   TranscriptionError,
 } from '../services/transcriptionService';
 import { audioFeedback } from '../utils/audioFeedback';
 import { useVAD } from '../hooks/useVAD';
 import { useElevenLabsRealtime } from '../hooks/useElevenLabsRealtime';
+import { useTranscriptionCancellation } from '../hooks/useTranscriptionCancellation';
 import { float32ToWebmBlob } from '../utils/audioConversion';
 import { voiceLog as log } from '../utils/logger';
 
@@ -73,23 +75,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const SendIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={2}
-    stroke="currentColor"
-    className="w-4 h-4"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-    />
-  </svg>
-);
-
 const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   isOpen,
   isRecording,
@@ -114,12 +99,84 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   const startTimeRef = useRef<number>(0);
   const isRecordingRef = useRef(isRecording);
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const startGenerationRef = useRef(0);
+  const startPendingRef = useRef(false);
+  const recordingActionsRef = useRef<{
+    start: () => Promise<void>;
+    stop: () => void;
+    cancel: () => void;
+  } | null>(null);
+  const {
+    begin: beginBatchTranscription,
+    cancel: cancelBatchTranscription,
+    finish: finishBatchTranscription,
+    hasActive: hasActiveBatchTranscription,
+  } = useTranscriptionCancellation();
 
   const [status, setStatus] = useState<'idle' | 'recording' | 'processing'>('idle');
   const [hasApiKey, setHasApiKey] = useState(false);
   const [model, setModel] = useState<ModelId>('gemini-2.0-flash');
   const [error, setError] = useState<string | null>(null);
   const [elevenLabsApiKey, setElevenLabsApiKey] = useState<string>('');
+
+  const invalidatePendingStart = useCallback(() => {
+    startGenerationRef.current += 1;
+    startPendingRef.current = false;
+  }, []);
+
+  const cleanupAudioResources = useCallback(() => {
+    analyserRef.current = null;
+    const stream = streamRef.current;
+    streamRef.current = null;
+    stream?.getTracks().forEach((track) => track.stop());
+
+    const audioContext = audioContextRef.current;
+    audioContextRef.current = null;
+    if (audioContext) {
+      try {
+        void Promise.resolve(audioContext.close()).catch(() => {
+          log.warn('Failed to close voice audio context');
+        });
+      } catch {
+        log.warn('Failed to close voice audio context');
+      }
+    }
+  }, []);
+
+  const openVisualizationStream = useCallback(
+    async (startGeneration: number): Promise<MediaStream | null> => {
+      cleanupAudioResources();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (startGenerationRef.current !== startGeneration) {
+        stream.getTracks().forEach((track) => track.stop());
+        return null;
+      }
+      streamRef.current = stream;
+
+      try {
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        return stream;
+      } catch (streamError) {
+        cleanupAudioResources();
+        throw streamError;
+      }
+    },
+    [cleanupAudioResources],
+  );
+
+  useEffect(
+    () => () => {
+      invalidatePendingStart();
+      cleanupAudioResources();
+    },
+    [cleanupAudioResources, invalidatePendingStart],
+  );
 
   // Check if current model is ElevenLabs real-time
   const isRealtimeModel = useMemo(() => {
@@ -148,6 +205,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
 
   const handleVADSpeechEnd = useCallback(
     async (audioFloat32: Float32Array) => {
+      const controller = beginBatchTranscription();
       log.info('VAD detected speech end, processing audio', {
         audioSamples: audioFloat32.length,
         durationMs: (audioFloat32.length / 16000) * 1000,
@@ -173,6 +231,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           mode,
           model,
           durationMs,
+          controller.signal,
         );
         if (result.text) {
           onTranscript(result.text, mode);
@@ -193,6 +252,10 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
           vadStopRef.current?.();
         }
       } catch (err: unknown) {
+        if (err instanceof TranscriptionError && err.code === 'TRANSCRIPTION_CANCELLED') {
+          log.debug('VAD transcription cancelled');
+          return;
+        }
         log.error('Voice transcription failed', err);
         // Use user-friendly error message if available
         const errorMessage =
@@ -206,9 +269,19 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
         setStatus('idle');
         setIsRecording(false);
         vadStopRef.current?.();
+      } finally {
+        finishBatchTranscription(controller);
       }
     },
-    [mode, model, activeTabId, onTranscript, setIsRecording],
+    [
+      mode,
+      model,
+      activeTabId,
+      onTranscript,
+      setIsRecording,
+      beginBatchTranscription,
+      finishBatchTranscription,
+    ],
   );
 
   const vadInstance = useVAD({
@@ -219,24 +292,28 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   // ElevenLabs real-time transcription hook
   const handleRealtimeTranscript = useCallback(
     (text: string) => {
+      invalidatePendingStart();
       log.info('ElevenLabs real-time transcript received', { textLength: text.length });
       onTranscript(text, mode);
       audioFeedback.playSuccess();
+      cleanupAudioResources();
       setStatus('idle');
       setIsRecording(false);
     },
-    [mode, onTranscript, setIsRecording],
+    [cleanupAudioResources, invalidatePendingStart, mode, onTranscript, setIsRecording],
   );
 
   const handleRealtimeError = useCallback(
     (err: Error) => {
+      invalidatePendingStart();
       log.error('ElevenLabs real-time error', err);
+      cleanupAudioResources();
       setError(err.message);
       audioFeedback.playError();
       setStatus('idle');
       setIsRecording(false);
     },
-    [setIsRecording],
+    [cleanupAudioResources, invalidatePendingStart, setIsRecording],
   );
 
   const elevenLabsRealtime = useElevenLabsRealtime({
@@ -248,7 +325,11 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       log.info('ElevenLabs real-time session started');
     },
     onSessionEnd: () => {
+      invalidatePendingStart();
       log.info('ElevenLabs real-time session ended');
+      cleanupAudioResources();
+      setStatus('idle');
+      setIsRecording(false);
     },
   });
 
@@ -285,7 +366,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
 
       // Check if current model has required key
-      const savedModel = (localStorage.getItem('audiobash-model') as ModelId) || 'gemini-2.0-flash';
+      const savedModel = readStoredModelId();
       setModel(savedModel);
 
       const modelInfo = MODELS.find((m) => m.id === savedModel);
@@ -313,8 +394,9 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   // following principle of least privilege.
   useEffect(() => {
     const handleStorageChange = async () => {
-      const savedModel = localStorage.getItem('audiobash-model') as ModelId;
-      if (savedModel && savedModel !== model) {
+      const storedModel = localStorage.getItem('audiobash-model');
+      const savedModel = readStoredModelId();
+      if (storedModel && savedModel !== model) {
         log.info('Model changed via settings', { from: model, to: savedModel });
         setModel(savedModel);
 
@@ -423,69 +505,63 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
   }, [isOpen]);
 
   const startRecording = useCallback(async () => {
+    if (startPendingRef.current) {
+      return;
+    }
+
     const modelInfo = MODELS.find((m) => m.id === model);
     if (!hasApiKey && modelInfo?.provider !== 'local') {
       setError('No API key configured for selected model');
       return;
     }
 
+    startPendingRef.current = true;
+    const startGeneration = ++startGenerationRef.current;
+
     try {
+      cancelBatchTranscription();
       setError(null);
 
       // Use ElevenLabs real-time for streaming models
       if (isRealtimeModel) {
         log.info('Starting ElevenLabs real-time recording');
-        await elevenLabsRealtime.start();
+        const started = await elevenLabsRealtime.start();
+        if (!started || startGenerationRef.current !== startGeneration) {
+          return;
+        }
+        const stream = await openVisualizationStream(startGeneration);
+        if (!stream) {
+          return;
+        }
+
         setIsRecording(true);
         setStatus('recording');
         audioFeedback.playStart();
-
-        // Set up analyser for visualization
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        streamRef.current = stream;
-        const audioContext = new AudioContext();
-        audioContextRef.current = audioContext;
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-
         return;
       }
 
       // Use VAD for 'vad' and 'continuous' modes
       if (recordingMode === 'vad' || recordingMode === 'continuous') {
         await vadInstance.start();
+        if (startGenerationRef.current !== startGeneration) {
+          return;
+        }
+        const stream = await openVisualizationStream(startGeneration);
+        if (!stream) {
+          return;
+        }
+
         setIsRecording(true);
         setStatus('recording');
         audioFeedback.playStart();
-
-        // Set up analyser for visualization (VAD doesn't provide this)
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        streamRef.current = stream;
-        const audioContext = new AudioContext();
-        audioContextRef.current = audioContext;
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        analyserRef.current = analyser;
-
         return;
       }
 
       // Manual mode: use existing MediaRecorder flow
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
+      const stream = await openVisualizationStream(startGeneration);
+      if (!stream) {
+        return;
+      }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
@@ -498,20 +574,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
+        const controller = beginBatchTranscription();
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const durationMs = Date.now() - startTimeRef.current;
 
         log.info('Recording stopped', { durationMs, blobSize: blob.size });
 
-        if (audioContextRef.current) {
-          audioContextRef.current.close();
-          audioContextRef.current = null;
-        }
-        analyserRef.current = null;
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-          streamRef.current = null;
-        }
+        cleanupAudioResources();
 
         setStatus('processing');
         try {
@@ -524,7 +593,13 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             }
           }
 
-          const result = await transcriptionService.transcribeAudio(blob, mode, model, durationMs);
+          const result = await transcriptionService.transcribeAudio(
+            blob,
+            mode,
+            model,
+            durationMs,
+            controller.signal,
+          );
           if (result.text) {
             onTranscript(result.text, mode);
             audioFeedback.playSuccess();
@@ -533,6 +608,10 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             log.debug('Empty transcription result');
           }
         } catch (err: unknown) {
+          if (err instanceof TranscriptionError && err.code === 'TRANSCRIPTION_CANCELLED') {
+            log.debug('Transcription cancelled');
+            return;
+          }
           log.error('Transcription failed', err);
           // Use user-friendly error message if available
           const errorMessage =
@@ -543,8 +622,12 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
                 : 'An unknown error occurred';
           setError(errorMessage);
           audioFeedback.playError();
+        } finally {
+          finishBatchTranscription(controller);
+          if (!controller.signal.aborted) {
+            setStatus('idle');
+          }
         }
-        setStatus('idle');
       };
 
       startTimeRef.current = Date.now();
@@ -553,6 +636,17 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       setStatus('recording');
       audioFeedback.playStart();
     } catch (err: unknown) {
+      if (startGenerationRef.current !== startGeneration) {
+        return;
+      }
+      if (isRealtimeModel) {
+        elevenLabsRealtime.cancel();
+      } else if (recordingMode === 'vad' || recordingMode === 'continuous') {
+        vadInstance.stop();
+      }
+      cleanupAudioResources();
+      setIsRecording(false);
+      setStatus('idle');
       log.error('Failed to start recording', err);
       const errName = err instanceof Error ? err.name : '';
       const errMessage = err instanceof Error ? err.message : String(err);
@@ -564,10 +658,15 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
             : `Failed to start recording: ${errMessage}`;
       setError(errorMessage);
       audioFeedback.playError();
+    } finally {
+      if (startGenerationRef.current === startGeneration) {
+        startPendingRef.current = false;
+      }
     }
   }, [
     mode,
     model,
+    activeTabId,
     hasApiKey,
     onTranscript,
     setIsRecording,
@@ -575,6 +674,11 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     vadInstance,
     isRealtimeModel,
     elevenLabsRealtime,
+    beginBatchTranscription,
+    cancelBatchTranscription,
+    finishBatchTranscription,
+    cleanupAudioResources,
+    openVisualizationStream,
   ]);
 
   const stopRecording = useCallback(() => {
@@ -586,15 +690,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       setStatus('processing'); // Will be set to idle by the transcript callback
 
       // Clean up visualizer
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      analyserRef.current = null;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      cleanupAudioResources();
       return;
     }
 
@@ -604,15 +700,7 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       audioFeedback.playStop();
 
       // Clean up visualizer
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-      analyserRef.current = null;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      cleanupAudioResources();
     } else {
       // Manual mode: stop MediaRecorder
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -621,16 +709,27 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
       }
     }
     setIsRecording(false);
-  }, [setIsRecording, recordingMode, vadInstance, isRealtimeModel, elevenLabsRealtime]);
+  }, [
+    setIsRecording,
+    recordingMode,
+    vadInstance,
+    isRealtimeModel,
+    elevenLabsRealtime,
+    cleanupAudioResources,
+  ]);
 
   // Cancel recording - stops without processing/sending
   const cancelRecording = useCallback(() => {
-    if (!isRecordingRef.current) return;
+    const hadActiveBatch = hasActiveBatchTranscription();
+    const hadPendingStart = startPendingRef.current;
+    invalidatePendingStart();
+    cancelBatchTranscription();
+    if (!isRecordingRef.current && !hadActiveBatch && !hadPendingStart) return;
 
     // Stop ElevenLabs real-time if using streaming model
     if (isRealtimeModel) {
       // Disconnect without waiting for transcript
-      elevenLabsRealtime.stop();
+      elevenLabsRealtime.cancel();
     } else if (recordingMode === 'vad' || recordingMode === 'continuous') {
       // Stop VAD if using vad or continuous mode
       vadInstance.stop();
@@ -645,22 +744,24 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     }
 
     // Clean up audio resources
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    analyserRef.current = null;
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
+    cleanupAudioResources();
 
     setIsRecording(false);
     setStatus('idle');
     audioFeedback.playError(); // Play error/cancel sound
     setError('Recording cancelled');
     setTimeout(() => setError(null), 2000);
-  }, [setIsRecording, recordingMode, vadInstance, isRealtimeModel, elevenLabsRealtime]);
+  }, [
+    setIsRecording,
+    recordingMode,
+    vadInstance,
+    isRealtimeModel,
+    elevenLabsRealtime,
+    cancelBatchTranscription,
+    hasActiveBatchTranscription,
+    cleanupAudioResources,
+    invalidatePendingStart,
+  ]);
 
   const toggleRecording = useCallback(() => {
     if (isRecordingRef.current) {
@@ -670,27 +771,38 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     }
   }, [startRecording, stopRecording]);
 
+  useLayoutEffect(() => {
+    recordingActionsRef.current = {
+      start: startRecording,
+      stop: stopRecording,
+      cancel: cancelRecording,
+    };
+  }, [startRecording, stopRecording, cancelRecording]);
+
   // Global shortcut handler for toggle recording
   useEffect(() => {
     const handleToggle = () => {
+      const actions = recordingActionsRef.current;
+      if (!actions) return;
+
       if (isRecordingRef.current) {
-        stopRecording();
+        actions.stop();
       } else {
-        startRecording();
+        void actions.start();
       }
     };
     const cleanup = window.electron?.onToggleRecording(handleToggle);
     return () => cleanup?.();
-  }, [startRecording, stopRecording]);
+  }, []);
 
   // Global shortcut handler for cancel recording
   useEffect(() => {
     const handleCancel = () => {
-      cancelRecording();
+      recordingActionsRef.current?.cancel();
     };
     const cleanup = window.electron?.onCancelRecording(handleCancel);
     return () => cleanup?.();
-  }, [cancelRecording]);
+  }, []);
 
   // Smart handoff: cancel recording when CC /voice becomes active (discard partial audio)
   useEffect(() => {

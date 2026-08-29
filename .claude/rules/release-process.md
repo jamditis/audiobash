@@ -2,26 +2,35 @@
 
 When creating a new release, follow these steps in order:
 
-## 1. Update version numbers
+## 1. Update the release version
 
-Update the version in these locations:
-- `package.json` — the `version` field
-- `docs/js/version.js` — the `AUDIOBASH_VERSION` constant (this is the single source of truth for all docs pages and download URLs)
-- `docs/index.html` — hardcoded fallback text in `data-version` attributes (4 locations: header badge, nav badge, "NEW IN" heading, footer)
-- `docs/manual.html` — any hardcoded version references
+`package.json` carries two version states. The top-level `version` is the build and artifact version. `releasePolicy.publicVersion` is the version that the website advertises. Update the build version here. Do not change the public version or freeze the current release card before the new release assets are published.
 
-**Note:** `docs/releases.html`, `docs/macos.html`, and `docs/latest.html` use `data-version` templates that are populated dynamically by `version.js`. Historical release entries in those files should NOT be updated — they document past releases.
+Update `package.json` and the root package fields in `package-lock.json` without creating a tag. Then synchronize and check every generated documentation fallback and download filename:
+
+```bash
+npm version X.X.X --no-git-tag-version
+npm run version:sync
+npm run version:check
+```
+
+Review every generated change. While the build and public versions differ, the sync command pins documentation fallbacks to the existing public version and leaves download filenames unchanged. It must not change historical release text, dependency versions, dates, or release evidence.
 
 ## 2. Update README.md
 
 If the release includes new features, update the Features section in README.md to reflect them.
 
-## 3. Build the installer
+## 3. Build the release candidate
+
+Do not use the local macOS package command for release files. It creates development packages with ad hoc signing and an explicit notarization skip. After the exact reviewed commit reaches the current `master` branch, dispatch the release-candidate workflow for that commit:
 
 ```bash
-npm run electron:build:win    # Windows
-npm run electron:build:mac    # macOS (both architectures)
+gh workflow run .github/workflows/build.yml \
+  --ref master \
+  -f release_commit=EXACT_REVIEWED_COMMIT
 ```
+
+Wait for all five job runs to pass: macOS arm64, macOS x64, Windows, Linux, and aggregate verification. Download all workflow artifacts, then run `scripts/verify-release-artifact-set.cjs` with the exact commit, repository, run ID, and run attempt before creating a tag or draft release.
 
 ## 4. Run tests
 
@@ -33,9 +42,13 @@ All tests must pass before proceeding. Do not skip this step.
 
 ## 5. Commit and push
 
+Review `git status --short` and every diff. Start with both package identity files, then stage every reviewed file reported by `git status --short`, including all files reported by `version:sync`:
+
 ```bash
-git add package.json docs/js/version.js docs/index.html docs/manual.html [any changed source files]
-git commit -m "vX.X.X: Brief description of changes"
+git status --short
+git add package.json package-lock.json
+git add [every reviewed generated, test, documentation, and source file]
+git commit -m "release: explain why this version is needed"
 git push origin [branch]
 ```
 
@@ -85,7 +98,7 @@ M1 / M2 / M3 / M4
 <td align="center" width="250">
 
 **💻 macOS — Intel**
-**[AudioBash-X.X.X.dmg](https://github.com/jamditis/audiobash/releases/download/vX.X.X/AudioBash-X.X.X.dmg)**
+**[AudioBash-X.X.X-x64.dmg](https://github.com/jamditis/audiobash/releases/download/vX.X.X/AudioBash-X.X.X-x64.dmg)**
 x64 Macs
 
 </td>
@@ -125,10 +138,10 @@ x64 Macs
 ### macOS
 1. Download the `.dmg` for your Mac type
 2. Drag AudioBash to Applications
-3. **Right-click → Open** on first launch (bypasses Gatekeeper)
+3. Open AudioBash normally from Applications
 4. Grant microphone permission when prompted
 
-If Gatekeeper still blocks: `xattr -cr /Applications/AudioBash.app`
+If Gatekeeper warns or blocks the verified download, stop the release and investigate its signature, notarization ticket, stapling, quarantine path, and uploaded hash. Do not publish bypass instructions.
 
 </details>
 
@@ -148,44 +161,69 @@ If Gatekeeper still blocks: `xattr -cr /Applications/AudioBash.app`
 
 ### All platforms in every release
 
-Every release MUST include downloads for all three platforms (Windows, macOS Apple Silicon, macOS Intel), even if only one platform was rebuilt. If Mac builds weren't rebuilt for this release, download the `.dmg` files from the previous release and re-upload them to the new release. The download table always shows all three platforms — no dead links.
+Every release must attach the exact seven files from the verified release-candidate workflow: two macOS DMGs, two macOS zip files, one Windows installer, one Linux AppImage, and one Linux Debian package. Task 14 must download the workflow artifacts, verify their manifest and hashes again, and attach those same bytes. Do not rebuild files from a tag or reuse files from an earlier release.
 
 ```bash
-# Download previous Mac builds and re-upload to new release
-gh release download vPREVIOUS --pattern "*.dmg" --dir /tmp/mac-builds
-gh release upload vX.X.X /tmp/mac-builds/AudioBash-PREVIOUS-arm64.dmg#AudioBash-X.X.X-arm64.dmg /tmp/mac-builds/AudioBash-PREVIOUS.dmg#AudioBash-X.X.X.dmg
-```
-
-If re-uploading unchanged Mac builds, add a note in the release body under the download table:
-```markdown
-> macOS builds are unchanged from vPREVIOUS.
+node scripts/verify-release-artifact-set.cjs artifacts RELEASE_COMMIT OWNER/REPOSITORY RUN_ID RUN_ATTEMPT
 ```
 
 ### Command
 ```bash
-gh release create vX.X.X \
+gh release create vX.X.X --draft \
   --title "vX.X.X — Short description" \
   --notes "$(cat <<'EOF'
 [paste release notes here]
 EOF
-)" "dist/AudioBash Setup X.X.X.exe"
+)" \
+  "artifacts/macos-arm64/AudioBash-X.X.X-arm64.dmg" \
+  "artifacts/macos-arm64/AudioBash-X.X.X-arm64.zip" \
+  "artifacts/macos-x64/AudioBash-X.X.X-x64.dmg" \
+  "artifacts/macos-x64/AudioBash-X.X.X-x64.zip" \
+  "artifacts/windows-x64/AudioBash.Setup.X.X.X.exe" \
+  "artifacts/linux-x64/AudioBash-X.X.X.AppImage" \
+  "artifacts/linux-x64/AudioBash-X.X.X.deb"
 ```
 
-To add Mac builds later (or re-upload from previous release):
+Do not publish the draft until Task 14 downloads every attachment again and verifies its hash against the candidate manifest.
+
+## 8. Activate the public version
+
+Do this only after the GitHub release is published, all seven direct asset URLs return the verified files, and the release manifest still passes. Freeze the previous release card, remove all `data-version` and `data-download` attributes from it, and author the new current release card. Update current release copy on the homepage, latest page, release page, and macOS page.
+
+Set `releasePolicy.publicVersion` in `package.json` to the top-level package version. Then synchronize, check, test, and review every generated documentation change:
+
 ```bash
-gh release upload vX.X.X "dist/AudioBash-X.X.X-arm64.dmg" "dist/AudioBash-X.X.X.dmg"
+npm run version:sync
+npm run version:check
+npx vitest run tests/unit/docsReleases.test.ts tests/unit/syncVersion.test.ts
 ```
+
+Commit and push the public activation separately. Confirm the deployed site resolves each download button to the already-published verified asset. If any URL or hash differs, revert the public activation and stop.
 
 ## Checklist
 
-- [ ] Version bumped in `package.json`
-- [ ] Version bumped in `docs/js/version.js`
-- [ ] Version bumped in `docs/index.html` (4 hardcoded fallback locations)
-- [ ] Version bumped in `docs/manual.html`
+- [ ] Version bumped in `package.json` and the root `package-lock.json` fields without a tag
+- [ ] `npm run version:sync` completed and every generated change reviewed
+- [ ] `npm run version:check` passed
 - [ ] README.md updated with new features (if applicable)
-- [ ] Installer built successfully for target platform(s)
+- [ ] Release-candidate workflow dispatched from `master` with `release_commit` set to the exact reviewed commit
+- [ ] All five job runs passed for the exact reviewed commit
+- [ ] `scripts/verify-release-artifact-set.cjs` passed on the downloaded workflow artifacts
+- [ ] Both downloaded macOS DMGs opened normally under Gatekeeper without a bypass
+- [ ] `AudioBash-X.X.X-arm64.dmg` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-arm64.zip` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-x64.dmg` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X-x64.zip` verified and ready for the draft release
+- [ ] `AudioBash.Setup.X.X.X.exe` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X.AppImage` verified and ready for the draft release
+- [ ] `AudioBash-X.X.X.deb` verified and ready for the draft release
 - [ ] All tests passing
 - [ ] Changes committed and pushed
 - [ ] Git tag created and pushed
 - [ ] GitHub release created with hero screenshot + download table template
-- [ ] Installer(s) uploaded to release
+- [ ] The exact seven verified files uploaded to the draft release
+- [ ] Every draft attachment downloaded again and matched to the candidate manifest before publication
+- [ ] GitHub release published and all seven direct asset URLs returned the verified files
+- [ ] Previous release card frozen and the new current release card authored
+- [ ] `releasePolicy.publicVersion` advanced only after publication
+- [ ] Public activation tests, version check, deployed links, and hashes passed

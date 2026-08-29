@@ -149,6 +149,18 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = ({ url, refreshKey, onLo
     return `file://${url}`;
   }, [url]);
 
+  const imageUrl = useMemo(() => {
+    if (contentType !== 'image' || !preparedUrl.startsWith('file://')) return preparedUrl;
+
+    try {
+      const refreshedUrl = new URL(preparedUrl);
+      refreshedUrl.searchParams.set('audiobash-refresh', String(refreshKey));
+      return refreshedUrl.href;
+    } catch {
+      return preparedUrl;
+    }
+  }, [contentType, preparedUrl, refreshKey]);
+
   // Load markdown content
   useEffect(() => {
     if (contentType !== 'markdown') return;
@@ -248,7 +260,7 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = ({ url, refreshKey, onLo
           {isLoading && <LoadingDisplay />}
           <img
             key={`${preparedUrl}-${refreshKey}`}
-            src={preparedUrl}
+            src={imageUrl}
             alt="Preview"
             className={`max-w-full max-h-full object-contain ${isLoading ? 'opacity-0' : 'opacity-100'}`}
             onLoad={handleImageLoad}
