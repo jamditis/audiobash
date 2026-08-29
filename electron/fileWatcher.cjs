@@ -41,7 +41,7 @@ function eventTargetsFile(filename, targetBasenames) {
   if (filename === null || filename === undefined) return true;
 
   const eventBasename = Buffer.isBuffer(filename) ? filename.toString() : String(filename);
-  if (process.platform === 'win32') {
+  if (process.platform === 'win32' || process.platform === 'darwin') {
     const normalizedEventBasename = eventBasename.toLowerCase();
     return [...targetBasenames].some(
       (targetBasename) => normalizedEventBasename === targetBasename.toLowerCase(),

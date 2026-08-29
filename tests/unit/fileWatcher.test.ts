@@ -158,13 +158,18 @@ describe('preview file watcher', () => {
   });
 
   it('survives three atomic replacements and emits one refresh for each saved value', async () => {
+    vi.useFakeTimers();
     const { directory, filepath } = createFixture();
     const savedValues: string[] = [];
+    const harness = createWatchHarness();
     const manager = createFileWatcherManager({
       onChange: ({ filepath: changedFilepath }) => {
         savedValues.push(readFileSync(changedFilepath, 'utf8'));
       },
       onError: vi.fn(),
+      realpath: createImmediateRealpath(),
+      stat: createImmediateStat(),
+      watch: harness.watch,
     });
     managers.push(manager);
     await manager.watchFile(filepath);
@@ -173,7 +178,9 @@ describe('preview file watcher', () => {
       const temporaryFilepath = join(directory, `preview-${index}.tmp`);
       writeFileSync(temporaryFilepath, value);
       renameSync(temporaryFilepath, filepath);
-      await vi.waitFor(() => expect(savedValues).toHaveLength(index + 1), { timeout: 5000 });
+      harness.emit(0, 'rename', 'preview.html');
+      await vi.runAllTimersAsync();
+      expect(savedValues).toHaveLength(index + 1);
     }
 
     expect(savedValues).toEqual(['atomic-1', 'atomic-2', 'atomic-3']);
@@ -182,6 +189,7 @@ describe('preview file watcher', () => {
   it.runIf(process.platform === 'darwin')(
     'matches the canonical filename on a case-insensitive macOS volume',
     async ({ skip }) => {
+      vi.useFakeTimers();
       const { directory, filepath } = createFixture();
       const caseVariantPath = join(directory, 'PREVIEW.HTML');
       if (!existsSync(caseVariantPath)) {
@@ -189,20 +197,24 @@ describe('preview file watcher', () => {
         return;
       }
       const savedValues: string[] = [];
+      const harness = createWatchHarness();
       const manager = createFileWatcherManager({
         onChange: ({ filepath: changedFilepath }) => {
           savedValues.push(readFileSync(changedFilepath, 'utf8'));
         },
         onError: vi.fn(),
+        realpath: createImmediateRealpath(),
+        stat: createImmediateStat(),
+        watch: harness.watch,
       });
       managers.push(manager);
       await manager.watchFile(caseVariantPath);
 
       writeFileSync(filepath, 'case-variant-save');
+      harness.emit(0, 'change', 'preview.html');
+      await vi.runAllTimersAsync();
 
-      await vi.waitFor(() => expect(savedValues).toEqual(['case-variant-save']), {
-        timeout: 5000,
-      });
+      expect(savedValues).toEqual(['case-variant-save']);
     },
   );
 
