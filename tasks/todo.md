@@ -314,7 +314,8 @@ perf: avoid loading voice activity detection during app startup
 - [x] Add a packaged Electron smoke test for both architectures. Load the native multipart helper from `app.asar`, inspect a fake request without network access, and prove that `form-data` is absent.
 - [x] Keep local Parakeet and local Whisper process work out of this task. Record Parakeet's missing deadline as a known limit; Task 10 owns Whisper and FFmpeg process-tree cleanup.
 - [x] Run focused unit tests, stress tests, the normal suite, type checks, lint, formatting, main-process syntax checks, production audit, both macOS package builds, and the packaged suite.
-- [x] Complete three independent internal repository reviews, correct every finding, and commit.
+- [x] Complete three independent internal repository reviews and correct every finding.
+- [x] Commit the reviewed Task 9 tree.
 
 Review:
 
@@ -436,19 +437,36 @@ refactor: prevent net lint warning growth in release changes
 
 ## Task 9: Keep preview watching alive across atomic saves
 
-**Root cause:** `fs.watch` attaches to one file identity, ignores `rename`, and treats a 300 ms delay as proof that the replacement file is stable.
+**Root cause:** The file-level `fs.watch` attaches to one file identity. The inline callback ignores its `rename` event, does not attach to the replacement inode, and treats a 300 ms delay as proof that the file is stable.
 
-- [ ] Add a failing test for an in-place write.
-- [ ] Add a failing test that writes a temporary file and renames it over the watched file three times.
-- [ ] Add failing tests for unrelated directory changes, delete and recreate, bounded recovery, one refresh per completed save, and cleanup.
-- [ ] Before any watcher implementation, run `npx vitest run tests/unit/fileWatcher.test.ts` and confirm the atomic replacement test fails for the recorded root cause.
-- [ ] Implement a parent-directory watcher in `electron/fileWatcher.cjs`.
-- [ ] Treat events as signals. Reconcile the exact target path with `stat`, require stable size and modification data across two checks 100 ms apart, and reattach after inode replacement.
-- [ ] Use one 300 ms debounce timer and at most 20 stability checks over two seconds per target. Return one clear error after the bound. Do not add an unbounded poll.
-- [ ] Close the watcher and all timers on explicit unwatch and app shutdown.
-- [ ] Replace the inline watcher code in `electron/main.cjs` with the module.
-- [ ] Run unit tests and a manual preview edit loop with an editor that uses atomic saves.
-- [ ] Complete three independent internal repository reviews, correct every finding, and commit.
+- [x] Add an in-place write control test. It passed against the extracted legacy watcher.
+- [x] Add a failing test that writes a temporary file and renames it over the watched file three times.
+- [x] Add tests for unrelated directory changes, delete and recreate, bounded recovery, one refresh per completed save, and cleanup.
+- [x] Before the parent-directory implementation, run `npx vitest run tests/unit/fileWatcher.test.ts` and confirm the atomic replacement test fails for the recorded root cause.
+- [x] Implement a parent-directory watcher in `electron/fileWatcher.cjs`.
+- [x] Treat events as signals. Reconcile the exact target path with `stat`, require stable size and modification data across two checks 100 ms apart, and adopt the new device and inode values after replacement.
+- [x] Use one 300 ms debounce timer and at most 20 stability checks over two seconds per target. Return one clear error after the bound. Do not add an unbounded poll.
+- [x] Close the watcher and all timers on explicit unwatch and app shutdown.
+- [x] Replace the inline watcher code in `electron/main.cjs` with the module.
+- [x] Run unit tests and an editor-to-manager loop with an editor that uses atomic saves.
+- [x] Run application-level manual preview loops through the renderer, preload bridge, IPC handler, and visible preview refresh for local HTML, markdown, and image files. The development HTTP origin blocks the local `file:` iframe. The fresh packaged arm64 loop passed all three paths and confirmed delivery of the response-header CSP.
+- [x] Complete three independent internal repository reviews, correct every finding, and commit.
+
+Evidence so far:
+
+- The macOS trace showed one in-place `change`, one `rename` for the first inode replacement, and no file-watch events for later replacements. The parent-directory watcher stayed active.
+- The legacy in-place control passed. The legacy three-replacement test failed with zero refreshes.
+- The watcher suite passes 33 of 33 tests on the current case-insensitive macOS arm64 volume, including real filesystem, symlink topology, dual-slot recovery, and deterministic timer coverage. Windows skips the six macOS or non-Windows filesystem tests. A case-sensitive macOS volume skips the host case-variant test and keeps the deterministic canonical-name test.
+- The first packaged image loop exposed a separate Chromium cache fault: replacing the image element with the same file URL kept the old decoded image. Three renderer regression tests cover local cache invalidation, unchanged signed remote URLs with element remounting, and invalid relative image input. The complete focused gate passes 36 tests in two files.
+- A Vim loop used `backupcopy=no` for three saves. Each save changed the inode, produced one refresh with the final bytes, and left later saves active.
+- The final packaged arm64 loop passed three atomic saves each for HTML, Markdown, and SVG image previews. Every save changed the inode. Visible HTML and Markdown text advanced through values 1, 2, and 3. Visible SVG width advanced through 111, 121, and 131.
+- Electron delivered the response-header CSP for the packaged `file:` main document. The response policy and HTML meta policy are not identical, so both apply. Their same-origin rules allowed the local iframe, fetch, and image paths.
+- Fresh signed arm64 and x64 directory controls contain the final renderer build and exact watcher source. The package gate compares their bytes with the current tree. The mac package suite passes 40 tests and skips four DMG and zip checks. Notarization was intentionally skipped, so these controls are not release candidates.
+- Review corrections cover startup races, canonical filename spelling, final-component symlinks, change and error callback failures, a rolling native watcher recovery bound, hard metadata errors, failed canonical path resolution, and shutdown during startup.
+- Replacing either watched parent directory remains a documented limit. Supporting that case needs ancestor watchers and is outside the approved atomic-file replacement scope.
+- A terminal native watcher failure is written to the structured main-process log but is not shown in the preview status bar. Close and reopen the preview pane or change the preview path to start a new watcher.
+- The final normal suite passes 692 tests in 42 files. ESLint passes with zero errors and the fixed 34-warning budget. Ruff, TypeScript, Prettier, CommonJS syntax, the renderer build, `git diff --check`, and the production dependency audit pass. The audit reports zero vulnerabilities.
+- Three final internal correction reviews report no open P0-P3 finding. The independent Claude review found renderer URL, package freshness, evidence, formatting, contract, and timing gaps. Those findings are corrected and covered by the final gates. Two later narrow Claude correction runs stalled without output and were stopped after extended monitoring.
 
 Expected commit message:
 

@@ -50,6 +50,7 @@ let pty = null;
 const whisperService = require('./whisperService.cjs');
 
 const { registerTranscriptionHandlers } = require('./transcriptionHandlers.cjs');
+const { createFileWatcherManager } = require('./fileWatcher.cjs');
 
 // Simple persistent storage (replacement for electron-store)
 const storeFilePath = path.join(app.getPath('userData'), 'app-store.json');
@@ -121,8 +122,22 @@ let currentShortcuts = {
 };
 
 // File watchers for preview auto-refresh
-const fileWatchers = new Map(); // watcherId -> { filepath, watcher, debounceTimer }
-let watcherIdCounter = 0;
+const fileWatcherManager = createFileWatcherManager({
+  onChange: ({ watcherId, filepath }) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('file-changed', { watcherId, filepath });
+    }
+  },
+  onError: (error) => {
+    appLog.error('File watcher error', error, {
+      code: error.code,
+      causeCode: error.cause?.code,
+      causeMessage: error.cause instanceof Error ? error.cause.message : undefined,
+      filepath: error.filepath,
+      watcherId: error.watcherId,
+    });
+  },
+});
 
 const MAX_TABS = 4;
 const isDev = !app.isPackaged;
@@ -1350,22 +1365,7 @@ function setupIPC() {
         return { success: false, error: 'File does not exist' };
       }
 
-      const watcherId = `watcher-${watcherIdCounter++}`;
-      let debounceTimer;
-
-      const watcher = fs.watch(filepath, { persistent: false }, (eventType) => {
-        if (eventType === 'change') {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            // Check if watcher still exists before sending event (prevents race condition)
-            if (fileWatchers.has(watcherId) && mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('file-changed', { watcherId, filepath });
-            }
-          }, 300); // 300ms debounce
-        }
-      });
-
-      fileWatchers.set(watcherId, { filepath, watcher, debounceTimer });
+      const watcherId = await fileWatcherManager.watchFile(filepath);
       console.log(`[AudioBash] Watching file: ${filepath} (${watcherId})`);
       return { success: true, watcherId };
     } catch (err) {
@@ -1376,12 +1376,9 @@ function setupIPC() {
 
   ipcMain.handle('unwatch-file', async (_, watcherId) => {
     try {
-      const entry = fileWatchers.get(watcherId);
-      if (entry) {
-        clearTimeout(entry.debounceTimer);
-        entry.watcher.close();
-        fileWatchers.delete(watcherId);
-        console.log(`[AudioBash] Stopped watching: ${entry.filepath} (${watcherId})`);
+      const unwatched = fileWatcherManager.unwatchFile(watcherId);
+      if (unwatched) {
+        console.log(`[AudioBash] Stopped watching: ${unwatched.filepath} (${watcherId})`);
       }
       return { success: true };
     } catch (err) {
@@ -1760,16 +1757,7 @@ app.on('activate', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 
-  // Close all file watchers
-  for (const entry of fileWatchers.values()) {
-    try {
-      clearTimeout(entry.debounceTimer);
-      entry.watcher.close();
-    } catch {
-      // Ignore cleanup errors during shutdown
-    }
-  }
-  fileWatchers.clear();
+  fileWatcherManager.closeAll();
 
   // Kill all PTY processes
   for (const [tabId, ptyProcess] of ptyProcesses) {

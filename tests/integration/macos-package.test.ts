@@ -581,10 +581,37 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
   });
 
   it('contains the exact current main-process source', () => {
-    for (const entry of ['electron/main.cjs', 'electron/trayLifecycle.cjs']) {
+    for (const entry of [
+      'electron/fileWatcher.cjs',
+      'electron/main.cjs',
+      'electron/trayLifecycle.cjs',
+    ]) {
       assertExactPackageBytes(
         entry,
         extractFile(asarPath, entry),
+        readFileSync(join(rootDir, entry)),
+      );
+    }
+  });
+
+  it('contains the exact current renderer build', () => {
+    const distPath = join(rootDir, 'dist');
+    const currentRendererEntries = listRequiredFiles(distPath).map(
+      (relativePath) => `/dist${relativePath}`,
+    );
+    const packagedEntries = packageEntries();
+    const packagedRendererEntries = packagedEntries.filter(
+      (entry) =>
+        entry.startsWith('/dist/') &&
+        !packagedEntries.some((candidate) => candidate.startsWith(`${entry}/`)),
+    );
+
+    expect(packagedRendererEntries.sort()).toEqual(currentRendererEntries.sort());
+
+    for (const entry of currentRendererEntries) {
+      assertExactPackageBytes(
+        entry,
+        extractFile(asarPath, entry.replace(/^\//, '')),
         readFileSync(join(rootDir, entry)),
       );
     }
@@ -652,6 +679,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     const requiredEntries = [
       '/dist/index.html',
       '/electron/elevenLabsRequest.cjs',
+      '/electron/fileWatcher.cjs',
       '/electron/main.cjs',
       '/electron/trayLifecycle.cjs',
       '/electron/transcriptionHandlers.cjs',
@@ -706,7 +734,7 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     }
 
     assertMaximumMacOsDeploymentTarget(records, '12.0');
-  });
+  }, 70_000);
 
   it('loads every unbundled main-process dependency from the packaged ASAR', () => {
     const appExecutable = join(appPath, 'Contents/MacOS', packageJson.build.productName);

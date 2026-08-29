@@ -8,3 +8,4 @@
 - Treat debloat as two related passes: remove shipped weight and remove cognitive weight from logic already changed. Preserve behavior, apply readability work in proportion to the branching, and judge the result by eye instead of a computed score.
 - Do not load or use external skills or plugins for this project. Follow the project instructions and use core repository tools only.
 - Do not use Node evaluation flags with the Electron CLI. Read package metadata, or set `ELECTRON_RUN_AS_NODE=1` in a controlled child environment. Internal audits must not launch GUI apps unless the current manual test requires it.
+- When a long review, build, or signing process is active, monitor its existing session to completion. Do not restart it or overlap another run only because output is quiet.
