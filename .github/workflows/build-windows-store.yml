@@ -65,7 +65,7 @@ jobs:
           npm run test:store:win
 
       - name: Build unsigned test-identity AppX
-        run: npm run electron:build:store:win -- --publish never
+        run: npm run electron:build:store:win
 
       - name: Resolve, unpack, and verify the exact AppX
         id: package

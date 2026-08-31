@@ -48,10 +48,10 @@ describe('Microsoft Store test-package workflow', () => {
 
   it('builds and verifies only the marked test-identity AppX', () => {
     expect(workflow).toContain('AUDIOBASH_STORE_MODE: test');
-    expect(workflow).toContain('npm run electron:build:store:win');
+    expect(workflow).toContain('run: npm run electron:build:store:win');
+    expect(workflow).not.toContain('npm run electron:build:store:win -- --publish never');
     expect(workflow).toContain('AudioBash-3.4.0-store-test-x64.appx');
     expect(workflow).toContain('verify-windows-store-package.cjs');
-    expect(workflow).toContain('--publish never');
     expect(workflow).not.toContain('AUDIOBASH_STORE_MODE: production');
   });
 
