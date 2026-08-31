@@ -1,6 +1,8 @@
 'use strict';
 
 const PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS = 128;
+const WINDOWS_OWNER_READY_TIMEOUT_MS = 20_000;
+const WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS = WINDOWS_OWNER_READY_TIMEOUT_MS + 5_000;
 
 function hasExactKeys(value, keys) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -57,4 +59,9 @@ function parseWindowsOwnerFrame(line, { nonce, ownerPid, pipeState }) {
   return frame;
 }
 
-module.exports = { PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS, parseWindowsOwnerFrame };
+module.exports = {
+  PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS,
+  WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS,
+  WINDOWS_OWNER_READY_TIMEOUT_MS,
+  parseWindowsOwnerFrame,
+};

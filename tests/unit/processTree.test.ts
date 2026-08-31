@@ -17,6 +17,11 @@ const { createProcessTreeController } = require('../../electron/processTree.cjs'
     stop(process: OwnedProcess): Promise<{ forced: boolean }>;
   };
 };
+const { WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS, WINDOWS_OWNER_READY_TIMEOUT_MS } =
+  require('../../electron/windowsOwnerProtocol.cjs') as {
+    WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS: number;
+    WINDOWS_OWNER_READY_TIMEOUT_MS: number;
+  };
 
 interface OwnedProcess {
   child: FakeChildProcess;
@@ -462,6 +467,78 @@ describe('process-tree ownership', () => {
     await vi.advanceTimersByTimeAsync(200);
     await rejection;
     expect(signalWindowsLauncher).toHaveBeenCalledWith(child, true, 5000);
+  });
+
+  it('uses a default controller deadline after the launcher readiness deadline', async () => {
+    const child = new FakeChildProcess(5166, { reportOwner: false });
+    const scheduledDelays: number[] = [];
+    const controller = createProcessTreeController({
+      platform: 'win32',
+      spawn: vi.fn(() => child),
+      startLauncher: vi.fn(async () => undefined),
+      setTimeoutFn: vi.fn((_callback: () => void, delay: number) => {
+        scheduledDelays.push(delay);
+        return Symbol(String(delay));
+      }),
+      clearTimeoutFn: vi.fn(),
+    });
+
+    const spawning = controller.spawn('whisper.exe', []);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+
+    expect(WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS).toBeGreaterThan(WINDOWS_OWNER_READY_TIMEOUT_MS);
+    expect(scheduledDelays).toContain(WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS);
+
+    child.reportOwner();
+    await expect(spawning).resolves.toMatchObject({ child });
+    child.finish(0);
+  });
+
+  it('preserves a launcher timeout reported inside the controller margin', async () => {
+    vi.useFakeTimers();
+    const child = new FakeChildProcess(5167, { reportOwner: false });
+    const signalWindowsLauncher = vi.fn(async () => child.finish(125));
+    const controller = createProcessTreeController({
+      platform: 'win32',
+      spawn: vi.fn(() => child),
+      signalWindowsLauncher,
+      startLauncher: vi.fn(async () => undefined),
+    });
+
+    const spawning = controller.spawn('whisper.exe', []);
+    let settled = false;
+    void spawning.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+
+    await vi.advanceTimersByTimeAsync(WINDOWS_OWNER_READY_TIMEOUT_MS);
+    expect(settled).toBe(false);
+    expect(signalWindowsLauncher).not.toHaveBeenCalled();
+
+    child.targetStatus.write(
+      `${JSON.stringify({
+        type: 'startup-error',
+        message: 'Windows Job owner did not report readiness after 20000 ms',
+      })}\n`,
+    );
+
+    await expect(spawning).rejects.toMatchObject({
+      code: 'PROCESS_LAUNCHER_START_FAILED',
+      cause: expect.objectContaining({
+        code: 'PROCESS_LAUNCHER_TARGET_START_FAILED',
+        message: expect.stringContaining('did not report readiness after 20000 ms'),
+      }),
+    });
+    expect(signalWindowsLauncher).toHaveBeenCalledWith(child, true, 5000);
+    expect(child.stdio[3]?.destroyed).toBe(true);
+    expect(child.targetStatus.destroyed).toBe(true);
+    expect(child.stdout.destroyed).toBe(true);
+    expect(child.stderr.destroyed).toBe(true);
   });
 
   it('rejects a Windows target result that arrives before ownership proof', async () => {

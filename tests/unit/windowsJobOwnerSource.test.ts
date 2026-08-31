@@ -12,7 +12,13 @@ const launcherSource = readFileSync(
   'utf8',
 );
 const settingsSource = readFileSync(join(__dirname, '../../src/components/Settings.tsx'), 'utf8');
-const { parseWindowsOwnerFrame } = require('../../electron/windowsOwnerProtocol.cjs') as {
+const {
+  WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS,
+  WINDOWS_OWNER_READY_TIMEOUT_MS,
+  parseWindowsOwnerFrame,
+} = require('../../electron/windowsOwnerProtocol.cjs') as {
+  WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS: number;
+  WINDOWS_OWNER_READY_TIMEOUT_MS: number;
   parseWindowsOwnerFrame(
     line: string,
     context: { nonce: string; ownerPid: number; pipeState: string },
@@ -21,6 +27,27 @@ const { parseWindowsOwnerFrame } = require('../../electron/windowsOwnerProtocol.
 const nonce = 'a'.repeat(64);
 
 describe('Windows Job owner source contract', () => {
+  it('gives the launcher time to report a bounded cold-start failure before the controller', () => {
+    expect(WINDOWS_OWNER_READY_TIMEOUT_MS).toBe(20_000);
+    expect(WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS).toBe(25_000);
+    expect(WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS).toBeGreaterThan(WINDOWS_OWNER_READY_TIMEOUT_MS);
+    expect(launcherSource).toMatch(
+      /ownerReadyTimer = setTimeout\([\s\S]*WINDOWS_OWNER_READY_TIMEOUT_MS,[\s\S]*\);/,
+    );
+    expect(launcherSource).toContain('const ownerStartupStartedAt = Date.now();');
+    expect(launcherSource).toContain('after ${Date.now() - ownerStartupStartedAt} ms');
+
+    const startSource = launcherSource.slice(
+      launcherSource.indexOf('jobStatusServer.listen(pipePath'),
+      launcherSource.indexOf('function startDirectTarget'),
+    );
+    const timerIndex = startSource.indexOf('ownerReadyTimer = setTimeout(');
+    const commandResolutionIndex = startSource.indexOf('resolveWindowsCommand(');
+    expect(timerIndex).toBeGreaterThanOrEqual(0);
+    expect(commandResolutionIndex).toBeGreaterThanOrEqual(0);
+    expect(timerIndex).toBeLessThan(commandResolutionIndex);
+  });
+
   it('decodes launcher configuration as strict UTF-8', () => {
     expect(source).toContain('[Console]::OpenStandardInput()');
     expect(source).toContain('[System.Text.UTF8Encoding]::new($false, $true)');
