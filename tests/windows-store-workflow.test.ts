@@ -62,7 +62,8 @@ describe('Microsoft Store test-package workflow', () => {
     expect(workflow).toContain('AUDIOBASH_WINDOWS_PACKAGE_ROOT');
     expect(workflow).toContain('npm run test:package:win');
     expect(workflow).toContain('Remove-AppxPackage');
-    expect(workflow).toContain('Cert:\\CurrentUser\\TrustedPeople');
+    expect(workflow).toContain('Cert:\\LocalMachine\\TrustedPeople');
+    expect(workflow).not.toContain('Cert:\\CurrentUser\\TrustedPeople');
     expect(workflow).toContain('finally {');
     expect(workflow).toContain('$cleanupFailures');
     expect(workflow).toContain('Invoke-CleanupAction');

@@ -162,7 +162,7 @@ jobs:
 
             $trustedCertificate = Import-Certificate `
               -FilePath $cerPath `
-              -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople'
+              -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople'
             Add-AppxPackage -Path $signedPackage
             $installedPackage = Get-AppxPackage -Name 'AudioBash.Store.Test' |
               Sort-Object Version -Descending |
@@ -199,7 +199,7 @@ jobs:
               if ($trustedCertificateToRemove) {
                 Invoke-CleanupAction {
                   Remove-Item `
-                    -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($trustedCertificateToRemove.Thumbprint)" `
+                    -LiteralPath "Cert:\LocalMachine\TrustedPeople\$($trustedCertificateToRemove.Thumbprint)" `
                     -Force `
                     -ErrorAction Stop
                 }
