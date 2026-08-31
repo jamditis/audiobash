@@ -45,6 +45,8 @@
     "electron:build": "npm run build && electron-builder --publish never",
     "preelectron:build:win": "npm run prepare:native && npm run prepare:electron",
     "electron:build:win": "npm run build && electron-builder --win --publish never",
+    "preelectron:build:store:win": "npm run prepare:native && npm run prepare:electron",
+    "electron:build:store:win": "npm run build && electron-builder --win appx --x64 --publish never --config build/electron-builder.microsoft-store.cjs",
     "preelectron:build:mac": "npm run prepare:native && npm run prepare:electron",
     "electron:build:mac": "npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64",
     "preelectron:build:mac:arm64": "npm run prepare:native && npm run prepare:electron",
