@@ -9,6 +9,7 @@ const PACKAGE_ROOT_ENV = 'AUDIOBASH_WINDOWS_PACKAGE_ROOT';
 const PACKAGE_PROBE_TIMEOUT_MS = 30_000;
 const PTY_PROBE_TIMEOUT_MS = 15_000;
 const OUTPUT_LIMIT_BYTES = 64 * 1024;
+const PACKAGE_PROBE_MARKER = 'AUDIOBASH_PACKAGED_WINDOWS_PROCESS_TREE_OK';
 const PTY_PROBE_MARKER = 'AUDIOBASH_PACKAGED_WINDOWS_PTY_OK';
 
 function packagePaths(
@@ -76,8 +77,10 @@ async function runPackagedProbe() {
   );
   await exercisePackagedProcessTree(controller, command);
   await exercisePackagedPty(packagedPty, powerShell);
+}
 
-  process.stdout.write('AUDIOBASH_PACKAGED_WINDOWS_PROCESS_TREE_OK\n');
+function exitPackagedProbe(output = process.stdout, exit = process.exit) {
+  output.write(`${PACKAGE_PROBE_MARKER}\n`, () => exit(0));
 }
 
 function exercisePackagedPty(ptyModule, shell, timeoutMs = PTY_PROBE_TIMEOUT_MS) {
@@ -227,12 +230,7 @@ function runPackageProbe(
       clearTimeout(timer);
       const stdout = Buffer.concat(stdoutChunks).toString('utf8');
       const stderr = Buffer.concat(stderrChunks).toString('utf8');
-      if (
-        timedOut ||
-        code !== 0 ||
-        signal !== null ||
-        !stdout.includes('AUDIOBASH_PACKAGED_WINDOWS_PROCESS_TREE_OK')
-      ) {
+      if (timedOut || code !== 0 || signal !== null || !stdout.includes(PACKAGE_PROBE_MARKER)) {
         reject(
           new Error(
             `Packaged Windows process-owner probe failed with code ${code} and signal ${signal}\n${stdout}\n${stderr}`,
@@ -246,8 +244,12 @@ function runPackageProbe(
 }
 
 async function main() {
-  if (process.env[PACKAGE_PROBE_ENV] === '1') await runPackagedProbe();
-  else await runPackageProbe();
+  if (process.env[PACKAGE_PROBE_ENV] === '1') {
+    await runPackagedProbe();
+    exitPackagedProbe();
+  } else {
+    await runPackageProbe();
+  }
 }
 
 if (require.main === module) {
@@ -260,6 +262,7 @@ if (require.main === module) {
 module.exports = {
   exercisePackagedProcessTree,
   exercisePackagedPty,
+  exitPackagedProbe,
   packagePaths,
   runPackageProbe,
   runPackagedProbe,
