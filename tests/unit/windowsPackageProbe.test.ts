@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const {
   exercisePackagedProcessTree,
   exercisePackagedPty,
+  exitPackagedProbe,
   packagePaths,
   runPackageProbe,
   terminateWindowsProcessTree,
@@ -18,6 +19,10 @@ const {
     shell: string,
     timeoutMs?: number,
   ): Promise<void>;
+  exitPackagedProbe(
+    output: { write(message: string, callback: () => void): boolean },
+    exit: (code: number) => void,
+  ): void;
   packagePaths(rootDirectory: string, applicationDirectory?: string): Record<string, string>;
   runPackageProbe(rootDirectory?: string): Promise<void>;
   terminateWindowsProcessTree(child: { kill(signal: string): boolean }): boolean;
@@ -90,6 +95,29 @@ describe('packaged Windows process-owner probe', () => {
 
     expect(terminateWindowsProcessTree(child)).toBe(true);
     expect(child.kill).toHaveBeenCalledWith('SIGKILL');
+  });
+
+  it('flushes the success marker before exiting the packaged probe', () => {
+    let flush = () => {};
+    const output = {
+      write: vi.fn((_message: string, callback: () => void) => {
+        flush = callback;
+        return true;
+      }),
+    };
+    const exit = vi.fn();
+
+    exitPackagedProbe(output, exit);
+
+    expect(output.write).toHaveBeenCalledWith(
+      'AUDIOBASH_PACKAGED_WINDOWS_PROCESS_TREE_OK\n',
+      expect.any(Function),
+    );
+    expect(exit).not.toHaveBeenCalled();
+
+    flush();
+
+    expect(exit).toHaveBeenCalledWith(0);
   });
 
   it('exercises packaged PowerShell input, output, resize, and exit', async () => {
