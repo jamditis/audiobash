@@ -27,6 +27,10 @@ function createConfig() {
       '!node_modules/node-pty/**/*.{map,pdb}',
     ],
   };
+  delete config.win.certificateFile;
+  delete config.win.certificateSubjectName;
+  delete config.win.certificateSha1;
+  delete config.win.certificatePassword;
   config.appx = {
     ...contract.identity,
     applicationId: 'AudioBash',

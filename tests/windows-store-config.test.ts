@@ -68,6 +68,10 @@ describe('Microsoft Store build configuration', () => {
     );
     expect(config.afterSign).toBeUndefined();
     expect(config.afterAllArtifactBuild).toBeUndefined();
+    expect(config.win.certificateFile).toBeUndefined();
+    expect(config.win.certificateSubjectName).toBeUndefined();
+    expect(config.win.certificateSha1).toBeUndefined();
+    expect(config.win.certificatePassword).toBeUndefined();
     expect(config.win.files).toEqual(
       expect.arrayContaining([
         '!node_modules/node-pty/prebuilds/!(win32-x64){,/**/*}',
@@ -104,6 +108,10 @@ describe('Microsoft Store build configuration', () => {
     expect(config.appx.identityName).toBe('Publisher.AudioBash');
     expect(config.appx.publisher).toBe('CN=00000000-0000-0000-0000-000000000000');
     expect(config.appx.publisherDisplayName).toBe('AudioBash');
+    expect(config.win.certificateFile).toBeUndefined();
+    expect(config.win.certificateSubjectName).toBeUndefined();
+    expect(config.win.certificateSha1).toBeUndefined();
+    expect(config.win.certificatePassword).toBeUndefined();
   });
 
   it('rejects an unknown package mode', () => {

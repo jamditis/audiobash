@@ -135,6 +135,13 @@ function rejectUnexpectedDirectories(parentDirectory, allowedNames, description)
 }
 
 function verifyExtractedPackage(packageRoot, expected, repositoryRoot) {
+  const signatureEntry = fs
+    .readdirSync(packageRoot)
+    .find((entry) => entry.toLowerCase() === 'appxsignature.p7x');
+  if (signatureEntry) {
+    throw new Error(`Store upload package must be unsigned: ${signatureEntry}`);
+  }
+
   const manifestPath = path.join(packageRoot, 'AppxManifest.xml');
   requireFile(manifestPath, 'AppX manifest');
   validateManifest(fs.readFileSync(manifestPath, 'utf8'), expected);
