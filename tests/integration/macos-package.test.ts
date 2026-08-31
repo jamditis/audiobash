@@ -1028,16 +1028,19 @@ describe.each(packages)('macOS $architecture package', (packageTarget) => {
     expect(resourceFiles).not.toContain('/audiobash-logo.ico');
   });
 
-  it('contains an executable node-pty helper for its architecture', () => {
-    const spawnHelperPath = join(
+  it('keeps executable permission only on the node-pty helper', () => {
+    const prebuildRoot = join(
       appPath,
       'Contents/Resources/app.asar.unpacked/node_modules/node-pty/prebuilds',
       `darwin-${packageTarget.architecture}`,
-      'spawn-helper',
     );
+    const spawnHelperPath = join(prebuildRoot, 'spawn-helper');
+    const ptyNodePath = join(prebuildRoot, 'pty.node');
 
     expect(existsSync(spawnHelperPath)).toBe(true);
     expect(statSync(spawnHelperPath).mode & 0o111).not.toBe(0);
+    expect(existsSync(ptyNodePath)).toBe(true);
+    expect(statSync(ptyNodePath).mode & 0o111).toBe(0);
   });
 
   it.skipIf(!requireArtifacts).each(['dmg', 'zip'] as const)(

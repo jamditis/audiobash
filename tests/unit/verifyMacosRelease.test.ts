@@ -16,28 +16,30 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const packageJson = require('../../package.json');
-const { createMacosReleaseVerifier } = require('../../scripts/verify-macos-release.cjs') as {
-  createMacosReleaseVerifier: (dependencies?: {
-    spawnSync?: (
-      file: string,
-      args: string[],
-      options?: object,
-    ) => {
-      error?: Error;
-      status: number;
-      stderr: string;
-      stdout: string;
+const { createMacosReleaseVerifier, readMachOFileType } =
+  require('../../scripts/verify-macos-release.cjs') as {
+    createMacosReleaseVerifier: (dependencies?: {
+      spawnSync?: (
+        file: string,
+        args: string[],
+        options?: object,
+      ) => {
+        error?: Error;
+        status: number;
+        stderr: string;
+        stdout: string;
+      };
+    }) => (options: {
+      architecture: 'arm64' | 'x64';
+      expectedHashes?: Record<string, string>;
+      metadata: typeof packageJson;
+      releaseDir: string;
+    }) => {
+      artifacts: Array<{ fileName: string; sha256: string }>;
+      checksumPath: string;
     };
-  }) => (options: {
-    architecture: 'arm64' | 'x64';
-    expectedHashes?: Record<string, string>;
-    metadata: typeof packageJson;
-    releaseDir: string;
-  }) => {
-    artifacts: Array<{ fileName: string; sha256: string }>;
-    checksumPath: string;
+    readMachOFileType: (filePath: string) => number;
   };
-};
 
 const temporaryDirectories: string[] = [];
 const expectedTeamId = packageJson.releasePolicy.appleTeamId;
@@ -46,11 +48,32 @@ function sha256(filePath: string): string {
   return createHash('sha256').update(readFileSync(filePath)).digest('hex');
 }
 
+function makeThinMachO(fileType: number, endianness: 'big' | 'little' = 'little'): Buffer {
+  const bytes = Buffer.alloc(16);
+  if (endianness === 'little') {
+    bytes.writeUInt32LE(0xfeedfacf, 0);
+    bytes.writeUInt32LE(fileType, 12);
+  } else {
+    bytes.writeUInt32BE(0xfeedfacf, 0);
+    bytes.writeUInt32BE(fileType, 12);
+  }
+  return bytes;
+}
+
 function makeFixture() {
   const releaseDir = mkdtempSync(join(tmpdir(), 'audiobash-macos-release-'));
   temporaryDirectories.push(releaseDir);
   const appPath = join(releaseDir, 'mac-arm64', 'AudioBash.app');
   const mainExecutable = join(appPath, 'Contents', 'MacOS', 'AudioBash');
+  const helperExecutable = join(
+    appPath,
+    'Contents',
+    'Frameworks',
+    'AudioBash Helper (GPU).app',
+    'Contents',
+    'MacOS',
+    'AudioBash Helper (GPU)',
+  );
   const nestedExecutable = join(
     appPath,
     'Contents',
@@ -63,17 +86,26 @@ function makeFixture() {
     'pty.node',
   );
   mkdirSync(join(appPath, 'Contents', 'MacOS'), { recursive: true });
+  mkdirSync(join(helperExecutable, '..'), { recursive: true });
   mkdirSync(join(nestedExecutable, '..'), { recursive: true });
-  const machOBytes = Buffer.from([0xcf, 0xfa, 0xed, 0xfe, 0, 0, 0, 0]);
-  writeFileSync(mainExecutable, machOBytes, { mode: 0o755 });
-  writeFileSync(nestedExecutable, machOBytes, { mode: 0o755 });
+  writeFileSync(mainExecutable, makeThinMachO(2), { mode: 0o755 });
+  writeFileSync(helperExecutable, makeThinMachO(2), { mode: 0o755 });
+  writeFileSync(nestedExecutable, makeThinMachO(8), { mode: 0o644 });
 
   const dmgName = `AudioBash-${packageJson.version}-arm64.dmg`;
   const zipName = `AudioBash-${packageJson.version}-arm64.zip`;
   writeFileSync(join(releaseDir, dmgName), 'dmg bytes');
   writeFileSync(join(releaseDir, zipName), 'zip bytes');
 
-  return { appPath, dmgName, mainExecutable, nestedExecutable, releaseDir, zipName };
+  return {
+    appPath,
+    dmgName,
+    helperExecutable,
+    mainExecutable,
+    nestedExecutable,
+    releaseDir,
+    zipName,
+  };
 }
 
 function makeSpawn(
@@ -120,6 +152,30 @@ afterEach(() => {
 });
 
 describe('macOS release verifier', () => {
+  it.each([
+    ['little', 2],
+    ['big', 8],
+  ] as const)('reads a %s-endian thin Mach-O file type', (endianness, fileType) => {
+    const directory = mkdtempSync(join(tmpdir(), 'audiobash-macho-header-'));
+    temporaryDirectories.push(directory);
+    const filePath = join(directory, 'native-file');
+    writeFileSync(filePath, makeThinMachO(fileType, endianness));
+
+    expect(readMachOFileType(filePath)).toBe(fileType);
+  });
+
+  it.each([
+    ['a truncated thin header', Buffer.from([0xcf, 0xfa, 0xed, 0xfe])],
+    ['a fat header', Buffer.from([0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])],
+  ])('fails closed for %s', (_label, bytes) => {
+    const directory = mkdtempSync(join(tmpdir(), 'audiobash-macho-header-'));
+    temporaryDirectories.push(directory);
+    const filePath = join(directory, 'native-file');
+    writeFileSync(filePath, bytes);
+
+    expect(() => readMachOFileType(filePath)).toThrow(/Mach-O file type is unavailable/);
+  });
+
   it('verifies exact artifacts, every Mach-O signature, notarization, Gatekeeper, and hashes', () => {
     const fixture = makeFixture();
     const spawnSync = makeSpawn(fixture);
@@ -159,6 +215,7 @@ describe('macOS release verifier', () => {
       ]),
     );
     expect(calls.some(([, args]) => args.includes('--deep'))).toBe(false);
+    expect(calls.some(([file]) => file === '/usr/bin/otool')).toBe(false);
     const commandCalls = calls.map(([file, args]) => [file, args]);
     expect(commandCalls).toEqual(
       expect.arrayContaining([
@@ -167,6 +224,30 @@ describe('macOS release verifier', () => {
         ['/usr/sbin/spctl', ['--assess', '--type', 'execute', '--verbose=4', fixture.appPath]],
         ['/usr/bin/hdiutil', ['verify', join(fixture.releaseDir, fixture.dmgName)]],
       ]),
+    );
+  });
+
+  it('verifies an Electron helper whose path contains parentheses without calling otool', () => {
+    const fixture = makeFixture();
+    const spawnSync = makeSpawn(fixture, (file, args) => {
+      if (file === '/usr/bin/otool' && args.at(-1)?.includes('(')) {
+        throw new Error('otool treated the helper path as archive-member syntax');
+      }
+      return undefined;
+    });
+    const verify = createMacosReleaseVerifier({ spawnSync });
+
+    expect(() =>
+      verify({
+        architecture: 'arm64',
+        metadata: packageJson,
+        releaseDir: fixture.releaseDir,
+      }),
+    ).not.toThrow();
+    expect(spawnSync).not.toHaveBeenCalledWith(
+      '/usr/bin/otool',
+      expect.arrayContaining([fixture.helperExecutable]),
+      expect.anything(),
     );
   });
 
@@ -332,7 +413,7 @@ describe('macOS release verifier', () => {
 
   it('rejects a Mach-O file without executable mode bits', () => {
     const fixture = makeFixture();
-    chmodSync(fixture.nestedExecutable, 0o644);
+    chmodSync(fixture.mainExecutable, 0o644);
     const verify = createMacosReleaseVerifier({ spawnSync: makeSpawn(fixture) });
 
     expect(() =>
@@ -341,7 +422,7 @@ describe('macOS release verifier', () => {
         metadata: packageJson,
         releaseDir: fixture.releaseDir,
       }),
-    ).toThrow(/not executable/);
+    ).toThrow(/has no executable mode bits/);
   });
 
   it('rejects an embedded app version that differs from package.json', () => {

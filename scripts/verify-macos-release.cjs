@@ -17,6 +17,13 @@ const MACH_O_MAGICS = new Set([
   'bebafeca',
   'bfbafeca',
 ]);
+const THIN_MACH_O_ENDIANNESS = new Map([
+  ['cefaedfe', 'little'],
+  ['cffaedfe', 'little'],
+  ['feedface', 'big'],
+  ['feedfacf', 'big'],
+]);
+const MACH_O_EXECUTE_FILE_TYPE = 2;
 const ARCHITECTURES = Object.freeze({ arm64: 'arm64', x64: 'x86_64' });
 
 function createCommandRunner(spawnSync = systemSpawnSync) {
@@ -83,6 +90,23 @@ function isMachO(filePath) {
   }
 }
 
+function readMachOFileType(filePath) {
+  const descriptor = fs.openSync(filePath, 'r');
+  try {
+    const header = Buffer.alloc(16);
+    if (fs.readSync(descriptor, header, 0, header.length, 0) !== header.length) {
+      throw new Error(`Mach-O file type is unavailable: ${filePath}`);
+    }
+    const endianness = THIN_MACH_O_ENDIANNESS.get(header.subarray(0, 4).toString('hex'));
+    if (!endianness) {
+      throw new Error(`Mach-O file type is unavailable for a non-thin binary: ${filePath}`);
+    }
+    return endianness === 'little' ? header.readUInt32LE(12) : header.readUInt32BE(12);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
@@ -129,15 +153,15 @@ function verifyMacOsApp({ appPath, architecture, expectedTeamId, expectedVersion
   }
 
   for (const nativeFile of nativeFiles) {
-    const executableMode = fs.statSync(nativeFile).mode & 0o111;
-    if (executableMode === 0) {
-      throw new Error(`Mach-O file is not executable: ${nativeFile}`);
-    }
     const architectures = run('/usr/bin/lipo', ['-archs', nativeFile]).trim().split(/\s+/);
     if (architectures.length !== 1 || architectures[0] !== expectedArchitecture) {
       throw new Error(
         `Mach-O architecture mismatch for ${nativeFile}: expected ${expectedArchitecture}, received ${architectures.join(' ')}`,
       );
+    }
+    const fileType = readMachOFileType(nativeFile);
+    if (fileType === MACH_O_EXECUTE_FILE_TYPE && (fs.statSync(nativeFile).mode & 0o111) === 0) {
+      throw new Error(`Mach-O executable has no executable mode bits: ${nativeFile}`);
     }
     verifySignedTarget(run, nativeFile, expectedTeamId);
   }
@@ -285,5 +309,6 @@ module.exports = {
   createCommandRunner,
   createMacosReleaseVerifier,
   parseChecksumFile,
+  readMachOFileType,
   verifyMacOsApp,
 };

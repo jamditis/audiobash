@@ -64,6 +64,7 @@ describe('node-pty binary repair', () => {
       const ptyNodePath = join(prebuildRoot, 'pty.node');
 
       expect(statSync(spawnHelperPath).mode & 0o777).toBe(0o755);
+      expect(statSync(ptyNodePath).mode & 0o777).toBe(0o644);
       expect(execFileSync.mock.calls).toEqual([
         ['/usr/bin/codesign', ['--force', '--sign', '-', spawnHelperPath], { stdio: 'pipe' }],
         ['/usr/bin/codesign', ['--force', '--sign', '-', ptyNodePath], { stdio: 'pipe' }],
