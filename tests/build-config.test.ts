@@ -311,14 +311,29 @@ describe('release-candidate workflow', () => {
     expect(buildStart).toBeLessThan(cleanupStart);
     expect(cleanupStart).toBeLessThan(resolverStart);
     expect(importStep).toContain('umask 077');
-    expect(importStep).not.toContain('security list-keychains');
+    expect(importStep).toContain('security list-keychains -d user -s "$keychain_path"');
+    expect(importStep).toContain('audiobash-original-keychains.txt');
+    expect(importStep).toContain('test "${#existing_keychains[@]}" -gt 0');
+    expect(importStep.indexOf('security list-keychains -d user -s "$keychain_path"')).toBeLessThan(
+      importStep.indexOf('security import "$certificate_path"'),
+    );
     expect(importStep).toContain('> /dev/null');
     expect(importStep).toContain('Developer ID signing identity verified.');
     expect(importStep).not.toContain('AUDIOBASH_RELEASE_KEYCHAIN');
     expect(cleanupStep).toContain('if: always()');
     expect(cleanupStep).toContain('security delete-keychain');
+    expect(cleanupStep).not.toContain('2>/dev/null');
+    expect(cleanupStep).toContain('|| cleanup_status=$?');
+    expect(cleanupStep).toContain('exit "$cleanup_status"');
+    expect(cleanupStep).toContain('if test -s "$original_keychains_path"');
+    expect(cleanupStep).toContain('security list-keychains -d user -s "${original_keychains[@]}"');
+    expect(cleanupStep).toContain('audiobash-original-keychains.txt');
+    expect(
+      cleanupStep.indexOf('security list-keychains -d user -s "${original_keychains[@]}"'),
+    ).toBeLessThan(cleanupStep.indexOf('security delete-keychain'));
     expect(cleanupStep).toContain('audiobash-release.p12');
     expect(cleanupStep).toContain('AuthKey_AudioBash.p8');
+    expect(cleanupStep).toContain('if ! rm -f');
   });
 
   it('builds one named macOS architecture artifact per matrix job', () => {
@@ -409,6 +424,32 @@ describe('npm scripts', () => {
     expect(scripts['electron:build:win']).toBeDefined();
     expect(scripts['electron:build:mac']).toBeDefined();
     expect(scripts['electron:build:linux']).toBeDefined();
+  });
+
+  it('disables platform publishing without npm argument forwarding', () => {
+    const windowsBuildStep = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Build Windows package'),
+      buildWorkflow.indexOf('- name: Smoke-test packaged Windows process owner'),
+    );
+    const linuxBuildStep = buildWorkflow.slice(
+      buildWorkflow.indexOf('- name: Build Linux packages'),
+      buildWorkflow.indexOf('- name: Resolve exact Linux artifacts'),
+    );
+
+    expect(scripts['electron:build:win']).toContain('--publish never');
+    expect(windowsBuildStep).toContain('run: npm run electron:build:win');
+    expect(windowsBuildStep).not.toContain('-- --publish');
+    expect(scripts['electron:build:linux']).toContain('--publish never');
+    expect(linuxBuildStep).toContain('run: npm run electron:build:linux');
+    expect(linuxBuildStep).not.toContain('-- --publish');
+
+    for (const [name, script] of Object.entries<string>(scripts)) {
+      if (script.includes('electron-builder')) {
+        expect(script, `${name} must disable electron-builder publishing`).toContain(
+          '--publish never',
+        );
+      }
+    }
   });
 
   it('has architecture-specific macOS build scripts', () => {

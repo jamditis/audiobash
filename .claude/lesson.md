@@ -37,7 +37,7 @@ When detecting interactive prompts in terminal output:
 
 ---
 
-## 2026-01-02: electron-builder Auto-Publish Conflict
+## 2026-01-02: electron-builder auto-publish conflict
 
 ### Problem
 GitHub Actions builds failed with:
@@ -45,25 +45,33 @@ GitHub Actions builds failed with:
 GitHub Personal Access Token is not set, neither programmatically, nor using env "GH_TOKEN"
 ```
 
-### Root Cause
+### Root cause
 When `electron-builder` detects a git tag (like `v2.0.1`), it automatically tries to publish to GitHub Releases. This conflicts with the workflow's own release step that uses `softprops/action-gh-release`.
 
 ### Solution
-Add `--publish never` to all electron-builder commands in the workflow:
+Add `--publish never` to each package script that invokes electron-builder. Call that script from the workflow without forwarding options:
+
+Before:
+
+```json
+"electron:build:win": "npm run build && electron-builder --win"
+```
+
+After:
+
+```json
+"electron:build:win": "npm run build && electron-builder --win --publish never"
+```
 
 ```yaml
-# Before
 run: npm run electron:build:win
-
-# After
-run: npm run electron:build:win -- --publish never
 ```
 
 ### Takeaway
 When using GitHub Actions for releases:
 - Disable electron-builder's auto-publish with `--publish never`
 - Let the workflow handle artifact upload via dedicated release actions
-- The `--` before `--publish` passes the flag through npm to electron-builder
+- Do not forward release flags through `npm run ... -- ...`; PowerShell and bash can pass them differently
 
 ---
 

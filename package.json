@@ -42,9 +42,9 @@
     "preelectron:dev": "npm run prepare:native && npm run prepare:electron",
     "electron:dev": "npm run copy-vad-assets && concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
     "preelectron:build": "npm run prepare:native && npm run prepare:electron",
-    "electron:build": "npm run build && electron-builder",
+    "electron:build": "npm run build && electron-builder --publish never",
     "preelectron:build:win": "npm run prepare:native && npm run prepare:electron",
-    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:win": "npm run build && electron-builder --win --publish never",
     "preelectron:build:mac": "npm run prepare:native && npm run prepare:electron",
     "electron:build:mac": "npm --ignore-scripts run electron:build:mac:arm64 && npm --ignore-scripts run electron:build:mac:x64",
     "preelectron:build:mac:arm64": "npm run prepare:native && npm run prepare:electron",
@@ -56,7 +56,7 @@
     "preelectron:build:mac:release:x64": "npm run prepare:native && npm run prepare:electron",
     "electron:build:mac:release:x64": "npm run build && AUDIOBASH_BUILD_MODE=release electron-builder --mac --x64 --publish never --config.forceCodeSigning=true",
     "preelectron:build:linux": "npm run prepare:native && npm run prepare:electron",
-    "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:linux": "npm run build && electron-builder --linux --publish never",
     "preview": "vite preview"
   },
   "dependencies": {

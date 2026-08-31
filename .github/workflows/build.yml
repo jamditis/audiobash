@@ -78,6 +78,7 @@ jobs:
           certificate_path="$RUNNER_TEMP/audiobash-release.p12"
           api_key_path="$RUNNER_TEMP/AuthKey_AudioBash.p8"
           keychain_path="$RUNNER_TEMP/audiobash-release.keychain-db"
+          original_keychains_path="$RUNNER_TEMP/audiobash-original-keychains.txt"
           keychain_password="$(openssl rand -hex 32)"
           echo "::add-mask::$keychain_password"
 
@@ -88,6 +89,23 @@ jobs:
           security create-keychain -p "$keychain_password" "$keychain_path"
           security set-keychain-settings -lut 21600 "$keychain_path"
           security unlock-keychain -p "$keychain_password" "$keychain_path"
+          existing_keychains=()
+          while IFS= read -r keychain; do
+            if [[ -n "$keychain" ]]; then
+              existing_keychains+=("$keychain")
+            fi
+          done < <(
+            security list-keychains -d user \
+              | sed -E 's/^[[:space:]]*"//; s/"[[:space:]]*$//'
+          )
+          test "${#existing_keychains[@]}" -gt 0 \
+            || { echo 'No user keychains are available for release signing.' >&2; exit 1; }
+          : > "$original_keychains_path"
+          chmod 600 "$original_keychains_path"
+          for keychain in "${existing_keychains[@]}"; do
+            printf '%s\n' "$keychain" >> "$original_keychains_path"
+          done
+          security list-keychains -d user -s "$keychain_path" "${existing_keychains[@]}"
           security import "$certificate_path" \
             -k "$keychain_path" \
             -P "$CSC_KEY_PASSWORD" \
@@ -118,12 +136,34 @@ jobs:
         if: always()
         shell: bash
         run: |
+          set +e
+          cleanup_status=0
           keychain_path="$RUNNER_TEMP/audiobash-release.keychain-db"
-          security delete-keychain "$keychain_path" 2>/dev/null || true
-          rm -f \
-            "$RUNNER_TEMP/audiobash-release.p12" \
-            "$RUNNER_TEMP/AuthKey_AudioBash.p8" \
-            "$keychain_path"
+          original_keychains_path="$RUNNER_TEMP/audiobash-original-keychains.txt"
+          if test -s "$original_keychains_path"; then
+            original_keychains=()
+            while IFS= read -r keychain; do
+              if [[ -n "$keychain" ]]; then
+                original_keychains+=("$keychain")
+              fi
+            done < "$original_keychains_path"
+            if test "${#original_keychains[@]}" -gt 0; then
+              security list-keychains -d user -s "${original_keychains[@]}" \
+                || cleanup_status=$?
+            fi
+          fi
+          if test -e "$keychain_path"; then
+            security delete-keychain "$keychain_path" \
+              || cleanup_status=$?
+          fi
+          if ! rm -f \
+              "$RUNNER_TEMP/audiobash-release.p12" \
+              "$RUNNER_TEMP/AuthKey_AudioBash.p8" \
+              "$original_keychains_path" \
+              "$keychain_path"; then
+            test "$cleanup_status" -ne 0 || cleanup_status=1
+          fi
+          exit "$cleanup_status"
 
       - name: Resolve exact macOS artifacts
         id: artifacts
@@ -192,7 +232,7 @@ jobs:
         run: npm ci
 
       - name: Build Windows package
-        run: npm run electron:build:win -- --publish never
+        run: npm run electron:build:win
 
       - name: Smoke-test packaged Windows process owner
         run: npm run test:package:win
@@ -268,7 +308,7 @@ jobs:
         run: npm ci
 
       - name: Build Linux packages
-        run: npm run electron:build:linux -- --publish never
+        run: npm run electron:build:linux
 
       - name: Resolve exact Linux artifacts
         id: artifacts

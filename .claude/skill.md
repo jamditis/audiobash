@@ -91,20 +91,20 @@ gh release upload vX.X.X "/tmp/windows-builds/AudioBash Setup X.X.X.exe"
 gh release edit vX.X.X --notes "Updated notes with all download links..."
 ```
 
-## File Naming Convention
+## File naming convention
 
-| Platform | Filename Pattern |
+| Platform | Filename pattern |
 |----------|------------------|
-| Windows | `AudioBash Setup X.X.X.exe` |
+| Windows | `AudioBash.Setup.X.X.X.exe` |
 | macOS ARM64 | `AudioBash-X.X.X-arm64.dmg` |
-| macOS Intel | `AudioBash-X.X.X.dmg` |
+| macOS Intel | `AudioBash-X.X.X-x64.dmg` |
 
-## GitHub Actions Workflow
+## GitHub Actions workflow
 
 The workflow (`.github/workflows/build.yml`) automatically:
-- Builds on tag push (`v*`)
-- Can be manually triggered via `workflow_dispatch`
-- Uses `--publish never` to prevent electron-builder auto-publish conflicts
+- Runs only through `workflow_dispatch` for an exact reviewed commit on `master`
+- Does not build from a tag push
+- Calls package scripts that include `--publish never`
 
 ## Complete Release Example (v2.0.2)
 
@@ -152,7 +152,7 @@ gh release edit v2.0.2 --notes "Updated notes..."
 ```
 GitHub Personal Access Token is not set
 ```
-**Fix:** Ensure `--publish never` is in all build commands in the workflow.
+**Fix:** Keep `--publish never` in each package script that invokes electron-builder. Do not forward it from the workflow through `npm run ... -- ...`.
 
 ### Cross-platform builds
 - Windows builds require Windows runner (use GitHub Actions)
