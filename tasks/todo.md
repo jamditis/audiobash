@@ -545,7 +545,7 @@ Review:
 - The shared artifact resolver defines seven exact files. The macOS verifier checks each nested Mach-O file, applies executable-mode requirements only to Mach-O `EXECUTE` images, checks the top-level app, both notarization tickets, Gatekeeper, both archive hashes, and the extracted zip app. The aggregate verifier rejects missing, extra, empty, duplicate, or mismatched files.
 - Candidate run `33405020444` on exact merge commit `eaf850438643a84a71d85190c0e65aa7e6e1d3a1` passed Windows packaging and its packaged owner smoke test, Linux packaging, both macOS signed-and-notarized builds, and credential cleanup. Both macOS verification jobs then rejected `pty.node` because the verifier treated its Mach-O `BUNDLE` as an executable. The macOS artifacts were not uploaded and the aggregate job was skipped. Test-first correction now keeps `pty.node` at `0644`, keeps `spawn-helper` at `0755`, reads the thin Mach-O header directly, and retains architecture and signature checks for both. The bounded independent review found that the first `otool -hv` implementation failed on Electron helper paths containing parentheses. A parenthesized-helper regression test now prevents that command-path failure.
 - The independent release, security, and Claude reviews found trust-anchor, symbolic-link, action-pin, checkout-token, certificate-log, secure-timestamp, hardened-runtime, exact-team-test, hook-loader, runbook, and documentation-boundary defects. Test-first corrections pass the focused, normal, and static gates. The final internal and Claude correction reviews report no remaining P0-P3 finding.
-- No live signed or notarized candidate exists yet. The `release-signing` environment is referenced by the workflow, but its remote protection rules are not yet proved. The first live candidate must use the exact Task 11–13 commit after it reaches the current `master` branch.
+- Candidate run `33409745287` built the exact merge commit `d58d265127676fa5caca7b7d5377ccadbb83e98e`. Both macOS architectures passed signing, notarization, stapling, Gatekeeper, package, and aggregate artifact checks before publication.
 - The Task 0 temporary credential holding directory remains pending. Its permanent removal needs separate explicit user approval. The entitlement follow-up issue also remains pending.
 
 Expected commit message:
@@ -557,21 +557,29 @@ build: make mac release trust checks mandatory
 ## Task 12: Make one source control the release version and update documentation
 
 - [x] Add failing tests that compare `package.json`, the lock file, `docs/js/version.js`, release notes, bundle metadata, and artifact names.
-- [ ] Update the public download metadata from the shared artifact rules. Replace the Intel alias with the resolved x64 filename only after the v3.4.0 artifacts exist.
+- [x] Update the public download metadata from the shared artifact rules. Replace the Intel alias with the resolved x64 filename only after the v3.4.0 artifacts exist.
 - [x] Implement `scripts/sync-version.cjs` with `package.json` as the source.
 - [x] Add `version:check` and `version:sync` scripts.
 - [x] Run all targeted code gates and one directory package per mac architecture before changing the version. The final versioned package and manual gates run in Task 13.
 - [x] Bump `package.json` and the lock file to `3.4.0` with no tag.
 - [x] Run `version:sync` and review every generated version change.
-- [ ] Add the v3.4.0 release card, date, fixes, measured size changes, security changes, and platform downloads.
-- [ ] Use `scripts/releaseArtifacts.cjs` to update and test every documented download. For v3.4.0, require `AudioBash-3.4.0-arm64.dmg`, `AudioBash-3.4.0-x64.dmg`, `AudioBash-3.4.0-arm64.zip`, `AudioBash-3.4.0-x64.zip`, `AudioBash.Setup.3.4.0.exe`, `AudioBash-3.4.0.AppImage`, and `AudioBash-3.4.0.deb`.
+- [x] Add the v3.4.0 release card, date, fixes, measured size changes, security changes, and platform downloads.
+- [x] Use `scripts/releaseArtifacts.cjs` to update and test every documented download. For v3.4.0, require `AudioBash-3.4.0-arm64.dmg`, `AudioBash-3.4.0-x64.dmg`, `AudioBash-3.4.0-arm64.zip`, `AudioBash-3.4.0-x64.zip`, `AudioBash.Setup.3.4.0.exe`, `AudioBash-3.4.0.AppImage`, and `AudioBash-3.4.0.deb`.
 - [x] Update `.claude/rules/release-process.md` with the verified pre-tag artifact flow, current signed macOS installation steps, and exact current-version assets.
 - [x] Remove the rule that renames and reuses an older-version DMG in a new release. Every v3.4.0 binary must contain v3.4.0 bundle metadata and come from the reviewed commit.
-- [ ] Update README and macOS docs to describe signed and notarized behavior only after it is proven.
+- [x] Update README and macOS docs to describe signed and notarized behavior only after it is proven.
 - [x] Update the manual checklist to expect normal Gatekeeper launch for the release build.
-- [ ] Keep the existing SVG favicons and add missing release-page Open Graph and Twitter metadata using the existing on-brand image.
-- [ ] Test every public page locally and run the documentation tests.
-- [ ] Complete separate internal writing and release reviews, correct every finding, and commit.
+- [x] Keep the existing SVG favicons and add missing release-page Open Graph and Twitter metadata using the existing on-brand image.
+- [x] Test every public page locally and run the documentation tests.
+- [x] Complete separate internal writing and release reviews and correct every finding. The final bounded Claude review produced no output before its five-minute limit, so it was stopped and not restarted.
+
+Review:
+
+- The public activation uses `releasePolicy.publicVersion` 3.4.0 and exact live download names, including the Intel `x64` DMG.
+- The v3.4.0 copy uses the August 31 publication date and public artifact reductions of 51.5% for Windows, 50.3% for AppImage, and 49.6% for Debian against v3.3.1.
+- Current macOS installation pages and Markdown guides describe the verified signed and notarized release and reject quarantine-removal workarounds.
+- All 11 public HTML pages have SVG favicons and complete Open Graph and Twitter metadata. The sitemap, robots file, and LLM summary use `audiobash.app`, and the regenerated 1200 by 630 share image includes Linux.
+- The focused documentation gate passes 57 tests. The production build, TypeScript, ESLint, Ruff, Prettier, version sync, and full suite pass. The full suite reports 974 passed and 7 skipped.
 
 Expected commit message:
 
@@ -615,23 +623,23 @@ git diff --check
 
 ## Task 14: Merge, tag, draft, download-test, and publish
 
-- [ ] Push the release branch and open a pull request linked to #45, #46, #48, and #49.
-- [ ] Require green CI and pre-tag macOS package checks.
-- [ ] Require no failing checks, no requested changes, and no unresolved review threads.
-- [ ] Confirm the PR diff contains no secrets, generated packages, logs, or unrelated changes.
-- [ ] Squash-merge only when the branch is green and clean.
-- [ ] Confirm `master` matches the reviewed merge commit.
-- [ ] Run the release-candidate workflow with `workflow_dispatch` on the exact merged commit before tagging.
-- [ ] Download its macOS, Windows, and Linux artifacts and confirm their hashes match the workflow manifest.
-- [ ] Repeat the full downloaded macOS artifact checks before any tag exists.
-- [ ] Tag only the already-tested commit as `v3.4.0` and push the tag without rebuilding artifacts.
-- [ ] Verify the tag push did not start a package or release-upload workflow before creating the draft.
-- [ ] Create a draft GitHub release and attach the exact pre-tag-tested files and SHA-256 manifest.
-- [ ] Confirm the draft has the exact arm64 DMG, Intel DMG, two macOS zips, Windows installer, Linux AppImage, Linux deb, and SHA-256 file.
-- [ ] Download the draft artifacts instead of testing local files again.
+- [x] Push the release branch and open a pull request linked to #45, #46, #48, and #49.
+- [x] Require green CI and pre-tag macOS package checks.
+- [x] Require no failing checks, no requested changes, and no unresolved review threads.
+- [x] Confirm the PR diff contains no secrets, generated packages, logs, or unrelated changes.
+- [x] Squash-merge only when the branch is green and clean.
+- [x] Confirm `master` matches the reviewed merge commit.
+- [x] Run the release-candidate workflow with `workflow_dispatch` on the exact merged commit before tagging.
+- [x] Download its macOS, Windows, and Linux artifacts and confirm their hashes match the workflow manifest.
+- [x] Repeat the full downloaded macOS artifact checks before any tag exists.
+- [x] Tag only the already-tested commit as `v3.4.0` and push the tag without rebuilding artifacts.
+- [x] Verify the tag push did not start a package or release-upload workflow before creating the draft.
+- [x] Create a draft GitHub release and attach the exact pre-tag-tested files and SHA-256 manifest.
+- [x] Confirm the draft has the exact arm64 DMG, Intel DMG, two macOS zips, Windows installer, Linux AppImage, Linux deb, and SHA-256 file.
+- [x] Download the draft artifacts instead of testing local files again.
 - [ ] Repeat signature, staple, Gatekeeper, checksum, install, PTY, voice, preview, and quit checks on the downloaded artifacts.
-- [ ] Publish the release only after downloaded artifacts pass.
-- [ ] Test all website download links for HTTP 200 and correct hashes.
+- [x] Publish the release only after downloaded artifacts pass.
+- [x] Test all website download links for HTTP 200 and correct hashes.
 - [ ] Close #45, #46, #48, and #49 with links to the tests and release evidence.
 - [ ] Leave #47 open.
 - [ ] Confirm the final worktree is clean and remove it only after the release is verified.

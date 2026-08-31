@@ -30,12 +30,23 @@ ACID = (204, 255, 0)
 SIGNAL = (255, 42, 42)
 MUTED = (140, 140, 140)
 
-MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-MONO_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+MONO_CANDIDATES = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    "/System/Library/Fonts/SFNSMono.ttf",
+    "C:/Windows/Fonts/consola.ttf",
+)
+MONO_BOLD_CANDIDATES = (
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+    "/System/Library/Fonts/SFNSMono.ttf",
+    "C:/Windows/Fonts/consolab.ttf",
+)
 
 
-def font(path, size):
-    return ImageFont.truetype(path, size)
+def font(candidates, size):
+    for path in candidates:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    raise FileNotFoundError(f"No supported monospace font found in: {candidates}")
 
 
 def main():
@@ -51,11 +62,11 @@ def main():
 
     # Left text column
     pad = 64
-    f_kicker = font(MONO_BOLD, 22)
-    f_word = font(MONO_BOLD, 88)
-    f_tag = font(MONO, 25)
-    f_sub = font(MONO, 22)
-    f_url = font(MONO_BOLD, 26)
+    f_kicker = font(MONO_BOLD_CANDIDATES, 22)
+    f_word = font(MONO_BOLD_CANDIDATES, 88)
+    f_tag = font(MONO_CANDIDATES, 25)
+    f_sub = font(MONO_CANDIDATES, 22)
+    f_url = font(MONO_BOLD_CANDIDATES, 26)
 
     # Top kicker with signal-red marker block
     ky = 70
@@ -78,7 +89,7 @@ def main():
         font=f_sub,
         fill=MUTED,
     )
-    draw.text((pad, 452), "Windows and macOS.", font=f_sub, fill=MUTED)
+    draw.text((pad, 452), "Windows, macOS, and Linux.", font=f_sub, fill=MUTED)
 
     # URL pinned bottom-left
     draw.text((pad, 530), "audiobash.app", font=f_url, fill=ACID)

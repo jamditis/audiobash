@@ -89,7 +89,7 @@ AudioBash is a voice-controlled terminal application designed to work with Claud
 - macOS 12 (Monterey) or later
 - Apple Silicon (M1/M2/M3/M4) or Intel processor
 - 4GB RAM minimum (8GB recommended)
-- 200MB disk space
+- 350MB available disk space
 - Microphone for voice input
 
 #### Installation steps
@@ -97,32 +97,17 @@ AudioBash is a voice-controlled terminal application designed to work with Claud
 1. **Download the DMG**
    - Visit [audiobash.app](https://audiobash.app) or the [GitHub releases page](https://github.com/jamditis/audiobash/releases)
    - Download the appropriate version:
-     - **Apple Silicon (M1/M2/M3/M4)**: `AudioBash-<version>-arm64.dmg`
-     - **Intel Macs**: `AudioBash-<version>-x64.dmg`
+     - **Apple Silicon (M1/M2/M3/M4)**: `AudioBash-3.4.0-arm64.dmg`
+     - **Intel Macs**: `AudioBash-3.4.0-x64.dmg`
 
 2. **Install the app**
    - Double-click the downloaded `.dmg` file
    - Drag `AudioBash.app` to the Applications folder
    - Eject the DMG
 
-3. **First launch (important)**
+3. **Open AudioBash**
 
-   AudioBash is not yet signed with an Apple Developer certificate (pending). You must bypass Gatekeeper on first launch:
-
-   **Method 1 — Right-click (recommended)**
-   - Open Finder → Applications
-   - **Right-click** (or Control+click) on `AudioBash.app`
-   - Select "Open" from the context menu
-   - Click "Open" in the security dialog
-   - You only need to do this once
-
-   **Method 2 — Terminal command**
-   ```bash
-   xattr -cr /Applications/AudioBash.app
-   ```
-   Then double-click to open normally.
-
-   > **Note:** Code signing infrastructure is in place and signed builds will ship once Apple Developer Program activation completes.
+   Open AudioBash from Applications. The v3.4.0 Mac builds are signed and notarized by Apple and pass Gatekeeper checks.
 
 4. **Grant permissions**
 
@@ -347,10 +332,7 @@ Enable spoken responses for terminal output:
 ### macOS issues
 
 #### "AudioBash is damaged and can't be opened"
-This is Gatekeeper blocking an unsigned app. Fix with:
-```bash
-xattr -cr /Applications/AudioBash.app
-```
+Delete that copy and download the correct v3.4.0 DMG again from the [official release](https://github.com/jamditis/audiobash/releases/tag/v3.4.0). Do not override this warning. A signed and notarized release must pass Gatekeeper checks.
 
 #### App crashes on launch (Apple Silicon)
 This was fixed in v2.4.0. If you're running an older version, update to the latest release. The crash was caused by invalid code signatures on native binaries inside the app bundle.

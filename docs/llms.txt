@@ -2,7 +2,7 @@
 
 > Voice-controlled terminal for developers. Speak commands, execute instantly.
 
-URL: https://jamditis.github.io/audiobash/
+URL: https://audiobash.app/
 Author: Joe Amditis
 License: MIT
 Repository: https://github.com/jamditis/audiobash
@@ -16,6 +16,6 @@ Key features:
 - Voice-to-terminal command execution via push-to-talk hotkey
 - Multi-tab split-view terminal with up to 4 panes
 - Agent mode with context-aware command generation
-- Available for Windows and macOS (Apple Silicon and Intel)
+- Available for Windows, macOS (Apple Silicon and Intel), and Linux
 - Multiple AI transcription providers
 - Fully customizable hotkeys and settings

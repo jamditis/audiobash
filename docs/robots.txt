@@ -19,4 +19,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://jamditis.github.io/audiobash/sitemap.xml
+Sitemap: https://audiobash.app/sitemap.xml

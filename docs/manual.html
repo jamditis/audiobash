@@ -10,6 +10,18 @@
     <meta property="og:title" content="AudioBash User Manual">
     <meta property="og:description" content="Complete guide to installing and using AudioBash on Windows, macOS, and Linux.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://audiobash.app/manual.html">
+    <meta property="og:image" content="https://audiobash.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="AudioBash user manual">
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AudioBash user manual">
+    <meta name="twitter:description" content="Installation, setup, and usage instructions for AudioBash.">
+    <meta name="twitter:image" content="https://audiobash.app/og-image.png">
+    <meta name="twitter:image:alt" content="AudioBash user manual">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -226,7 +238,7 @@
             <div class="mb-12">
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/30 text-accent text-xs font-mono mb-4">
                     <span class="w-2 h-2 bg-accent rounded-full"></span>
-                    <span data-version="v{version}">v3.3.1</span>
+                    <span data-version="v{version}">v3.4.0</span>
                 </div>
                 <h1 class="font-display text-4xl md:text-5xl text-chrome mb-4">USER_MANUAL</h1>
                 <p class="text-gray-400 text-lg">Complete guide to installing and using AudioBash on Windows, macOS, and Linux.</p>
@@ -347,7 +359,7 @@
                                 <li>macOS 12 (Monterey) or later</li>
                                 <li>Apple Silicon (M1/M2/M3/M4) or Intel processor</li>
                                 <li>4GB RAM minimum (8GB recommended)</li>
-                                <li>200MB disk space</li>
+                                <li>350MB available disk space</li>
                                 <li>Microphone for voice input</li>
                             </ul>
                         </div>
@@ -360,8 +372,8 @@
                                     <strong class="text-chrome">Download the DMG</strong>
                                     <p class="text-sm mt-1">Visit <a href="https://audiobash.app" class="text-accent hover:underline">audiobash.app</a> or the <a href="https://github.com/jamditis/audiobash/releases" class="text-accent hover:underline">releases page</a> and download:</p>
                                     <ul class="text-sm mt-2 space-y-1">
-                                        <li><strong>Apple Silicon (M1/M2/M3/M4):</strong> the <code>arm64.dmg</code></li>
-                                        <li><strong>Intel Macs:</strong> the <code>.dmg</code> (non-arm64)</li>
+                                        <li><strong>Apple Silicon (M1/M2/M3/M4):</strong> <code>AudioBash-3.4.0-arm64.dmg</code></li>
+                                        <li><strong>Intel Macs:</strong> <code>AudioBash-3.4.0-x64.dmg</code></li>
                                     </ul>
                                 </div>
                             </li>
@@ -375,16 +387,8 @@
                             <li class="flex gap-3">
                                 <span class="w-6 h-6 bg-apple text-black font-display font-bold text-sm flex items-center justify-center shrink-0">3</span>
                                 <div>
-                                    <strong class="text-chrome">First launch (important!)</strong>
-                                    <p class="text-sm mt-1">AudioBash isn't code-signed yet. The signing infrastructure is in the repo and signed builds are planned; until then, you must bypass Gatekeeper on first launch:</p>
-                                    <div class="bg-void border border-white/10 p-4 mt-3 text-sm">
-                                        <p class="text-chrome font-display mb-2">Method 1 - Right-click (recommended)</p>
-                                        <p>Open Finder → Applications → <strong>Right-click</strong> AudioBash.app → Select "Open" → Click "Open" in the dialog</p>
-                                    </div>
-                                    <div class="bg-void border border-white/10 p-4 mt-2 text-sm">
-                                        <p class="text-chrome font-display mb-2">Method 2 - Terminal command</p>
-                                        <pre><code>xattr -cr /Applications/AudioBash.app</code></pre>
-                                    </div>
+                                    <strong class="text-chrome">Open AudioBash</strong>
+                                    <p class="text-sm mt-1">Open AudioBash from Applications. The v3.4.0 Mac builds are signed and notarized by Apple and pass Gatekeeper checks.</p>
                                 </div>
                             </li>
                             <li class="flex gap-3">
@@ -849,8 +853,7 @@ cd audiobash</code></pre>
                             <div class="space-y-4">
                                 <div class="bg-panel border border-white/10 p-4">
                                     <h4 class="text-chrome mb-2">"AudioBash is damaged and can't be opened"</h4>
-                                    <p class="text-gray-400 text-sm mb-2">This is Gatekeeper blocking an unsigned app. Fix with:</p>
-                                    <pre><code>xattr -cr /Applications/AudioBash.app</code></pre>
+                                    <p class="text-gray-400 text-sm">Delete that copy and download the correct v3.4.0 DMG again from the official release. Do not override this warning. A signed and notarized release must pass Gatekeeper checks.</p>
                                 </div>
                                 <div class="bg-panel border border-white/10 p-4">
                                     <h4 class="text-chrome mb-2">Global shortcuts (Option+S) not working</h4>
@@ -924,7 +927,7 @@ cd audiobash</code></pre>
             <!-- FOOTER -->
             <div class="mt-16 pt-8 border-t border-white/10">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v3.3.1 - Voice-controlled terminal for Claude Code</div>
+                    <div data-version="AudioBash v{version} - Voice-controlled terminal for Claude Code">AudioBash v3.4.0 - Voice-controlled terminal for Claude Code</div>
                     <div class="flex items-center gap-4">
                         <a href="about.html" class="hover:text-accent transition-colors">About</a>
                         <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>

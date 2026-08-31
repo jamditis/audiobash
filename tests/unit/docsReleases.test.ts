@@ -12,7 +12,6 @@ import { join } from 'path';
 
 const releasesHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'releases.html'), 'utf8');
 const doc = new DOMParser().parseFromString(releasesHtml, 'text/html');
-const macosHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'macos.html'), 'utf8');
 const indexHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
 
 const versionJs = readFileSync(join(__dirname, '..', '..', 'docs', 'js', 'version.js'), 'utf8');
@@ -97,14 +96,7 @@ describe('docs/releases.html version freezing', () => {
     }
   });
 
-  it('keeps the macOS pane-color badge frozen at v3.2.0', () => {
-    expect(macosHtml).toContain('<span>v3.2.0</span> — customizable pane colors');
-    expect(macosHtml).not.toContain(
-      'data-version="v{version}">v3.2.0</span> — customizable pane colors',
-    );
-  });
-
-  it('keeps homepage release copy on static public-version labels', () => {
+  it('keeps release-specific homepage labels static', () => {
     expect(currentVersion, 'could not parse AUDIOBASH_VERSION from version.js').toBeTruthy();
     const indexDoc = new DOMParser().parseFromString(indexHtml, 'text/html');
     const releaseBadge = Array.from(indexDoc.querySelectorAll('a[href="latest.html"] span')).find(
@@ -120,6 +112,15 @@ describe('docs/releases.html version freezing', () => {
     expect(releaseHeading?.hasAttribute('data-version')).toBe(false);
   });
 
+  it('keeps the release-specific macOS badge static', () => {
+    const macosHtml = readFileSync(join(__dirname, '..', '..', 'docs', 'macos.html'), 'utf8');
+
+    expect(macosHtml).toContain('<span>v3.4.0</span> — supported Electron and process stability');
+    expect(macosHtml).not.toContain(
+      'data-version="v{version}">v3.4.0</span> — supported Electron and process stability',
+    );
+  });
+
   it('never links a frozen historical entry at the current version download assets', () => {
     expect(currentVersion, 'could not parse AUDIOBASH_VERSION from version.js').toBeTruthy();
     const currentPath = `/download/v${currentVersion}/`;
@@ -130,6 +131,31 @@ describe('docs/releases.html version freezing', () => {
       );
       expect(stray.length, `frozen card ${version} links at the current version's assets`).toBe(0);
     }
+  });
+
+  it('keeps the v3.3.1 local-dictionary release as frozen history', () => {
+    const card = findCardByHeading('local transcription');
+
+    expect(card.classList.contains('latest')).toBe(false);
+    expect(card.querySelector('[data-version]')).toBeNull();
+    expect(card.querySelector('[data-download]')).toBeNull();
+    expect(card.textContent).toContain('v3.3.1');
+    const downloads = Array.from(card.querySelectorAll('a[href*="/releases/download/"]')).map(
+      (link) => link.getAttribute('href'),
+    );
+    expect(downloads).toEqual([
+      'https://github.com/jamditis/audiobash/releases/download/v3.3.1/AudioBash.Setup.3.3.1.exe',
+      'https://github.com/jamditis/audiobash/releases/download/v3.3.1/AudioBash-3.3.1.AppImage',
+      'https://github.com/jamditis/audiobash/releases/download/v3.3.1/AudioBash-3.3.1.deb',
+    ]);
+  });
+
+  it('labels the only latest card with the current documentation version', () => {
+    const latest = doc.querySelector('article.release-card.latest');
+    const badge = latest?.querySelector('[data-version="v{version}"]');
+
+    expect(currentVersion).toBeTruthy();
+    expect(badge?.textContent?.trim()).toBe(`v${currentVersion}`);
   });
 });
 
