@@ -2,12 +2,14 @@
 
 const { execFile: systemExecFile, spawn: systemSpawn } = require('node:child_process');
 const path = require('node:path');
-const { PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS } = require('./windowsOwnerProtocol.cjs');
+const {
+  PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS,
+  WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS,
+} = require('./windowsOwnerProtocol.cjs');
 
 const DEFAULT_GRACEFUL_TIMEOUT_MS = 3000;
 const DEFAULT_FORCE_TIMEOUT_MS = 2000;
 const DEFAULT_HELPER_TIMEOUT_MS = 1000;
-const DEFAULT_WINDOWS_OWNER_TIMEOUT_MS = 20_000;
 const PROCESS_CHECK_INTERVAL_MS = 25;
 const WINDOWS_STATUS_LIMIT_BYTES = 1024;
 
@@ -80,7 +82,7 @@ function createProcessTreeController({
   gracefulTimeoutMs = DEFAULT_GRACEFUL_TIMEOUT_MS,
   forceTimeoutMs = DEFAULT_FORCE_TIMEOUT_MS,
   helperTimeoutMs = DEFAULT_HELPER_TIMEOUT_MS,
-  windowsOwnerTimeoutMs = DEFAULT_WINDOWS_OWNER_TIMEOUT_MS,
+  windowsOwnerTimeoutMs = WINDOWS_OWNER_CONTROLLER_TIMEOUT_MS,
   setTimeoutFn = setTimeout,
   clearTimeoutFn = clearTimeout,
   now = Date.now,

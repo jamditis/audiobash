@@ -7,12 +7,12 @@ const net = require('node:net');
 const path = require('node:path');
 const {
   PARENT_STARTUP_MESSAGE_LIMIT_CHARACTERS,
+  WINDOWS_OWNER_READY_TIMEOUT_MS,
   parseWindowsOwnerFrame,
 } = require('./windowsOwnerProtocol.cjs');
 
 const PIPE_FRAME_LIMIT_BYTES = 4096;
 const PARENT_LEASE_INTERVAL_MS = 250;
-const WINDOWS_OWNER_READY_TIMEOUT_MS = 10_000;
 
 const [command, ...args] = process.argv.slice(2);
 const holdAfterTarget = process.env.AUDIOBASH_LAUNCHER_HOLD === '1';
@@ -256,6 +256,16 @@ function startWindowsJobTarget(targetEnvironment) {
   });
   jobStatusServer.once('error', fail);
   jobStatusServer.listen(pipePath, () => {
+    const ownerStartupStartedAt = Date.now();
+    ownerReadyTimer = setTimeout(
+      () =>
+        fail(
+          new Error(
+            `Windows Job owner did not report readiness after ${Date.now() - ownerStartupStartedAt} ms`,
+          ),
+        ),
+      WINDOWS_OWNER_READY_TIMEOUT_MS,
+    );
     try {
       const resolvedCommand = resolveWindowsCommand(command, targetEnvironment);
       const scriptPath = windowsJobOwnerPath();
@@ -287,10 +297,6 @@ function startWindowsJobTarget(targetEnvironment) {
         fail(new Error('Windows Job owner has no valid PID'));
         return;
       }
-      ownerReadyTimer = setTimeout(
-        () => fail(new Error('Windows Job owner did not report readiness')),
-        WINDOWS_OWNER_READY_TIMEOUT_MS,
-      );
       jobOwner.stdin.end(
         JSON.stringify({
           args,
