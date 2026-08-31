@@ -12,11 +12,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUDIOBASH // Voice-controlled terminal</title>
-    <meta name="description" content="Voice-controlled terminal for developers. Speak commands, execute instantly. Now available for Windows and macOS.">
+    <meta name="description" content="Voice-controlled terminal for developers. Speak commands, execute instantly. Available for Windows, macOS, and Linux.">
 
     <!-- Open Graph -->
     <meta property="og:title" content="AudioBash - Voice-controlled terminal">
-    <meta property="og:description" content="Speak commands and watch them run. Multi-tab terminal with voice transcription from Gemini, ElevenLabs, or local Whisper. Windows and macOS.">
+    <meta property="og:description" content="Speak commands and watch them run. Multi-tab terminal with voice transcription from Gemini, ElevenLabs, or local Whisper. Windows, macOS, and Linux.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://audiobash.app/">
     <meta property="og:image" content="https://audiobash.app/og-image.png">
@@ -27,7 +27,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AudioBash - Voice-controlled terminal">
-    <meta name="twitter:description" content="Speak commands and watch them run. Multi-tab terminal with voice transcription from Gemini, ElevenLabs, or local Whisper. Windows and macOS.">
+    <meta name="twitter:description" content="Speak commands and watch them run. Multi-tab terminal with voice transcription from Gemini, ElevenLabs, or local Whisper. Windows, macOS, and Linux.">
     <meta name="twitter:image" content="https://audiobash.app/og-image.png">
     <meta name="twitter:image:alt" content="AudioBash — voice-controlled terminal for developers">
 
@@ -221,7 +221,7 @@
                 <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch">A</div>
                 <div>
                     <h1 class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</h1>
-                    <p class="text-[9px] text-gray-500 tracking-[0.2em]" data-version="v{version} // VOICE_TERMINAL">v3.3.1 // VOICE_TERMINAL</p>
+                    <p class="text-[9px] text-gray-500 tracking-[0.2em]" data-version="v{version} // VOICE_TERMINAL">v3.4.0 // VOICE_TERMINAL</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -253,7 +253,7 @@
                 <!-- NEW: Version Badge -->
                 <a href="latest.html" class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6 hover:bg-accent/20 transition-colors">
                     <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                    <span>v3.3.1</span> — custom dictionary now applies to local Whisper and Parakeet
+                    <span>v3.4.0</span> — supported Electron and reliable process cleanup
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </a>
 
@@ -340,28 +340,28 @@
             </div>
         </section>
 
-        <!-- WHAT'S NEW IN v3.3.1 -->
+        <!-- What's new in v3.4.0 -->
         <section class="py-16 px-6 bg-accent/5 border-y border-accent/20">
             <div class="max-w-4xl mx-auto">
                 <div class="text-center mb-8">
-                    <h3 class="font-display text-2xl text-accent mb-2">NEW IN v3.3.1</h3>
-                    <p class="text-gray-500 font-mono">Your custom dictionary now applies to local transcription, not just cloud</p>
+                    <h3 class="font-display text-2xl text-accent mb-2">NEW IN v3.4.0</h3>
+                    <p class="text-gray-500 font-mono">A supported runtime, owned process trees, and smaller packages</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #ccff00;">///</div>
-                        <h4 class="font-display text-chrome mb-1">Dictionary fix for local models</h4>
-                        <p class="text-gray-500 text-sm">The custom dictionary was silently ignored by local Whisper and Parakeet. Configured spoken-to-written corrections now apply to their output too.</p>
+                        <h4 class="font-display text-chrome mb-1">Supported runtime</h4>
+                        <p class="text-gray-500 text-sm">Electron 43.4.1 replaces the unsupported Electron 39 line while keeping macOS 12 compatibility.</p>
                     </div>
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #3399ff;">///</div>
-                        <h4 class="font-display text-chrome mb-1">Same behavior as cloud</h4>
-                        <p class="text-gray-500 text-sm">Local engines now run the same vocabulary corrections the Gemini, OpenAI, and Anthropic paths already used.</p>
+                        <h4 class="font-display text-chrome mb-1">Process cleanup</h4>
+                        <p class="text-gray-500 text-sm">Windows Job Object ownership and bounded macOS cleanup stop shell descendants with their tab or the app.</p>
                     </div>
                     <div class="p-4">
                         <div class="text-3xl mb-2 font-mono" style="color: #ff3333;">///</div>
-                        <h4 class="font-display text-chrome mb-1">Regression-tested</h4>
-                        <p class="text-gray-500 text-sm">New tests assert a configured dictionary entry is applied on both the Parakeet and Whisper paths.</p>
+                        <h4 class="font-display text-chrome mb-1">Smaller packages</h4>
+                        <p class="text-gray-500 text-sm">Compared with v3.3.1, Windows is 51.5% smaller, AppImage is 50.3% smaller, and Debian is 49.6% smaller.</p>
                     </div>
                 </div>
             </div>
@@ -582,7 +582,7 @@
                         <ol class="text-gray-400 text-sm space-y-2 list-decimal list-inside">
                             <li>Download the .dmg for your Mac type</li>
                             <li>Open DMG, drag AudioBash to Applications</li>
-                            <li><strong>Right-click → Open</strong> (first time only, bypasses Gatekeeper)</li>
+                            <li>Open AudioBash normally. The v3.4.0 app is signed and notarized by Apple.</li>
                             <li>Grant microphone permission when prompted</li>
                         </ol>
                     </div>
@@ -594,7 +594,7 @@
         <footer class="border-t border-white/10 py-8 px-6">
             <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="text-[10px] text-gray-600 font-mono">
-                    <span data-version="AUDIOBASH v{version} // BUILD 2026.06.21 // MIT LICENSE">AUDIOBASH v3.3.1 // BUILD 2026.06.21 // MIT LICENSE</span>
+                    <span data-version="AUDIOBASH v{version} // BUILD 2026.08.31 // MIT LICENSE">AUDIOBASH v3.4.0 // BUILD 2026.08.31 // MIT LICENSE</span>
                 </div>
                 <div class="flex items-center gap-4 text-gray-500">
                     <a href="about.html" class="hover:text-accent transition-colors text-xs font-mono">

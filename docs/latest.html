@@ -10,6 +10,18 @@
     <meta property="og:title" content="What's new in AudioBash">
     <meta property="og:description" content="Recent updates, features, and improvements. The fun changelog.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://audiobash.app/latest.html">
+    <meta property="og:image" content="https://audiobash.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="What's new in AudioBash">
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="What's new in AudioBash">
+    <meta name="twitter:description" content="Recent AudioBash updates, fixes, and release details.">
+    <meta name="twitter:image" content="https://audiobash.app/og-image.png">
+    <meta name="twitter:image:alt" content="What's new in AudioBash">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -185,7 +197,7 @@
         <div class="text-center mb-16">
             <div class="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/30 text-accent text-sm font-mono mb-6">
                 <span class="w-2 h-2 bg-accent rounded-full animate-pulse"></span>
-                <span data-version="Currently at v{version}">Currently at v3.3.1</span>
+                <span data-version="Currently at v{version}">Currently at v3.4.0</span>
             </div>
             <h1 class="font-display text-5xl md:text-6xl text-chrome mb-4">What's new</h1>
             <p class="text-gray-400 text-lg max-w-2xl mx-auto">
@@ -195,6 +207,60 @@
 
         <!-- UPDATES TIMELINE -->
         <div class="space-y-12">
+
+            <!-- v3.4.0 - Supported runtime and process stability -->
+            <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ff3333;">
+                <div class="flex items-start gap-6">
+                    <div class="feature-icon bg-accent/10 border border-accent/30 shrink-0 hidden sm:flex">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <span class="px-3 py-1 bg-accent text-black font-display font-bold text-xs">v3.4.0</span>
+                            <span class="text-gray-500 text-sm">August 2026</span>
+                            <span class="px-2 py-0.5 bg-accent/20 text-accent text-xs font-mono">LATEST</span>
+                        </div>
+
+                        <h2 class="font-display text-2xl text-chrome mb-3">Supported runtime. Smaller packages. Owned process trees.</h2>
+
+                        <p class="text-gray-400 mb-6 leading-relaxed">
+                            AudioBash now runs on Electron 43.4.1, a supported line that keeps macOS 12 compatibility.
+                            Windows terminal trees are owned by a Job Object, and macOS shell cleanup is bounded and verified.
+                            Compared with v3.3.1, the Windows installer is 51.5% smaller, AppImage is 50.3% smaller, and the Debian package is 49.6% smaller.
+                        </p>
+
+                        <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="shield-check" class="w-5 h-5 text-accent"></i>
+                                    <span class="text-chrome font-display">Supported runtime</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Electron 43.4.1 replaces the unsupported Electron 39 line</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="network" class="w-5 h-5 text-ice"></i>
+                                    <span class="text-chrome font-display">Process cleanup</span>
+                                </div>
+                                <div class="text-xs text-gray-500">Shell descendants stop with their tab or the app</div>
+                            </div>
+                            <div class="bg-void border border-white/10 p-4">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <i data-lucide="package-check" class="w-5 h-5 text-volt"></i>
+                                    <span class="text-chrome font-display">Smaller packages</span>
+                                </div>
+                                <div class="text-xs text-gray-500">51.5% smaller on Windows, 50.3% for AppImage, and 49.6% for Debian</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="px-3 py-1.5 bg-accent/10 border border-accent/30 text-accent text-xs">Electron 43.4.1</span>
+                            <span class="px-3 py-1.5 bg-ice/10 border border-ice/30 text-ice text-xs">Process ownership</span>
+                            <span class="px-3 py-1.5 bg-volt/10 border border-volt/30 text-volt text-xs">Package pruning</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
 
             <!-- v3.3.1 - Custom dictionary on local transcription -->
             <article class="update-card bg-panel border border-white/10 p-8" style="--card-accent: #ccff00;">
@@ -206,7 +272,6 @@
                         <div class="flex flex-wrap items-center gap-3 mb-3">
                             <span class="px-3 py-1 bg-volt text-black font-display font-bold text-xs">v3.3.1</span>
                             <span class="text-gray-500 text-sm">June 2026</span>
-                            <span class="px-2 py-0.5 bg-volt/20 text-volt text-xs font-mono">LATEST</span>
                         </div>
 
                         <h2 class="font-display text-2xl text-chrome mb-3">Custom dictionary now works on local transcription.</h2>
@@ -701,7 +766,7 @@
     <footer class="border-t border-white/10 py-8 px-6">
         <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-[10px] text-gray-600 font-mono">
-                <span data-version="AUDIOBASH v{version} // WHAT'S NEW // MIT LICENSE">AUDIOBASH v3.3.1 // WHAT'S NEW // MIT LICENSE</span>
+                <span data-version="AUDIOBASH v{version} // WHAT'S NEW // MIT LICENSE">AUDIOBASH v3.4.0 // WHAT'S NEW // MIT LICENSE</span>
             </div>
             <div class="flex items-center gap-4 text-gray-500">
                 <a href="about.html" class="hover:text-accent transition-colors text-xs font-mono">

@@ -3,7 +3,7 @@
   "version": "3.4.0",
   "releasePolicy": {
     "appleTeamId": "5624SD289G",
-    "publicVersion": "3.3.1"
+    "publicVersion": "3.4.0"
   },
   "description": "Voice-controlled terminal for Claude Code",
   "main": "electron/main.cjs",

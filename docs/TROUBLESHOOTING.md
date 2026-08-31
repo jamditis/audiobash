@@ -239,16 +239,10 @@ Two compounding issues (fixed in v2.4.0, [#29](https://github.com/jamditis/audio
 
 **Solutions:**
 
-1. **First launch:**
-   - Right-click the app → Open → Click "Open" in the dialog
-
-2. **If blocked:**
-   ```bash
-   xattr -cr /Applications/AudioBash.app
-   ```
-
-3. **Check System Preferences:**
-   - Security & Privacy → Allow apps downloaded from: App Store and identified developers
+1. Confirm that you downloaded v3.4.0 from the [official release](https://github.com/jamditis/audiobash/releases/tag/v3.4.0).
+2. Delete the blocked copy and download the correct DMG again.
+3. Open AudioBash normally from Applications. The release is signed and notarized by Apple.
+4. If Gatekeeper still rejects the app, report the failed download and stop. Do not override the warning.
 
 #### Missing Dependencies (Linux)
 

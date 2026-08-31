@@ -1,9 +1,9 @@
 /**
- * AudioBash Version Management
- * Single source of truth for version numbers across all docs pages
+ * AudioBash documentation version metadata
+ * Generated from package.json by scripts/sync-version.cjs
  */
 
-const AUDIOBASH_VERSION = '3.3.1';
+const AUDIOBASH_VERSION = '3.4.0';
 
 // Auto-populate version strings on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const baseUrl = 'https://github.com/jamditis/audiobash/releases/download';
 
         const urls = {
-            'windows': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash.Setup.${AUDIOBASH_VERSION}.exe`,
-            'mac-arm64': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-${AUDIOBASH_VERSION}-arm64.dmg`,
-            'mac-intel': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-${AUDIOBASH_VERSION}.dmg`,
-            'linux-appimage': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-${AUDIOBASH_VERSION}.AppImage`,
-            'linux-deb': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-${AUDIOBASH_VERSION}.deb`
+            'windows': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash.Setup.3.4.0.exe`,
+            'mac-arm64': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-3.4.0-arm64.dmg`,
+            'mac-intel': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-3.4.0-x64.dmg`,
+            'linux-appimage': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-3.4.0.AppImage`,
+            'linux-deb': `${baseUrl}/v${AUDIOBASH_VERSION}/AudioBash-3.4.0.deb`
         };
 
         if (urls[type]) {

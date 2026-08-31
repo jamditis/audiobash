@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jamditis.github.io/audiobash/</loc>
+    <loc>https://audiobash.app/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url><loc>https://audiobash.app/about.html</loc></url>
+  <url><loc>https://audiobash.app/blog.html</loc></url>
+  <url><loc>https://audiobash.app/blog/anthropic-added-voice.html</loc></url>
+  <url><loc>https://audiobash.app/blog/end-user-testing.html</loc></url>
+  <url><loc>https://audiobash.app/blog/first-real-user.html</loc></url>
+  <url><loc>https://audiobash.app/blog/why-i-built-a-voice-terminal.html</loc></url>
+  <url><loc>https://audiobash.app/latest.html</loc></url>
+  <url><loc>https://audiobash.app/macos.html</loc></url>
+  <url><loc>https://audiobash.app/manual.html</loc></url>
+  <url><loc>https://audiobash.app/releases.html</loc></url>
 </urlset>
