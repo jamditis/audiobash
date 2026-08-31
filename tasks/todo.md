@@ -640,13 +640,13 @@ git diff --check
 - [ ] Repeat signature, staple, Gatekeeper, checksum, install, PTY, voice, preview, and quit checks on the downloaded artifacts.
 - [x] Publish the release only after downloaded artifacts pass.
 - [x] Test all website download links for HTTP 200 and correct hashes.
-- [ ] Close #45, #46, #48, and #49 with links to the tests and release evidence.
-- [ ] Leave #47 open.
+- [x] Close #45, #46, #48, and #49 with links to the tests and release evidence.
+- [x] Leave #47 open.
 - [ ] Confirm the final worktree is clean and remove it only after the release is verified.
 
 ## Task 15: Prove the Mac App Store route before submission
 
-- [ ] Read the current official Apple documentation for macOS TestFlight, App Store distribution, sandboxing, entitlements, certificates, provisioning profiles, privacy manifests, and upload validation. Record links and access dates.
+- [x] Read the current official Apple documentation for macOS TestFlight, App Store distribution, sandboxing, entitlements, certificates, provisioning profiles, privacy manifests, and upload validation. Record links and access dates.
 - [ ] Use the root agent for every Apple browser action. Do not let a subagent inspect credentials, control the browser, accept terms, create records, create certificates, create profiles, upload a build, add testers, or submit for review.
 - [ ] Reconnect to the signed-in Apple browser session and perform read-only checks for agreements, roles, bundle identifiers, certificates, profiles, and App Store Connect access. Do not print or store secret values.
 - [ ] Stop for user approval immediately before each account mutation, agreement acceptance, certificate or profile creation, app-record creation, upload, tester invitation, TestFlight submission, or App Review submission.
@@ -660,9 +660,17 @@ git diff --check
 - [ ] Confirm processing status and internal installation before any App Review submission.
 - [ ] Prepare the App Review metadata, screenshots, support URL, privacy URL, reviewer notes, and test instructions. Submit for App Review only after separate user approval.
 
+Review on August 31, 2026:
+
+- Current Apple sources: [App Sandbox](https://developer.apple.com/documentation/security/app-sandbox), [sandbox inheritance](https://developer.apple.com/library/archive/documentation/Miscellaneous/Reference/EntitlementKeyReference/Chapters/EnablingAppSandbox.html), [certificate types](https://developer.apple.com/help/account/create-certificates/certificates-overview), [App Store provisioning profiles](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile), [build uploads](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds), [TestFlight](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview), [privacy manifests](https://developer.apple.com/documentation/bundleresources/adding-a-privacy-manifest-to-your-app-or-third-party-sdk), [app privacy](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/), and [upload requirements](https://developer.apple.com/news/upcoming-requirements/).
+- The signed-in account is accessible. The Free Apps Agreement is active. The Paid Apps Agreement is new and not accepted. EU trader compliance is incomplete. The account has Account Holder/Admin and Developer users, but the active browser user's exact role was not recorded because that check would expose identity data.
+- App Store Connect contains KeyJawn and no AudioBash app record. The developer account contains a KeyJawn identifier and profiles, but no AudioBash identifier or profile. The visible certificate inventory contains the current Developer ID Application certificate and no visible Apple Distribution or Mac App Distribution certificate.
+- A Mac App Store route is not ready for an account mutation. Apple requires App Sandbox. Apple's documented child-process path is for bundled helpers that inherit the parent sandbox. It does not yet prove AudioBash can start an arbitrary user shell and keep its PTY, file, screenshot, microphone, local transcription, and network behavior. Build and test a separate sandboxed package before creating an AudioBash app record or signing resource.
+- No agreement was accepted. No identifier, certificate, profile, app record, build, tester, or submission was created.
+
 ## Task 16: Prepare the Microsoft Store package and submission
 
-- [ ] Read the current official Microsoft documentation for desktop app submission, supported package types, identity, signing, restricted capabilities, certification, privacy fields, and staged publication. Record links and access dates.
+- [x] Read the current official Microsoft documentation for desktop app submission, supported package types, identity, signing, restricted capabilities, certification, privacy fields, and staged publication. Record links and access dates.
 - [ ] Use the root agent for every Microsoft browser action. Do not let a subagent inspect credentials, control the browser, accept terms, reserve a name, create a product, change account data, upload a package, or submit it.
 - [ ] Reconnect to the signed-in Partner Center browser session and perform read-only checks for account state, agreements, payout or tax blockers, product access, and available submission routes. Do not print or store secret values.
 - [ ] Stop for user approval immediately before each account mutation, agreement acceptance, product-name reservation, product creation, identity assignment, upload, flight creation, or certification submission.
@@ -673,6 +681,15 @@ git diff --check
 - [ ] Prepare the Store listing, screenshots, privacy URL, support URL, age rating, release notes, system requirements, and certification notes.
 - [ ] With user approval, create or update the Partner Center product, upload the validated package, use a private flight when available, and submit for certification.
 - [ ] Confirm ingestion, certification, staged availability, installation, update, and rollback behavior before public publication.
+
+Review on August 31, 2026:
+
+- Current Microsoft sources: [Win32 Store routes](https://learn.microsoft.com/en-us/windows/apps/distribute-through-store/how-to-distribute-your-win32-app-through-microsoft-store), [MSI and EXE requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-package-requirements), [MSI and EXE uploads](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/upload-app-packages), [MSI and EXE certification](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-certification-process), [MSIX certification](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-certification-process), [package capabilities](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/app-capability-declarations), [product identity](https://learn.microsoft.com/en-us/windows/apps/publish/view-app-identity-details), [package flights](https://learn.microsoft.com/en-us/windows/apps/publish/package-flights), and [payout and tax setup](https://learn.microsoft.com/en-us/partner-center/account-settings/partner-center-account-setup).
+- The signed-in Partner Center account is accessible. Apps and games contains AudioBud as an EXE or MSI app with status `In the Microsoft Store`. No AudioBash product exists. The `New product` control is available.
+- The current Partner Center payout and tax documentation points to account settings. The published direct assignment URL redirects this account to Partner Center's not-found page, and the current settings control did not open through two safe read-only UI methods. Payout, tax, and agreement status is therefore not verified. This is not evidence that those settings failed.
+- The direct EXE route requires an immutable versioned HTTPS URL, an offline installer, silent installation, and a CA-trusted Authenticode signature on the installer and its PE files. The existing v3.4.0 installer has not passed those Store-specific signing and silent-install gates.
+- The MSIX route can preserve full-trust desktop behavior without an AppContainer if the manifest is correct. It also supports Store signing, package flights, and controlled updates. AudioBash does not yet have a tested MSIX package or Store identity. Select and validate the route before reserving the name or creating the product.
+- No agreement was accepted. No product name, product, identity, package, flight, or submission was created.
 
 ## Task 17: Update every release and documentation surface
 
