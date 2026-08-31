@@ -173,6 +173,14 @@ describe('Microsoft Store manifest verifier', () => {
     ).toThrow(/StoreLogo\.png/);
   });
 
+  it('rejects a signed package retained for Store upload', () => {
+    const fixture = createPackageFixture();
+    writeFixtureFile(fixture.packageRoot, 'AppxSignature.p7x', 'signature');
+    expect(() =>
+      verifyExtractedPackage(fixture.packageRoot, expected, fixture.repositoryRoot),
+    ).toThrow(/AppxSignature\.p7x/);
+  });
+
   it('rejects a non-x64 node-pty prebuild directory', () => {
     const fixture = createPackageFixture();
     writeFixtureFile(
