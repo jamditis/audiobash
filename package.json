@@ -30,6 +30,7 @@
     "test:ui": "vitest --ui",
     "test:package:mac": "vitest run --config vitest.package.config.ts",
     "test:package:win": "node scripts/verify-windows-package.cjs",
+    "test:store:win": "vitest run tests/build-config.test.ts tests/windows-store-config.test.ts tests/windows-store-package.test.ts tests/windows-store-workflow.test.ts tests/unit/windowsPackageProbe.test.ts tests/unit/processTree.test.ts tests/unit/windowsJobOwnerSource.test.ts tests/unit/transcriptionJob.test.ts tests/unit/appShutdown.test.ts tests/unit/whisperService.test.ts tests/unit/localWhisperHandlers.test.ts tests/unit/transcriptionService.test.ts tests/startup-crash.test.ts tests/integration/processTree.windows.test.ts",
     "lint": "eslint . --max-warnings 33",
     "lint:fix": "eslint . --fix --max-warnings 33",
     "setup:ruff": "uv tool run --from ruff==0.15.1 ruff --version",

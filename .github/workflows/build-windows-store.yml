@@ -62,7 +62,7 @@ jobs:
           npm run lint
           npm run typecheck
           npm run version:check
-          npm test
+          npm run test:store:win
 
       - name: Build unsigned test-identity AppX
         run: npm run electron:build:store:win -- --publish never

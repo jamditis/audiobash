@@ -35,7 +35,15 @@ describe('Microsoft Store test-package workflow', () => {
     expect(workflow).toContain('npm run lint');
     expect(workflow).toContain('npm run typecheck');
     expect(workflow).toContain('npm run version:check');
-    expect(workflow).toContain('npm test');
+    expect(workflow).toContain('npm run test:store:win');
+    expect(workflow).not.toContain('npm test');
+    expect(packageJson.scripts['test:store:win']).toContain('tests/windows-store-config.test.ts');
+    expect(packageJson.scripts['test:store:win']).toContain(
+      'tests/integration/processTree.windows.test.ts',
+    );
+    expect(packageJson.scripts['test:store:win']).toContain(
+      'tests/unit/windowsPackageProbe.test.ts',
+    );
   });
 
   it('builds and verifies only the marked test-identity AppX', () => {

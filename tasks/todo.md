@@ -727,6 +727,7 @@ Implementation review on August 31, 2026:
 - [x] Electron-builder accepted the Store configuration and produced an x64 unpacked Windows app on macOS. Its native inventory contains only `win32-x64` and `win10-x64` PTY files.
 - [x] The one bounded final review found three blockers: single-quoted publisher parsing, an incomplete capability allowlist, and cleanup that could stop early. All three received red-green corrections in the same review cycle. The reviewer then reported no remaining P0 or P1 finding.
 - [x] Changed-file formatting, actionlint, ESLint with the existing 33-warning budget, TypeScript, version synchronization, and the final full test suite passed. The full result was 62 test files passed, 1 skipped; 1,007 tests passed, 7 skipped.
+- [x] The first Windows Store workflow run, 33426637090, stopped in source gates before packaging because `npm test` includes macOS permission-mode and path tests that are not valid on Windows. A dedicated Store test command now reuses the established Windows lifecycle set plus Store-specific tests. Its local result was 13 files passed, 1 Windows-only file skipped; 264 tests passed, 7 skipped.
 - [ ] The first exact-commit Windows workflow must still prove AppX creation, manifest and content verification, temporary signing, sideload installation, packaged process ownership, real PowerShell PTY behavior, and exhaustive cleanup.
 - [ ] An interactive Windows VM must still prove Windows App Certification Kit, microphone, local Whisper, settings migration, update, rollback, and manual behavior gates.
 
