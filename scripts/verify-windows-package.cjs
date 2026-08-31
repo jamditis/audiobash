@@ -5,22 +5,26 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const PACKAGE_PROBE_ENV = 'AUDIOBASH_WINDOWS_PACKAGE_PROBE';
+const PACKAGE_ROOT_ENV = 'AUDIOBASH_WINDOWS_PACKAGE_ROOT';
 const PACKAGE_PROBE_TIMEOUT_MS = 30_000;
+const PTY_PROBE_TIMEOUT_MS = 15_000;
 const OUTPUT_LIMIT_BYTES = 64 * 1024;
+const PTY_PROBE_MARKER = 'AUDIOBASH_PACKAGED_WINDOWS_PTY_OK';
 
-function packagePaths(rootDirectory = path.join(__dirname, '..')) {
+function packagePaths(
+  rootDirectory = path.join(__dirname, '..'),
+  applicationDirectory = path.join(rootDirectory, 'release', 'win-unpacked'),
+) {
   const packageJson = require(path.join(rootDirectory, 'package.json'));
-  const resourcesPath = path.join(rootDirectory, 'release', 'win-unpacked', 'resources');
+  const resourcesPath = path.join(applicationDirectory, 'resources');
+  const ptyModule = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'node-pty');
   return {
     asar: path.join(resourcesPath, 'app.asar'),
-    executable: path.join(
-      rootDirectory,
-      'release',
-      'win-unpacked',
-      `${packageJson.build.productName}.exe`,
-    ),
+    executable: path.join(applicationDirectory, `${packageJson.build.productName}.exe`),
     helper: path.join(resourcesPath, 'windowsJobOwner.ps1'),
     processTree: path.join(resourcesPath, 'app.asar', 'electron', 'processTree.cjs'),
+    ptyModule,
+    ptyPackage: path.join(ptyModule, 'package.json'),
   };
 }
 
@@ -55,9 +59,80 @@ async function runPackagedProbe() {
   const controller = createProcessTreeController();
   const systemRoot = process.env.SystemRoot || 'C:\\Windows';
   const command = process.env.ComSpec || path.join(systemRoot, 'System32', 'cmd.exe');
+  const ptyModule = path.join(
+    process.resourcesPath,
+    'app.asar.unpacked',
+    'node_modules',
+    'node-pty',
+  );
+  requireFile(path.join(ptyModule, 'package.json'), 'Packaged node-pty module');
+  const packagedPty = require(ptyModule);
+  const powerShell = path.join(
+    systemRoot,
+    'System32',
+    'WindowsPowerShell',
+    'v1.0',
+    'powershell.exe',
+  );
   await exercisePackagedProcessTree(controller, command);
+  await exercisePackagedPty(packagedPty, powerShell);
 
   process.stdout.write('AUDIOBASH_PACKAGED_WINDOWS_PROCESS_TREE_OK\n');
+}
+
+function exercisePackagedPty(ptyModule, shell, timeoutMs = PTY_PROBE_TIMEOUT_MS) {
+  if (!ptyModule || typeof ptyModule.spawn !== 'function') {
+    return Promise.reject(new TypeError('The packaged node-pty module is required'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const terminal = ptyModule.spawn(shell, ['-NoLogo', '-NoProfile'], {
+      name: 'xterm-256color',
+      cols: 80,
+      rows: 24,
+      cwd: process.env.USERPROFILE || process.cwd(),
+      env: { ...process.env, TERM: 'xterm-256color' },
+    });
+    let output = '';
+    let markerReceived = false;
+    let settled = false;
+
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (error) reject(error);
+      else resolve();
+    };
+    const timer = setTimeout(() => {
+      try {
+        terminal.kill();
+      } finally {
+        finish(new Error('Packaged Windows PTY probe timed out'));
+      }
+    }, timeoutMs);
+
+    terminal.onData((data) => {
+      if (output.length < OUTPUT_LIMIT_BYTES) {
+        output += data.slice(0, OUTPUT_LIMIT_BYTES - output.length);
+      }
+      if (!markerReceived && output.includes(PTY_PROBE_MARKER)) {
+        markerReceived = true;
+        terminal.resize(100, 40);
+        terminal.write('exit\r\n');
+      }
+    });
+    terminal.onExit(({ exitCode, signal }) => {
+      if (!markerReceived) {
+        finish(new Error('Packaged Windows PTY exited before returning its marker'));
+      } else if (exitCode !== 0 || (signal !== undefined && signal !== 0)) {
+        finish(new Error(`Packaged Windows PTY failed with code ${exitCode} and signal ${signal}`));
+      } else {
+        finish();
+      }
+    });
+    terminal.write("Write-Output ('AUDIOBASH_PACKAGED_WINDOWS_' + 'PTY_OK')\r\n");
+  });
 }
 
 async function exercisePackagedProcessTree(controller, command) {
@@ -108,15 +183,19 @@ function terminateWindowsProcessTree(child) {
   return child.kill('SIGKILL');
 }
 
-function runPackageProbe(rootDirectory = path.join(__dirname, '..')) {
+function runPackageProbe(
+  rootDirectory = path.join(__dirname, '..'),
+  applicationDirectory = process.env[PACKAGE_ROOT_ENV],
+) {
   if (process.platform !== 'win32') {
     return Promise.reject(new Error('The packaged Windows process-owner probe requires Windows'));
   }
 
-  const paths = packagePaths(rootDirectory);
+  const paths = packagePaths(rootDirectory, applicationDirectory);
   requireFile(paths.executable, 'Packaged AudioBash executable');
   requireFile(paths.helper, 'Physical Windows Job owner');
   requireFile(paths.asar, 'Packaged application ASAR');
+  requireFile(paths.ptyPackage, 'Packaged node-pty module');
 
   return new Promise((resolve, reject) => {
     const stdoutChunks = [];
@@ -180,6 +259,7 @@ if (require.main === module) {
 
 module.exports = {
   exercisePackagedProcessTree,
+  exercisePackagedPty,
   packagePaths,
   runPackageProbe,
   runPackagedProbe,

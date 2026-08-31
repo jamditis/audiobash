@@ -668,6 +668,17 @@ Review on August 31, 2026:
 - A Mac App Store route is not ready for an account mutation. Apple requires App Sandbox. Apple's documented child-process path is for bundled helpers that inherit the parent sandbox. It does not yet prove AudioBash can start an arbitrary user shell and keep its PTY, file, screenshot, microphone, local transcription, and network behavior. Build and test a separate sandboxed package before creating an AudioBash app record or signing resource.
 - No agreement was accepted. No identifier, certificate, profile, app record, build, tester, or submission was created.
 
+Bounded feasibility decision on August 31, 2026:
+
+- [x] Review the current shell, PTY, project-file, microphone, preview, screenshot, local transcription, and network paths against the App Sandbox model.
+- [x] Reject a Mac App Store package for the current AudioBash product. The sandbox passes only static rights to the shell. A user-selected project grant received by the Electron main process does not make the general-purpose shell able to run user-installed Claude Code or project-local executables.
+- [x] Reject the current local Whisper path for a Store package because it downloads and runs `whisper.cpp` from writable user data and can invoke an external `ffmpeg` binary.
+- [x] Preserve the signed and notarized direct macOS release as the supported route.
+- [x] Stop before an Apple identifier, certificate, profile, app record, package, upload, tester, or submission is created.
+- [ ] Reopen Apple work only if the user approves a reduced companion product with a constrained command model and bundled, signed local transcription tools. Treat that choice as a new product specification.
+
+The bounded proof stops here. An ad hoc standard Electron build cannot prove Mac App Store behavior. A real `mas-dev` proof needs a separately approved Apple Development certificate and provisioning profile, but Apple documentation already disproves the required execution model. Creating those resources would not be a useful release step for the current product.
+
 ## Task 16: Prepare the Microsoft Store package and submission
 
 - [x] Read the current official Microsoft documentation for desktop app submission, supported package types, identity, signing, restricted capabilities, certification, privacy fields, and staged publication. Record links and access dates.
@@ -690,6 +701,34 @@ Review on August 31, 2026:
 - The direct EXE route requires an immutable versioned HTTPS URL, an offline installer, silent installation, and a CA-trusted Authenticode signature on the installer and its PE files. The existing v3.4.0 installer has not passed those Store-specific signing and silent-install gates.
 - The MSIX route can preserve full-trust desktop behavior without an AppContainer if the manifest is correct. It also supports Store signing, package flights, and controlled updates. AudioBash does not yet have a tested MSIX package or Store identity. Select and validate the route before reserving the name or creating the product.
 - No agreement was accepted. No product name, product, identity, package, flight, or submission was created.
+
+Implementation specification on August 31, 2026:
+
+- [x] Select electron-builder's full-trust `appx` target for the first Microsoft Store package. Keep the direct NSIS target and artifact contract unchanged.
+- [x] Limit the first Store package to x64, `en-US`, `Windows.FullTrustApplication`, `runFullTrust`, and `microphone`. Do not request elevation, broad filesystem access, unvirtualized resources, or AppContainer-only network capabilities.
+- [x] Add a separate Store configuration that produces `AudioBash-${version}-store-${arch}.appx` in a separate output directory and never changes the direct NSIS build.
+- [x] Require exact Partner Center identity values through environment variables in production mode. Before product creation, permit only an obvious test identity and mark its artifact as `store-test` and not for submission.
+- [x] Add branded AppX assets. Reject electron-builder sample assets.
+- [x] Add red-green configuration tests for the target, architecture, four-part version, entry point, capabilities, language, minimum Windows version, identity contract, artifact name, and direct-build isolation.
+- [x] Add red-green manifest and package-verifier tests that fail closed on a wrong identity, publisher, architecture, version, entry point, capability set, required runtime file, branded asset, artifact count, checksum, or test identity in production mode.
+- [x] Add a separate Windows Store workflow. It must check out one exact reviewed commit, use `npm ci`, run all Windows gates, build one unsigned x64 AppX with `--publish never`, verify and hash it, then retain it only as a test artifact until Partner Center provides the production identity.
+- [ ] On Windows, sign a copy with a temporary test certificate, install it, run the packaged PowerShell, `node-pty`, process-owner, file, user-data, loopback, launch, shutdown, and removal probes, then remove the temporary certificate and private key in all outcomes.
+- [ ] Run the Windows App Certification Kit on an interactive Windows test VM. Do not treat a hosted runner's Session 0 result as certification evidence.
+- [ ] Stop the AppX route after one implementation pass and one correction pass if shell execution, process cleanup, local Whisper, user file access, settings migration, microphone, network access, or certification still requires a restricted capability or weaker security.
+- [ ] After the test-identity package passes, stop for separate approval before reserving the AudioBash product name or creating the Partner Center product.
+- [ ] After Partner Center assigns the public identity and publisher values, rebuild and rerun every package gate before requesting separate upload approval.
+
+The package must come from an exact reviewed Store-preparation commit. Its application source must match the reviewed v3.4.0 source except for explicit Store configuration, assets, tests, verification code, and workflow changes. Store artifacts remain outside `scripts/releaseArtifacts.cjs` and the seven-file direct-release manifest.
+
+Implementation review on August 31, 2026:
+
+- [x] `npm ci` installed Electron 43.4.1, electron-builder 26.15.3, and Vitest 4.1.11 from the lockfile with zero reported vulnerabilities.
+- [x] Red-green tests cover Store-mode identity, production fail-closed behavior, direct NSIS isolation, x64 native pruning, exact manifest fields, exact capabilities, electron-builder's single-quoted publisher, test-identity rejection, workflow provenance, and cleanup structure.
+- [x] Electron-builder accepted the Store configuration and produced an x64 unpacked Windows app on macOS. Its native inventory contains only `win32-x64` and `win10-x64` PTY files.
+- [x] The one bounded final review found three blockers: single-quoted publisher parsing, an incomplete capability allowlist, and cleanup that could stop early. All three received red-green corrections in the same review cycle. The reviewer then reported no remaining P0 or P1 finding.
+- [x] Changed-file formatting, actionlint, ESLint with the existing 33-warning budget, TypeScript, version synchronization, and the final full test suite passed. The full result was 62 test files passed, 1 skipped; 1,007 tests passed, 7 skipped.
+- [ ] The first exact-commit Windows workflow must still prove AppX creation, manifest and content verification, temporary signing, sideload installation, packaged process ownership, real PowerShell PTY behavior, and exhaustive cleanup.
+- [ ] An interactive Windows VM must still prove Windows App Certification Kit, microphone, local Whisper, settings migration, update, rollback, and manual behavior gates.
 
 ## Task 17: Update every release and documentation surface
 
