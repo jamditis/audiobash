@@ -79,6 +79,18 @@ describe('public release-page metadata', () => {
     expect(existsSync(join(rootDirectory, 'docs/og-image.png'))).toBe(true);
   });
 
+  it.each(pages.filter(([relativePath]) => relativePath !== 'docs/privacy.html'))(
+    'links to the privacy policy from %s',
+    (relativePath) => {
+      const document = readDocument(relativePath);
+      const expectedHref = relativePath.startsWith('docs/blog/')
+        ? '../privacy.html'
+        : 'privacy.html';
+
+      expect(document.querySelector(`footer a[href="${expectedHref}"]`)).not.toBeNull();
+    },
+  );
+
   it('uses the public domain in discovery files', () => {
     for (const relativePath of ['docs/sitemap.xml', 'docs/robots.txt', 'docs/llms.txt']) {
       const contents = readFileSync(join(rootDirectory, relativePath), 'utf8');

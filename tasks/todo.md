@@ -746,7 +746,7 @@ Implementation review on August 31, 2026:
 - [x] Verify AudioBash data handling from the current v3.4.0 source.
 - [x] Check the current Microsoft Store privacy-policy requirements.
 - [x] Add a public website privacy policy that covers local data, microphone audio, cloud providers, agent-mode terminal context, retention, security, user controls, children, and contact information.
-- [x] Link the policy from each main website footer and the user manual.
+- [x] Link the policy from every public website page footer and the user manual.
 - [x] Validate the HTML, favicon, social metadata, internal links, rendered page, and policy statements locally.
 - [x] Get explicit approval before commit, push, publication, or Partner Center use.
 

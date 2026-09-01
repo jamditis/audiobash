@@ -15,3 +15,4 @@
 - Apply executable-mode rules from the Mach-O header file type. A native `BUNDLE` still needs architecture and signature checks, but it must not gain execute permission only to satisfy a blanket verifier.
 - Do not assume direct argument passing makes every path opaque to a tool. `otool` interprets parentheses as archive-member syntax, including parentheses in Electron helper paths. Read fixed-format headers directly when only header metadata is required.
 - Verify the submission year before entering Store copyright metadata. Use 2026 for the AudioBash v3.4.0 Microsoft Store submission.
+- Store text, privacy disclosures, and screenshots must match the models that the shipped UI lets users select. For v3.4.0, list Gemini, ElevenLabs, local Parakeet, and local Whisper; do not present the removed OpenAI or Anthropic choices as current.

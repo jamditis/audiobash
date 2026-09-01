@@ -135,7 +135,7 @@
                         </div>
                         <div>
                             <h3 class="text-chrome font-display text-lg mb-2">API keys</h3>
-                            <p>You provide your own API keys for cloud providers. When operating-system secure storage is available, AudioBash stores these keys on your device with Electron secure storage. If secure storage is not available, the app keeps a key in memory for the current session and does not write it to disk in plain text. A key is sent only to the provider it authenticates.</p>
+                            <p>You provide your own API keys for cloud providers. When operating-system secure storage is available, AudioBash stores these keys on your device with Electron secure storage. If secure storage is not available, the app keeps a new or changed key in memory for the current session and does not write it to disk in plain text. An upgrade can also read legacy plaintext API-key files created by an older AudioBash version. If secure storage is unavailable, a legacy file remains on disk until secure storage becomes available or you delete it. A key is sent only to the provider it authenticates.</p>
                         </div>
                         <div>
                             <h3 class="text-chrome font-display text-lg mb-2">Local settings and files</h3>
@@ -160,14 +160,6 @@
                                     <td>Recorded audio and transcription instructions. Agent mode also sends the terminal context described above.</td>
                                 </tr>
                                 <tr>
-                                    <td>OpenAI</td>
-                                    <td>Recorded audio for Whisper transcription. If you use the OpenAI agent option, the transcript and terminal context are also sent for command conversion.</td>
-                                </tr>
-                                <tr>
-                                    <td>Anthropic</td>
-                                    <td>Audio is first sent to OpenAI Whisper. In agent mode, the resulting transcript and terminal context are then sent to Anthropic.</td>
-                                </tr>
-                                <tr>
                                     <td>ElevenLabs</td>
                                     <td>Recorded or streaming audio and, when applicable, custom vocabulary terms for speech recognition.</td>
                                 </tr>
@@ -182,7 +174,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="text-gray-400 mt-5 leading-relaxed">Cloud providers process information under their own terms and privacy policies. Review the policies for <a href="https://policies.google.com/privacy">Google</a>, <a href="https://openai.com/policies/privacy-policy/">OpenAI</a>, <a href="https://www.anthropic.com/legal/privacy">Anthropic</a>, and <a href="https://elevenlabs.io/privacy-policy">ElevenLabs</a>. Their retention, location, and use of data can depend on your provider account and service plan.</p>
+                    <p class="text-gray-400 mt-5 leading-relaxed">Cloud providers process information under their own terms and privacy policies. Review the policies for <a href="https://policies.google.com/privacy">Google</a> and <a href="https://elevenlabs.io/privacy-policy">ElevenLabs</a>. Their retention, location, and use of data can depend on your provider account and service plan.</p>
                 </section>
 
                 <section aria-labelledby="use">
@@ -218,7 +210,7 @@
                 <section aria-labelledby="security">
                     <h2 id="security" class="font-display text-2xl text-chrome mb-4">Security</h2>
                     <div class="space-y-3 text-gray-400 leading-relaxed">
-                        <p>Cloud requests use encrypted HTTPS or secure WebSocket connections. API keys use operating-system-backed encryption when it is available. AudioBash does not persist new API keys when secure storage is unavailable.</p>
+                        <p>Cloud requests use encrypted HTTPS or secure WebSocket connections. API keys use operating-system-backed encryption when it is available. AudioBash does not persist new API keys when secure storage is unavailable. Legacy plaintext API-key files can remain on upgraded devices as described above.</p>
                         <p>No storage or network method can guarantee complete security. Do not speak secrets or use agent mode when terminal output contains information that you do not want to send to the selected provider.</p>
                     </div>
                 </section>
@@ -234,7 +226,7 @@
                         <li>Enable command preview and review generated commands before execution.</li>
                         <li>Delete screenshots, logs, local models, settings, and other app data from your device.</li>
                     </ul>
-                    <p class="text-gray-400 mt-4 leading-relaxed">The default app-data locations are <code class="text-chrome">%APPDATA%\AudioBash\</code> on Windows, <code class="text-chrome">~/Library/Application Support/AudioBash/</code> on macOS, and <code class="text-chrome">~/.config/AudioBash/</code> on Linux. Provider-side access, correction, deletion, and retention controls are available through the provider that you selected.</p>
+                    <p class="text-gray-400 mt-4 leading-relaxed">The default app-data locations are <code class="text-chrome">%APPDATA%\AudioBash\</code> on Windows, <code class="text-chrome">~/Library/Application Support/AudioBash/</code> on macOS, and <code class="text-chrome">~/.config/audiobash/</code> on Linux. Provider-side access, correction, deletion, and retention controls are available through the provider that you selected.</p>
                 </section>
 
                 <section aria-labelledby="website">
