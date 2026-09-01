@@ -99,6 +99,17 @@ describe('public release-page metadata', () => {
     }
   });
 
+  it('discloses the desktop app Google Fonts request', () => {
+    const appShell = readFileSync(join(rootDirectory, 'index.html'), 'utf8');
+    const privacyPolicy = readFileSync(join(rootDirectory, 'docs/privacy.html'), 'utf8');
+
+    expect(appShell).toContain('https://fonts.googleapis.com');
+    expect(privacyPolicy).toContain(
+      'The AudioBash desktop app loads its interface fonts from Google Fonts',
+    );
+    expect(privacyPolicy).toContain('even if you do not select cloud transcription');
+  });
+
   it('lists every public HTML page in the sitemap', () => {
     const sitemap = readFileSync(join(rootDirectory, 'docs/sitemap.xml'), 'utf8');
     const publicUrls = [
