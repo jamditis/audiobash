@@ -14,3 +14,4 @@
 - One substantive review and one correction pass are enough for this release. If the user says there are too many reviews, stop the active review immediately and continue with the verified build gates.
 - Apply executable-mode rules from the Mach-O header file type. A native `BUNDLE` still needs architecture and signature checks, but it must not gain execute permission only to satisfy a blanket verifier.
 - Do not assume direct argument passing makes every path opaque to a tool. `otool` interprets parentheses as archive-member syntax, including parentheses in Electron helper paths. Read fixed-format headers directly when only header metadata is required.
+- Verify the submission year before entering Store copyright metadata. Use 2026 for the AudioBash v3.4.0 Microsoft Store submission.

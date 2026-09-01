@@ -40,6 +40,7 @@ describe('public release-page metadata', () => {
     ],
     ['docs/latest.html', 'https://audiobash.app/latest.html', 'website'],
     ['docs/macos.html', 'https://audiobash.app/macos.html', 'website'],
+    ['docs/privacy.html', 'https://audiobash.app/privacy.html', 'website'],
     ['docs/releases.html', 'https://audiobash.app/releases.html', 'website'],
     ['docs/manual.html', 'https://audiobash.app/manual.html', 'website'],
   ] as const;
@@ -99,6 +100,7 @@ describe('public release-page metadata', () => {
       'https://audiobash.app/latest.html',
       'https://audiobash.app/macos.html',
       'https://audiobash.app/manual.html',
+      'https://audiobash.app/privacy.html',
       'https://audiobash.app/releases.html',
     ];
 

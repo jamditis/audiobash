@@ -11,6 +11,7 @@ AudioBash has a custom domain and web documentation:
 - **macOS guide:** https://audiobash.app/macos.html
 - **Release notes:** https://audiobash.app/releases.html
 - **About:** https://audiobash.app/about.html
+- **Privacy policy:** https://audiobash.app/privacy.html
 
 ### Hosting setup
 - **audiobash.app** - GitHub Pages (serves `docs/` folder)
@@ -24,6 +25,7 @@ docs/
 ├── macos.html          # macOS-specific announcement page
 ├── releases.html       # Version history and changelog
 ├── blog.html           # Blog index
+├── privacy.html        # App and website privacy policy
 ├── CNAME               # Custom domain for GitHub Pages
 └── screenshots/        # UI screenshots (full + web-optimized)
 ```
