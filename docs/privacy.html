@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy policy // AUDIOBASH</title>
+    <meta name="description" content="Privacy policy for the AudioBash desktop app and audiobash.app website.">
+    <link rel="canonical" href="https://audiobash.app/privacy.html">
+
+    <meta property="og:title" content="AudioBash privacy policy">
+    <meta property="og:description" content="How AudioBash handles microphone audio, terminal context, API keys, local settings, and cloud transcription providers.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://audiobash.app/privacy.html">
+    <meta property="og:image" content="https://audiobash.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="AudioBash voice terminal">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AudioBash privacy policy">
+    <meta name="twitter:description" content="How AudioBash handles microphone audio, terminal context, API keys, local settings, and cloud transcription providers.">
+    <meta name="twitter:image" content="https://audiobash.app/og-image.png">
+    <meta name="twitter:image:alt" content="AudioBash voice terminal">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Chakra Petch', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    colors: {
+                        void: '#050505',
+                        panel: '#0a0a0a',
+                        surface: '#111111',
+                        chrome: '#e5e5e5',
+                        accent: '#ff3333',
+                        ice: '#00f0ff',
+                        volt: '#ccff00',
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background: #050505; color: #e5e5e5; }
+        ::selection { background: #ff3333; color: #000; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff3333; }
+        .clip-notch {
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+        }
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.08;
+        }
+        .policy-section h2 { scroll-margin-top: 96px; }
+        .policy-section a { color: #00f0ff; text-decoration: underline; text-underline-offset: 3px; }
+        .policy-section a:hover { color: #ccff00; }
+        .data-table th, .data-table td { border: 1px solid rgba(255, 255, 255, 0.12); padding: 0.85rem; vertical-align: top; }
+        .data-table th { background: #111111; color: #e5e5e5; text-align: left; }
+    </style>
+</head>
+<body class="antialiased font-mono">
+    <div class="crt-overlay"></div>
+    <div class="fixed inset-0 bg-[linear-gradient(to_right,#222_1px,transparent_1px),linear-gradient(to_bottom,#222_1px,transparent_1px)] bg-[size:40px_40px] opacity-[0.03] pointer-events-none"></div>
+
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-void/90 backdrop-blur-sm border-b border-white/10" aria-label="Main navigation">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div class="w-10 h-10 bg-accent text-black flex items-center justify-center font-bold font-display text-xl clip-notch" aria-hidden="true">A</div>
+                <div>
+                    <div class="font-display font-bold text-lg tracking-wider text-chrome">AUDIOBASH</div>
+                    <div class="text-[9px] text-gray-500 tracking-[0.2em]">PRIVACY_POLICY</div>
+                </div>
+            </a>
+            <div class="flex items-center gap-4 text-sm font-display">
+                <a href="index.html" class="text-gray-400 hover:text-chrome transition-colors">Home</a>
+                <a href="manual.html" class="text-gray-400 hover:text-chrome transition-colors hidden sm:block">Manual</a>
+                <a href="https://github.com/jamditis/audiobash" class="text-gray-400 hover:text-chrome transition-colors" aria-label="AudioBash on GitHub">
+                    <i data-lucide="github" class="w-5 h-5" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 pt-28 pb-20 px-6">
+        <article class="max-w-4xl mx-auto">
+            <header class="mb-12 border-b border-white/10 pb-10">
+                <div class="text-accent text-xs tracking-[0.25em] mb-4">POLICY // EFFECTIVE 2026.08.31</div>
+                <h1 class="font-display text-4xl md:text-5xl font-bold text-chrome mb-5">Privacy policy</h1>
+                <p class="text-gray-400 leading-relaxed max-w-3xl">
+                    This policy explains how the AudioBash desktop app and the audiobash.app website handle information. AudioBash is developed and maintained by Joe Amditis.
+                </p>
+                <p class="text-gray-500 text-sm mt-4">Last updated: August 31, 2026</p>
+            </header>
+
+            <div class="space-y-10 policy-section">
+                <section aria-labelledby="summary">
+                    <h2 id="summary" class="font-display text-2xl text-chrome mb-4">Summary</h2>
+                    <div class="bg-panel border border-white/10 border-l-4 border-l-accent p-6 space-y-3 text-gray-300 leading-relaxed">
+                        <p>AudioBash has no AudioBash account system, advertising, or developer-operated transcription server.</p>
+                        <p>The app records microphone audio only after you start a voice-input session. It sends audio outside your device only when you select a cloud transcription provider.</p>
+                        <p>AudioBash does not sell personal information. It does not use app data for advertising or marketing profiles.</p>
+                    </div>
+                </section>
+
+                <section aria-labelledby="information">
+                    <h2 id="information" class="font-display text-2xl text-chrome mb-4">Information the app processes</h2>
+                    <div class="space-y-5 text-gray-400 leading-relaxed">
+                        <div>
+                            <h3 class="text-chrome font-display text-lg mb-2">Microphone audio and transcripts</h3>
+                            <p>AudioBash requests microphone access for voice input. Manual mode records after you start recording. Voice-activity and continuous modes listen only after you start that listening session. You can stop or cancel recording from the app.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-chrome font-display text-lg mb-2">Terminal context in agent mode</h3>
+                            <p>Agent mode can send the selected cloud provider your operating system, shell type, current directory, last command, last error, up to 500 characters of recent terminal output, the speech transcript, custom instructions, and custom vocabulary. This context helps the provider convert speech into a terminal command. Raw mode does not send terminal context for command generation.</p>
+                            <p class="mt-2 text-amber-300">Terminal output and paths can contain personal, confidential, or secret information. Review what is visible in the terminal before you use agent mode.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-chrome font-display text-lg mb-2">API keys</h3>
+                            <p>You provide your own API keys for cloud providers. When operating-system secure storage is available, AudioBash stores these keys on your device with Electron secure storage. If secure storage is not available, the app keeps a new or changed key in memory for the current session and does not write it to disk in plain text. An upgrade can also read legacy plaintext API-key files created by an older AudioBash version. If secure storage is unavailable, a legacy file remains on disk until secure storage becomes available or you delete it. A key is sent only to the provider it authenticates.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-chrome font-display text-lg mb-2">Local settings and files</h3>
+                            <p>The app stores settings on your device. These settings can include the selected model and shell, keyboard shortcuts, custom instructions, custom vocabulary, recent and favorite directory paths, saved pane sessions, window size and position, preview settings, and local diagnostic logs. Preview screenshots are saved to the current project or the AudioBash app-data folder and copied to the clipboard. AudioBash does not upload these screenshots.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section aria-labelledby="providers">
+                    <h2 id="providers" class="font-display text-2xl text-chrome mb-4">Cloud and local transcription choices</h2>
+                    <div class="overflow-x-auto">
+                        <table class="data-table w-full text-sm text-gray-400 border-collapse">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Choice</th>
+                                    <th scope="col">Information sent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Google Gemini</td>
+                                    <td>Recorded audio and transcription instructions. Agent mode also sends the terminal context described above.</td>
+                                </tr>
+                                <tr>
+                                    <td>ElevenLabs</td>
+                                    <td>Recorded or streaming audio and, when applicable, custom vocabulary terms for speech recognition.</td>
+                                </tr>
+                                <tr>
+                                    <td>Local Whisper</td>
+                                    <td>Audio stays on your device. The app creates temporary local audio files for processing and removes the temporary directory after the request finishes.</td>
+                                </tr>
+                                <tr>
+                                    <td>Local Parakeet</td>
+                                    <td>Audio is sent to the Parakeet service that you run at <code class="text-chrome">localhost:8003</code>. AudioBash does not send it to an external Parakeet server.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-gray-400 mt-5 leading-relaxed">Cloud providers process information under their own terms and privacy policies. Review the policies for <a href="https://policies.google.com/privacy">Google</a> and <a href="https://elevenlabs.io/privacy-policy">ElevenLabs</a>. Their retention, location, and use of data can depend on your provider account and service plan.</p>
+                </section>
+
+                <section aria-labelledby="use">
+                    <h2 id="use" class="font-display text-2xl text-chrome mb-4">How information is used</h2>
+                    <ul class="list-disc pl-6 space-y-2 text-gray-400 leading-relaxed">
+                        <li>Convert speech to text or a terminal command.</li>
+                        <li>Route the result to the terminal that you selected.</li>
+                        <li>Save your app preferences and local workspace shortcuts.</li>
+                        <li>Run local previews, file watching, screenshots, and saved terminal layouts.</li>
+                        <li>Diagnose app errors with logs stored on your device.</li>
+                        <li>Respond when you contact the developer for support.</li>
+                    </ul>
+                </section>
+
+                <section aria-labelledby="sharing">
+                    <h2 id="sharing" class="font-display text-2xl text-chrome mb-4">When information is disclosed</h2>
+                    <div class="space-y-3 text-gray-400 leading-relaxed">
+                        <p>AudioBash discloses audio, transcripts, and agent-mode context only to the cloud provider that you choose, as described above. The developer does not receive that information through an AudioBash server.</p>
+                        <p>If you contact the developer by email or GitHub, your message and account or contact details are processed by the service that you use. The information is used to answer your request.</p>
+                        <p>Information can also be disclosed when required by law or when needed to protect users, the public, or legal rights. AudioBash does not sell personal information or disclose it to advertising networks or data brokers.</p>
+                    </div>
+                </section>
+
+                <section aria-labelledby="retention">
+                    <h2 id="retention" class="font-display text-2xl text-chrome mb-4">Storage and retention</h2>
+                    <div class="space-y-3 text-gray-400 leading-relaxed">
+                        <p>AudioBash does not keep completed microphone recordings as an app library. Cloud request data is retained by the selected provider under that provider's terms and account controls.</p>
+                        <p>Settings, encrypted API keys, directory paths, saved sessions, screenshots, downloaded local models, and diagnostic logs stay on your device until you remove them, clear the related setting, or delete the AudioBash app-data folder. Main-process logs rotate after they reach their size limit and keep no more than five rotated log files.</p>
+                        <p>Support messages are kept only as long as needed to answer the request, maintain a useful support record, or meet legal obligations.</p>
+                    </div>
+                </section>
+
+                <section aria-labelledby="security">
+                    <h2 id="security" class="font-display text-2xl text-chrome mb-4">Security</h2>
+                    <div class="space-y-3 text-gray-400 leading-relaxed">
+                        <p>Cloud requests use encrypted HTTPS or secure WebSocket connections. API keys use operating-system-backed encryption when it is available. AudioBash does not persist new API keys when secure storage is unavailable. Legacy plaintext API-key files can remain on upgraded devices as described above.</p>
+                        <p>No storage or network method can guarantee complete security. Do not speak secrets or use agent mode when terminal output contains information that you do not want to send to the selected provider.</p>
+                    </div>
+                </section>
+
+                <section aria-labelledby="controls">
+                    <h2 id="controls" class="font-display text-2xl text-chrome mb-4">Your controls</h2>
+                    <ul class="list-disc pl-6 space-y-2 text-gray-400 leading-relaxed">
+                        <li>Deny or revoke microphone permission in your operating-system settings.</li>
+                        <li>Start, stop, or cancel a voice-input session in AudioBash.</li>
+                        <li>Select raw mode to avoid agent-mode terminal context.</li>
+                        <li>Select Local Whisper or local Parakeet to avoid external cloud transcription.</li>
+                        <li>Change the cloud provider or clear its API key in AudioBash settings.</li>
+                        <li>Enable command preview and review generated commands before execution.</li>
+                        <li>Delete screenshots, logs, local models, settings, and other app data from your device.</li>
+                    </ul>
+                    <p class="text-gray-400 mt-4 leading-relaxed">The default app-data locations are <code class="text-chrome">%APPDATA%\AudioBash\</code> on Windows, <code class="text-chrome">~/Library/Application Support/AudioBash/</code> on macOS, and <code class="text-chrome">~/.config/audiobash/</code> on Linux. Provider-side access, correction, deletion, and retention controls are available through the provider that you selected.</p>
+                </section>
+
+                <section aria-labelledby="website">
+                    <h2 id="website" class="font-display text-2xl text-chrome mb-4">Website and font request data</h2>
+                    <div class="space-y-3 text-gray-400 leading-relaxed">
+                        <p>The AudioBash desktop app loads its interface fonts from Google Fonts when network access is available. This request sends Google normal request information, such as your IP address, user-agent string, requested font file, and request time. It can occur when the app starts, even if you do not select cloud transcription.</p>
+                        <p>audiobash.app is a static website hosted with GitHub Pages. AudioBash does not use a site account system, first-party analytics, advertising trackers, or first-party cookies.</p>
+                        <p>Your browser sends normal request information, such as an IP address, user-agent string, requested page, and request time, to the hosting and content-delivery services needed to load the site. The site loads fonts from Google and code resources from Tailwind CSS and unpkg. These services handle requests under their own policies.</p>
+                    </div>
+                </section>
+
+                <section aria-labelledby="children">
+                    <h2 id="children" class="font-display text-2xl text-chrome mb-4">Children</h2>
+                    <p class="text-gray-400 leading-relaxed">AudioBash is a developer terminal and is not directed to children under 13. The developer does not knowingly collect personal information from children through AudioBash. A parent or guardian can contact the developer if they believe a child provided personal information through a support request.</p>
+                </section>
+
+                <section aria-labelledby="changes">
+                    <h2 id="changes" class="font-display text-2xl text-chrome mb-4">Policy changes</h2>
+                    <p class="text-gray-400 leading-relaxed">This policy will be updated when AudioBash data practices change. The revised page will show a new last-updated date. A material change can also be announced in the release notes or app documentation.</p>
+                </section>
+
+                <section aria-labelledby="contact" class="bg-panel border border-white/10 p-6">
+                    <h2 id="contact" class="font-display text-2xl text-chrome mb-4">Contact</h2>
+                    <p class="text-gray-400 leading-relaxed">For a privacy question or request, email <a href="mailto:jamditis@gmail.com">jamditis@gmail.com</a>. For a public bug report, use the <a href="https://github.com/jamditis/audiobash/issues">AudioBash issue tracker</a>. Do not put private information, API keys, or confidential terminal output in a public issue.</p>
+                </section>
+            </div>
+        </article>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/10 py-8 px-6">
+        <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-[10px] text-gray-600">AUDIOBASH // PRIVACY // EFFECTIVE 2026.08.31</div>
+            <div class="flex items-center gap-4 text-gray-500 text-sm">
+                <a href="index.html" class="hover:text-accent transition-colors">Home</a>
+                <a href="manual.html" class="hover:text-accent transition-colors">Manual</a>
+                <a href="about.html" class="hover:text-accent transition-colors">About</a>
+                <a href="https://github.com/jamditis/audiobash" class="hover:text-accent transition-colors">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -741,6 +741,15 @@ Implementation review on August 31, 2026:
 
 ## Task 17: Update every release and documentation surface
 
+### Privacy policy for the Microsoft Store submission
+
+- [x] Verify AudioBash data handling from the current v3.4.0 source.
+- [x] Check the current Microsoft Store privacy-policy requirements.
+- [x] Add a public website privacy policy that covers local data, microphone audio, cloud providers, agent-mode terminal context, retention, security, user controls, children, and contact information.
+- [x] Link the policy from every public website page footer and the user manual.
+- [x] Validate the HTML, favicon, social metadata, internal links, rendered page, and policy statements locally.
+- [x] Get explicit approval before commit, push, publication, or Partner Center use.
+
 - [ ] Inventory the README, changelog, v3.4.0 release notes, patch notes, website pages, download links, installation guides, support pages, privacy pages, developer docs, GitHub release text, Apple listing, Microsoft listing, and in-app version surfaces.
 - [ ] Use one factual change list and one tested artifact manifest for every surface. Do not claim notarization, TestFlight, App Store, Microsoft Store, or public availability until that exact state is verified.
 - [ ] Describe the debloat measurements, transcription deadlines and cancellation, microphone cleanup, dependency changes, supported Electron line, known limits, platform requirements, and direct-download trust behavior in plain language.

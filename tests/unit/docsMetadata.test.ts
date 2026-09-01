@@ -40,6 +40,7 @@ describe('public release-page metadata', () => {
     ],
     ['docs/latest.html', 'https://audiobash.app/latest.html', 'website'],
     ['docs/macos.html', 'https://audiobash.app/macos.html', 'website'],
+    ['docs/privacy.html', 'https://audiobash.app/privacy.html', 'website'],
     ['docs/releases.html', 'https://audiobash.app/releases.html', 'website'],
     ['docs/manual.html', 'https://audiobash.app/manual.html', 'website'],
   ] as const;
@@ -78,12 +79,35 @@ describe('public release-page metadata', () => {
     expect(existsSync(join(rootDirectory, 'docs/og-image.png'))).toBe(true);
   });
 
+  it.each(pages.filter(([relativePath]) => relativePath !== 'docs/privacy.html'))(
+    'links to the privacy policy from %s',
+    (relativePath) => {
+      const document = readDocument(relativePath);
+      const expectedHref = relativePath.startsWith('docs/blog/')
+        ? '../privacy.html'
+        : 'privacy.html';
+
+      expect(document.querySelector(`footer a[href="${expectedHref}"]`)).not.toBeNull();
+    },
+  );
+
   it('uses the public domain in discovery files', () => {
     for (const relativePath of ['docs/sitemap.xml', 'docs/robots.txt', 'docs/llms.txt']) {
       const contents = readFileSync(join(rootDirectory, relativePath), 'utf8');
       expect(contents).toContain('https://audiobash.app');
       expect(contents).not.toContain('jamditis.github.io');
     }
+  });
+
+  it('discloses the desktop app Google Fonts request', () => {
+    const appShell = readFileSync(join(rootDirectory, 'index.html'), 'utf8');
+    const privacyPolicy = readFileSync(join(rootDirectory, 'docs/privacy.html'), 'utf8');
+
+    expect(appShell).toContain('https://fonts.googleapis.com');
+    expect(privacyPolicy).toContain(
+      'The AudioBash desktop app loads its interface fonts from Google Fonts',
+    );
+    expect(privacyPolicy).toContain('even if you do not select cloud transcription');
   });
 
   it('lists every public HTML page in the sitemap', () => {
@@ -99,6 +123,7 @@ describe('public release-page metadata', () => {
       'https://audiobash.app/latest.html',
       'https://audiobash.app/macos.html',
       'https://audiobash.app/manual.html',
+      'https://audiobash.app/privacy.html',
       'https://audiobash.app/releases.html',
     ];
 
