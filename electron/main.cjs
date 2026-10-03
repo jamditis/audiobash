@@ -17,6 +17,7 @@ const fs = require('fs');
 
 // Centralized logger - must initialize after app ready
 const { logger, appLog, ipcLog, ptyLog, storeLog } = require('./logger.cjs');
+const { sanitizeTerminalPreviewInput } = require('./terminalInput.cjs');
 
 // Enable Chromium feature flags before the app is ready (too late inside whenReady). This lets
 // global shortcuts register under Wayland, not just X11.
@@ -971,10 +972,15 @@ function setupIPC() {
       });
       return;
     }
+    const previewText = sanitizeTerminalPreviewInput(text);
+    if (!previewText) {
+      ipcLog.warn('insert-to-terminal: sanitized input is empty', { tabId, originalLength: text.length });
+      return;
+    }
     const ptyProcess = ptyProcesses.get(tabId);
     if (ptyProcess) {
-      // Write the text WITHOUT \r - user can review and press Enter
-      ptyProcess.write(text);
+      // Write sanitized text WITHOUT \r - user can review and press Enter
+      ptyProcess.write(previewText);
     }
   });
 
