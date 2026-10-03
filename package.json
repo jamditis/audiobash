@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "check:deploy-workflow-security": "node scripts/check-deploy-workflow-security.cjs",
     "test:ui": "vitest --ui",
     "electron:dev": "concurrently \"vite --port 9527 --strictPort\" \"wait-on http://localhost:9527 && electron .\"",
     "electron:build": "npm run build && electron-builder",
