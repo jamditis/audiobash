@@ -74,7 +74,7 @@
     "@electron/notarize": "^3.1.1",
     "@eslint/js": "^9.39.4",
     "@ricky0123/vad-web": "^0.0.30",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
