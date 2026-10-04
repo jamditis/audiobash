@@ -182,7 +182,7 @@ jobs:
           --release-dir release
 
       - name: Upload exact macOS artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-${{ matrix.architecture }}
           path: |
@@ -259,7 +259,7 @@ jobs:
           "$hash  $artifact" | Set-Content -Encoding ascii release/SHA256-windows-x64.txt
 
       - name: Upload exact Windows artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-x64
           path: |
@@ -332,7 +332,7 @@ jobs:
           (cd release && sha256sum "$APPIMAGE_NAME" "$DEB_NAME" > SHA256-linux-x64.txt)
 
       - name: Upload exact Linux artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-x64
           path: |
@@ -396,7 +396,7 @@ jobs:
         run: node scripts/verify-release-artifact-set.cjs artifacts "$RELEASE_COMMIT" "$WORKFLOW_REPOSITORY" "$WORKFLOW_RUN_ID" "$WORKFLOW_RUN_ATTEMPT"
 
       - name: Upload release candidate manifest
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-candidate-manifest
           path: |
