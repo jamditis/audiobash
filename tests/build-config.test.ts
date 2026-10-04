@@ -256,16 +256,16 @@ describe('release-candidate workflow', () => {
 
   it('pins release actions to reviewed immutable commits', () => {
     expect(buildWorkflow).toContain(
-      'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2',
+      'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
     );
     expect(buildWorkflow).toContain(
-      'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0',
+      'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0',
     );
     expect(buildWorkflow).toContain(
-      'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4',
+      'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1',
     );
     expect(buildWorkflow).toContain(
-      'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4',
+      'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1',
     );
     expect(buildWorkflow).not.toMatch(/uses:\s+actions\/[\w-]+@v\d+/);
   });
