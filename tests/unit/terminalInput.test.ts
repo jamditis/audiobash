@@ -6,7 +6,9 @@ const { sanitizeTerminalPreviewInput } = require('../../electron/terminalInput.c
 
 describe('terminal preview input sanitization', () => {
   it('removes line breaks that would execute commands in preview mode', () => {
-    expect(sanitizeTerminalPreviewInput('echo safe\nrm -rf ~/important')).toBe('echo saferm -rf ~/important');
+    expect(sanitizeTerminalPreviewInput('echo safe\nrm -rf ~/important')).toBe(
+      'echo saferm -rf ~/important',
+    );
     expect(sanitizeTerminalPreviewInput('echo safe\rprintf pwned')).toBe('echo safeprintf pwned');
   });
 

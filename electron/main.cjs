@@ -974,7 +974,10 @@ function setupIPC() {
     }
     const previewText = sanitizeTerminalPreviewInput(text);
     if (!previewText) {
-      ipcLog.warn('insert-to-terminal: sanitized input is empty', { tabId, originalLength: text.length });
+      ipcLog.warn('insert-to-terminal: sanitized input is empty', {
+        tabId,
+        originalLength: text.length,
+      });
       return;
     }
     const ptyProcess = ptyProcesses.get(tabId);
