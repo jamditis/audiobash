@@ -140,7 +140,7 @@ describe('toolchain contract', () => {
 });
 
 describe('dependency cooldown policy', () => {
-  it('uses the reviewed cooldown for npm and GitHub Actions updates', () => {
+  it('uses the reviewed cooldown for npm and the supported cooldown for GitHub Actions', () => {
     const dependabotPath = join(rootDir, '.github/dependabot.yml');
 
     expect(existsSync(dependabotPath)).toBe(true);
@@ -151,9 +151,9 @@ describe('dependency cooldown policy', () => {
       1,
     );
     expect(occurrenceIndexes(dependabotConfig, 'default-days: 3')).toHaveLength(2);
-    expect(occurrenceIndexes(dependabotConfig, 'semver-major-days: 30')).toHaveLength(2);
-    expect(occurrenceIndexes(dependabotConfig, 'semver-minor-days: 7')).toHaveLength(2);
-    expect(occurrenceIndexes(dependabotConfig, 'semver-patch-days: 3')).toHaveLength(2);
+    expect(occurrenceIndexes(dependabotConfig, 'semver-major-days: 30')).toHaveLength(1);
+    expect(occurrenceIndexes(dependabotConfig, 'semver-minor-days: 7')).toHaveLength(1);
+    expect(occurrenceIndexes(dependabotConfig, 'semver-patch-days: 3')).toHaveLength(1);
   });
 });
 
