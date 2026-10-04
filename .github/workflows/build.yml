@@ -22,7 +22,7 @@ jobs:
         architecture: [arm64, x64]
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.release_commit }}
           persist-credentials: false
@@ -41,7 +41,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -182,7 +182,7 @@ jobs:
           --release-dir release
 
       - name: Upload exact macOS artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-${{ matrix.architecture }}
           path: |
@@ -197,7 +197,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.release_commit }}
           persist-credentials: false
@@ -216,7 +216,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -259,7 +259,7 @@ jobs:
           "$hash  $artifact" | Set-Content -Encoding ascii release/SHA256-windows-x64.txt
 
       - name: Upload exact Windows artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-x64
           path: |
@@ -273,7 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.release_commit }}
           persist-credentials: false
@@ -292,7 +292,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -332,7 +332,7 @@ jobs:
           (cd release && sha256sum "$APPIMAGE_NAME" "$DEB_NAME" > SHA256-linux-x64.txt)
 
       - name: Upload exact Linux artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-x64
           path: |
@@ -348,7 +348,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact release commit
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.release_commit }}
           persist-credentials: false
@@ -367,7 +367,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$REQUESTED_COMMIT"
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
           cache: npm
@@ -383,7 +383,7 @@ jobs:
         run: npm ci
 
       - name: Download all platform artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts
 
@@ -396,7 +396,7 @@ jobs:
         run: node scripts/verify-release-artifact-set.cjs artifacts "$RELEASE_COMMIT" "$WORKFLOW_REPOSITORY" "$WORKFLOW_RUN_ID" "$WORKFLOW_RUN_ATTEMPT"
 
       - name: Upload release candidate manifest
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-candidate-manifest
           path: |
