@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -60,7 +60,7 @@ jobs:
             tests: tests/unit/processTree.test.ts tests/unit/windowsJobOwnerSource.test.ts tests/unit/transcriptionJob.test.ts tests/unit/appShutdown.test.ts tests/unit/whisperService.test.ts tests/unit/localWhisperHandlers.test.ts tests/unit/transcriptionService.test.ts tests/startup-crash.test.ts tests/integration/processTree.windows.test.ts
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Python
         uses: actions/setup-python@v6
