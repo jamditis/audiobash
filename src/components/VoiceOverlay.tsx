@@ -338,8 +338,8 @@ const VoiceOverlay: React.FC<VoiceOverlayProps> = ({
     vadStopRef.current = vadInstance.stop;
   }, [vadInstance.stop]);
 
-  // Keep ref in sync with prop
-  useEffect(() => {
+  // Synchronize before shortcuts can observe the committed recording state.
+  useLayoutEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 

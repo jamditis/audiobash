@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useCallback, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import VoiceOverlay from '../../src/components/VoiceOverlay';
@@ -137,6 +137,13 @@ describe('voice overlay real-time setup', () => {
 
     function VoiceOverlayHarness({ activeTabId }: { activeTabId: string }) {
       const [isRecording, setIsRecording] = useState(false);
+      useLayoutEffect(() => {
+        if (!isRecording) return;
+        // A shortcut can arrive after commit, before passive effects synchronize
+        // the recording ref. Stop in that gap instead of waiting for the scheduler.
+        expect(screen.getByText('Listening...')).toBeVisible();
+        shortcutRuntime.toggleRecording?.();
+      }, [isRecording]);
       const onTranscript = useCallback(
         (text: string) => routeTranscript(activeTabId, text),
         [activeTabId],
@@ -171,8 +178,6 @@ describe('voice overlay real-time setup', () => {
     shortcutRuntime.cancelCleanup.mockClear();
 
     rerender(<VoiceOverlayHarness activeTabId="tab-2" />);
-    act(() => subscribedToggle?.());
-    await waitFor(() => expect(screen.getByText('Listening...')).toBeVisible());
     act(() => subscribedToggle?.());
 
     await waitFor(() => {
