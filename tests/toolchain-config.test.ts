@@ -47,11 +47,11 @@ describe('toolchain contract', () => {
     const nvmrcPath = join(rootDir, '.nvmrc');
 
     expect(existsSync(nvmrcPath)).toBe(true);
-    expect(readFileSync(nvmrcPath, 'utf8').trim()).toBe('22.17.1');
-    expect(packageJson.engines).toEqual({ node: '>=22.13.0 <23' });
+    expect(readFileSync(nvmrcPath, 'utf8').trim()).toBe('22.22.2');
+    expect(packageJson.engines).toEqual({ node: '>=22.22.2 <23' });
     expect(packageJson.packageManager).toBe('npm@10.9.2');
     expect(packageJson.scripts['verify:toolchain']).toBe('node scripts/verify-toolchain.cjs');
-    expect(packageLock.packages[''].engines).toEqual({ node: '>=22.13.0 <23' });
+    expect(packageLock.packages[''].engines).toEqual({ node: '>=22.22.2 <23' });
   });
 
   it('enforces the same toolchain before every CI install', () => {
