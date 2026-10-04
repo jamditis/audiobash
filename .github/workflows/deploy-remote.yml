@@ -12,6 +12,8 @@ on:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/master'
+    # The environment allows only master; keep deploy secrets scoped to it.
+    environment: cloudflare-pages
     runs-on: ubuntu-latest
     permissions:
       contents: read
