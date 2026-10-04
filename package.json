@@ -102,7 +102,7 @@
     "typescript-eslint": "^8.60.1",
     "vite": "6.4.3",
     "vitest": "4.1.11",
-    "wait-on": "^8.0.0"
+    "wait-on": "^9.1.0"
   },
   "overrides": {
     "@babel/core": "7.29.7",
