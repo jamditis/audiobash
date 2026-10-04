@@ -181,6 +181,7 @@ contextBridge.exposeInMainWorld('electron', {
 
   /**
    * Inserts text at the current cursor position without executing.
+   * The main process strips terminal control characters before writing.
    * Does NOT append a carriage return - the user must press Enter.
    * Useful for previewing or editing commands before execution.
    *
