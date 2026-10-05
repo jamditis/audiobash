@@ -177,6 +177,8 @@ See the [troubleshooting guide](docs/TROUBLESHOOTING.md) if a current release do
 
 ## Development
 
+Track dependency migrations and maintenance in the [AudioBash project](https://github.com/users/jamditis/projects/36).
+
 ```bash
 # Install dependencies
 npm install

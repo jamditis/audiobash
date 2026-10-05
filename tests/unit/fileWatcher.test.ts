@@ -1003,7 +1003,8 @@ describe('preview file watcher state machine', () => {
     managers.push(manager);
     await manager.watchFile(filepath);
 
-    writeFileSync(filepath, 'save-one');
+    // Use a different size so the save does not depend on filesystem timestamp resolution.
+    writeFileSync(filepath, 'first-save');
     harness.emit(0, 'rename', 'preview.html');
     harness.emit(0, 'change', 'preview.html');
     harness.emit(0, 'rename', 'preview.html');

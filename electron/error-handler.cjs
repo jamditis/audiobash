@@ -288,7 +288,7 @@ async function handleError(error, context = {}) {
 
   // Attempt recovery based on type
   let recovered = false;
-  let recoveryResult = null;
+  let recoveryResult;
 
   switch (classified.recovery) {
     case 'retry':

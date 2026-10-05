@@ -7,14 +7,7 @@ interface HSL {
 }
 
 export type PaneColorName =
-  | 'emerald'
-  | 'cobalt'
-  | 'crimson'
-  | 'violet'
-  | 'cyan'
-  | 'amber'
-  | 'rose'
-  | 'acid';
+  'emerald' | 'cobalt' | 'crimson' | 'violet' | 'cyan' | 'amber' | 'rose' | 'acid';
 
 export const DEFAULT_PANE_COLOR: PaneColorName = 'acid';
 
