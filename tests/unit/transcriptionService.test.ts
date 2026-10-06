@@ -243,8 +243,7 @@ describe('TranscriptionService', () => {
       service.setApiKey('configured', 'elevenlabs');
       const controller = new AbortController();
       let finishRequest:
-        | ((result: { success: false; error: string; errorCode: string }) => void)
-        | undefined;
+        ((result: { success: false; error: string; errorCode: string }) => void) | undefined;
       window.electron.transcribeWithElevenLabs = vi.fn(
         () =>
           new Promise((resolve) => {

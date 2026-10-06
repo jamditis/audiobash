@@ -249,7 +249,7 @@ function buildAgentPrompt(
   const isWindows = context?.os === 'windows';
   const isPowerShell = shell.toLowerCase().includes('powershell');
 
-  let osSpecificExamples = '';
+  let osSpecificExamples: string;
   if (isWindows && isPowerShell) {
     osSpecificExamples = `
 - "list all files" → Get-ChildItem or dir

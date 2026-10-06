@@ -194,6 +194,7 @@ function restoreBackup(fileSystem, record) {
       throw new AggregateError(
         [error, reinstallError],
         `${record.absolutePath} was left missing; restore it from ${record.backupPath}; its replacement could not be reinstalled`,
+        { cause: reinstallError },
       );
     }
     throw error;
@@ -261,6 +262,7 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
       throw new AggregateError(
         [error, ...cleanupErrors.map(({ error: cleanupError }) => cleanupError)],
         `Version synchronization staging failed: ${error.message}; temporary file cleanup was incomplete: ${describeFileErrors(cleanupErrors)}`,
+        { cause: error },
       );
     }
     throw error;
@@ -279,6 +281,7 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
           throw new AggregateError(
             [error, restoreError],
             `Version synchronization failed and ${record.absolutePath} was left missing; restore it from ${record.backupPath}`,
+            { cause: restoreError },
           );
         }
         throw error;
@@ -307,12 +310,14 @@ function syncVersion(rootDirectory = path.join(__dirname, '..'), options = {}) {
       throw new AggregateError(
         [error, ...rollbackErrors, ...cleanupCauses],
         `Version synchronization failed and rollback was incomplete: ${error.message}; recovery details: ${rollbackDetails}${cleanupDetails ? `; temporary cleanup failures: ${cleanupDetails}` : ''}`,
+        { cause: error },
       );
     }
     if (cleanupErrors.length > 0) {
       throw new AggregateError(
         [error, ...cleanupCauses],
         `Version synchronization failed; rollback restored original files, but temporary file cleanup was incomplete: ${cleanupDetails}`,
+        { cause: error },
       );
     }
     throw error;

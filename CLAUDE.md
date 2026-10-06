@@ -111,7 +111,7 @@ AudioBash is an Electron app with an embedded terminal (xterm.js + node-pty) and
 
 ## Tech stack
 - **Framework**: Electron + React 19 (TypeScript)
-- **Build**: Vite 6
+- **Build**: Vite 8
 - **Terminal**: xterm.js + node-pty
 - **AI**: Google Gemini API (transcription)
 - **Audio**: MediaRecorder API (WebM)

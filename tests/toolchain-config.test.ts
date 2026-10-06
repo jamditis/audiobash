@@ -157,13 +157,13 @@ describe('dependency cooldown policy', () => {
   });
 });
 
-describe('first dependency update group', () => {
+describe('dependency update group', () => {
   const expectedDevDependencies = {
     '@vitest/coverage-v8': '4.1.11',
-    concurrently: '9.2.4',
+    concurrently: '10.0.5',
     'electron-builder': '26.15.3',
-    postcss: '8.5.26',
-    vite: '6.4.3',
+    postcss: '8.5.28',
+    vite: '8.2.2',
     vitest: '4.1.11',
   };
   const expectedOverrides = {
