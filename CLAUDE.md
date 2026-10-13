@@ -236,6 +236,10 @@ npm rebuild node-pty
 
 ---
 
+## Dependency maintenance
+
+See [dependency update constraints](dev-docs/dependency-updates.md) before advancing pinned toolchain or Electron versions.
+
 ## Multi-machine workflow
 
 This repo is developed across multiple machines (MacBook, work Windows PC, home Windows PC). GitHub is the source of truth.
