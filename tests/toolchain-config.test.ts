@@ -162,8 +162,8 @@ describe('dependency update group', () => {
     '@vitest/coverage-v8': '4.1.11',
     concurrently: '10.0.5',
     'electron-builder': '26.15.3',
-    postcss: '8.5.28',
-    vite: '8.2.2',
+    postcss: '8.5.29',
+    vite: '8.3.2',
     vitest: '4.1.11',
   };
   const expectedOverrides = {
