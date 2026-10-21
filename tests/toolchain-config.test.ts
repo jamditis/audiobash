@@ -28,7 +28,7 @@ function expectWorkflowToolchain(workflow: string, jobCount: number): void {
   expect(occurrenceIndexes(workflow, "node-version-file: '.nvmrc'")).toHaveLength(jobCount);
   expect(workflow).not.toMatch(/node-version:\s*['"]?20/);
 
-  const pinIndexes = occurrenceIndexes(workflow, 'npm install --global npm@10.9.2');
+  const pinIndexes = occurrenceIndexes(workflow, 'npm install --global npm@10.9.9');
   const verifyIndexes = occurrenceIndexes(workflow, 'npm run verify:toolchain');
   const installIndexes = occurrenceIndexes(workflow, 'npm ci');
 
@@ -47,11 +47,11 @@ describe('toolchain contract', () => {
     const nvmrcPath = join(rootDir, '.nvmrc');
 
     expect(existsSync(nvmrcPath)).toBe(true);
-    expect(readFileSync(nvmrcPath, 'utf8').trim()).toBe('22.22.2');
-    expect(packageJson.engines).toEqual({ node: '>=22.22.2 <23' });
-    expect(packageJson.packageManager).toBe('npm@10.9.2');
+    expect(readFileSync(nvmrcPath, 'utf8').trim()).toBe('22.23.4');
+    expect(packageJson.engines).toEqual({ node: '>=22.23.4 <23' });
+    expect(packageJson.packageManager).toBe('npm@10.9.9');
     expect(packageJson.scripts['verify:toolchain']).toBe('node scripts/verify-toolchain.cjs');
-    expect(packageLock.packages[''].engines).toEqual({ node: '>=22.22.2 <23' });
+    expect(packageLock.packages[''].engines).toEqual({ node: '>=22.23.4 <23' });
   });
 
   it('enforces the same toolchain before every CI install', () => {
@@ -204,7 +204,7 @@ describe('dependency update group', () => {
 
   it('uses the cooled protobufjs repair and selected Electron release', () => {
     expect(packageJson.overrides.protobufjs).toBe('7.6.5');
-    expect(packageJson.devDependencies.electron).toBe('43.4.1');
+    expect(packageJson.devDependencies.electron).toBe('43.8.3');
   });
 
   it('forces the reviewed transitive security repairs', () => {
