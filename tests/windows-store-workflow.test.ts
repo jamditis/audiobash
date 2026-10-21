@@ -69,7 +69,7 @@ describe('Microsoft Store test-package workflow', () => {
     expect(workflow).toContain('AUDIOBASH_STORE_MODE: test');
     expect(workflow).toContain('run: npm run electron:build:store:win');
     expect(workflow).not.toContain('npm run electron:build:store:win -- --publish never');
-    expect(workflow).toContain('AudioBash-3.4.0-store-test-x64.appx');
+    expect(workflow).toContain('AudioBash-3.4.1-store-test-x64.appx');
     expect(workflow).toContain('verify-windows-store-package.cjs');
     expect(workflow).not.toContain('AUDIOBASH_STORE_MODE: production');
   });
@@ -110,7 +110,7 @@ describe('Microsoft Store production-package workflow', () => {
       'AUDIOBASH_STORE_PUBLISHER: CN=2E720364-B842-4BD2-8709-68E4880764A3',
     );
     expect(productionWorkflow).toContain('AUDIOBASH_STORE_PUBLISHER_DISPLAY_NAME: Joe Amditis');
-    expect(productionWorkflow).toContain('AudioBash-3.4.0-store-x64.appx');
+    expect(productionWorkflow).toContain('AudioBash-3.4.1-store-x64.appx');
     expect(productionWorkflow).toContain('verify-windows-store-package.cjs');
     expect(productionWorkflow).toContain('run: npm run electron:build:store:win');
     expect(productionWorkflow).toContain("-Subject 'CN=2E720364-B842-4BD2-8709-68E4880764A3'");

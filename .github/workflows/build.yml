@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
-        run: npm install --global npm@10.9.2
+        run: npm install --global npm@10.9.9
 
       - name: Verify toolchain
         run: npm run verify:toolchain
@@ -223,7 +223,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
-        run: npm install --global npm@10.9.2
+        run: npm install --global npm@10.9.9
 
       - name: Verify toolchain
         run: npm run verify:toolchain
@@ -299,7 +299,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
-        run: npm install --global npm@10.9.2
+        run: npm install --global npm@10.9.9
 
       - name: Verify toolchain
         run: npm run verify:toolchain
@@ -374,7 +374,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Pin npm
-        run: npm install --global npm@10.9.2
+        run: npm install --global npm@10.9.9
 
       - name: Verify toolchain
         run: npm run verify:toolchain

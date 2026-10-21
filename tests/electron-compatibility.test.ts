@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const rootDir = join(__dirname, '..');
-const releaseElectronVersion = '43.4.1';
+const releaseElectronVersion = '43.8.3';
 const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8'));
 const packageLock = JSON.parse(readFileSync(join(rootDir, 'package-lock.json'), 'utf8'));
 const installedElectron = JSON.parse(
