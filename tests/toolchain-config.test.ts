@@ -159,12 +159,12 @@ describe('dependency cooldown policy', () => {
 
 describe('dependency update group', () => {
   const expectedDevDependencies = {
-    '@vitest/coverage-v8': '4.1.11',
-    concurrently: '10.0.5',
+    '@vitest/coverage-v8': '4.1.12',
+    concurrently: '10.0.6',
     'electron-builder': '26.15.3',
-    postcss: '8.5.29',
-    vite: '8.3.2',
-    vitest: '4.1.11',
+    postcss: '8.5.30',
+    vite: '8.3.4',
+    vitest: '4.1.12',
   };
   const expectedOverrides = {
     '@babel/core': '7.29.7',
