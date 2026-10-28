@@ -63,11 +63,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.135.0",
+    "@anthropic-ai/sdk": "^0.137.0",
     "@google/generative-ai": "^0.24.1",
-    "@remotion/install-whisper-cpp": "^4.0.537",
+    "@remotion/install-whisper-cpp": "^4.0.538",
     "node-pty": "^1.1.0",
-    "openai": "^7.37.0"
+    "openai": "^7.39.0"
   },
   "devDependencies": {
     "@electron/asar": "^4.3.1",
@@ -86,7 +86,7 @@
     "autoprefixer": "^10.6.1",
     "concurrently": "10.0.6",
     "electron": "43.8.3",
-    "electron-builder": "26.17.0",
+    "electron-builder": "26.18.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -99,7 +99,7 @@
     "react-dom": "^19.3.1",
     "tailwindcss": "3.4.19",
     "typescript": "5.9.3",
-    "typescript-eslint": "^8.71.2",
+    "typescript-eslint": "^8.72.0",
     "vite": "8.3.5",
     "vitest": "4.1.12",
     "wait-on": "^9.5.1"
@@ -109,7 +109,7 @@
     "@noble/hashes@>=2.0.0 <2.4.0": "2.3.0",
     "axios": "1.18.0",
     "baseline-browser-mapping": "2.11.19",
-    "brace-expansion@>=1.0.0 <1.1.18": "1.1.18",
+    "brace-expansion@>=1.0.0 <2.0.0": "1.1.18",
     "brace-expansion@>=5.0.0 <5.0.9": "5.0.9",
     "browserslist": "4.28.8",
     "caniuse-lite": "1.0.30001810",

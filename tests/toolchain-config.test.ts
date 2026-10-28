@@ -161,7 +161,7 @@ describe('dependency update group', () => {
   const expectedDevDependencies = {
     '@vitest/coverage-v8': '4.1.12',
     concurrently: '10.0.6',
-    'electron-builder': '26.17.0',
+    'electron-builder': '26.18.0',
     postcss: '8.5.31',
     vite: '8.3.5',
     vitest: '4.1.12',
@@ -171,7 +171,7 @@ describe('dependency update group', () => {
     '@noble/hashes@>=2.0.0 <2.4.0': '2.3.0',
     axios: '1.18.0',
     'baseline-browser-mapping': '2.11.19',
-    'brace-expansion@>=1.0.0 <1.1.18': '1.1.18',
+    'brace-expansion@>=1.0.0 <2.0.0': '1.1.18',
     'brace-expansion@>=5.0.0 <5.0.9': '5.0.9',
     browserslist: '4.28.8',
     'caniuse-lite': '1.0.30001810',

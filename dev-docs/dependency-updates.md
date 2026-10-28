@@ -10,4 +10,6 @@ Electron major updates need their own runtime and packaging verification. The cu
 
 When compatible package updates change an exact pin, update the corresponding toolchain assertion from the reviewed package version. Keep assertions for the supported toolchain and security overrides intact. Run formatting, lint, type checks, the relevant tests, and a production renderer build; require Linux CI and both process lifecycle platforms before merge.
 
-With electron-builder 26.17.0, app-builder-lib uses its own compatible noble-hashes 1.8.0 dependency. The major 2 security override still protects major 2 consumers; historical release evidence describes the dependency graph at that release. Keep the packager and PKI.js dependency contracts covered when updating this group.
+With electron-builder 26.18.0, app-builder-lib uses its own compatible noble-hashes 1.8.0 dependency. The major 2 security override still protects major 2 consumers; historical release evidence describes the dependency graph at that release. Keep the packager and PKI.js dependency contracts covered when updating this group.
+
+The reviewed brace-expansion 1.1.18 override covers the complete major 1 range. A selector that stops at 1.1.18 lets dependency refreshes write a newer nested major 1 copy that npm then rejects against its override. Keep each major 1 consumer on the selected override version until that security pin is deliberately updated.

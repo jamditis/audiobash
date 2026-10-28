@@ -49,7 +49,7 @@ describe('Microsoft Store test-package workflow', () => {
     expect(sourceGateStep).toContain('shell: bash');
     expect(sourceGateStep).toContain('set -euo pipefail');
     expect(workflow).toContain('npm ci');
-    expect(workflow).toContain('npm ls electron-builder@26.17.0 app-builder-lib');
+    expect(workflow).toContain('npm ls electron-builder@26.18.0 app-builder-lib');
     expect(workflow).toContain('npm run format:check');
     expect(workflow).toContain('npm run lint');
     expect(workflow).toContain('npm run typecheck');
