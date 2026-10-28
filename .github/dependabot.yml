@@ -11,6 +11,8 @@ updates:
       semver-patch-days: 3
     # Major migrations remain tracked in issues #88-91.
     ignore:
+      - dependency-name: vitest
+        update-types: ['version-update:semver-major']
       - dependency-name: '@vitest/coverage-v8'
         update-types: ['version-update:semver-major']
       - dependency-name: electron
