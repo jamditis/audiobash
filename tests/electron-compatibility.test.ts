@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { dirname, join, relative, sep } from 'path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
@@ -11,8 +11,10 @@ const packageLock = JSON.parse(readFileSync(join(rootDir, 'package-lock.json'), 
 const installedElectron = JSON.parse(
   readFileSync(join(rootDir, 'node_modules/electron/package.json'), 'utf8'),
 );
-const nodeAbiPath = join(rootDir, 'node_modules/@electron/rebuild/node_modules/node-abi');
-const nodeAbi = require(nodeAbiPath) as {
+const rebuildRequire = createRequire(require.resolve('@electron/rebuild'));
+const nodeAbiPackagePath = join(dirname(rebuildRequire.resolve('node-abi')), 'package.json');
+const nodeAbiLockPath = relative(rootDir, dirname(nodeAbiPackagePath)).split(sep).join('/');
+const nodeAbi = rebuildRequire('node-abi') as {
   getAbi: (version: string, runtime: string) => string;
 };
 
@@ -25,9 +27,7 @@ describe('Electron release contract', () => {
   });
 
   it('has the Electron 43 native ABI mapping used by the packager', () => {
-    expect(
-      packageLock.packages['node_modules/@electron/rebuild/node_modules/node-abi'].version,
-    ).toBe('4.33.0');
+    expect(packageLock.packages[nodeAbiLockPath].version).toBe('4.33.0');
     expect(nodeAbi.getAbi(releaseElectronVersion, 'electron')).toBe('148');
   });
 
