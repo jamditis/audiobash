@@ -213,6 +213,9 @@ describe('dependency update group', () => {
 
   it('keeps each noble hashes consumer on its compatible major line', () => {
     expect(packageLock.packages['node_modules/@noble/hashes'].version).toBe('2.3.0');
+    expect(
+      packageLock.packages['node_modules/app-builder-lib/node_modules/@noble/hashes'].version,
+    ).toBe('1.8.0');
     expect(packageLock.packages['node_modules/pkijs/node_modules/@noble/hashes'].version).toBe(
       '1.8.0',
     );
