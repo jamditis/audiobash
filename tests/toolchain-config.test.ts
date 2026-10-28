@@ -161,9 +161,9 @@ describe('dependency update group', () => {
   const expectedDevDependencies = {
     '@vitest/coverage-v8': '4.1.12',
     concurrently: '10.0.6',
-    'electron-builder': '26.15.3',
-    postcss: '8.5.30',
-    vite: '8.3.4',
+    'electron-builder': '26.17.0',
+    postcss: '8.5.31',
+    vite: '8.3.5',
     vitest: '4.1.12',
   };
   const expectedOverrides = {
@@ -213,8 +213,11 @@ describe('dependency update group', () => {
 
   it('keeps each noble hashes consumer on its compatible major line', () => {
     expect(packageLock.packages['node_modules/@noble/hashes'].version).toBe('2.3.0');
+    expect(
+      packageLock.packages['node_modules/app-builder-lib/node_modules/@noble/hashes'].version,
+    ).toBe('1.8.0');
     expect(packageLock.packages['node_modules/pkijs/node_modules/@noble/hashes'].version).toBe(
-      '1.4.0',
+      '1.8.0',
     );
   });
 

@@ -59,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          npm ls electron-builder@26.15.3 app-builder-lib
+          npm ls electron-builder@26.17.0 app-builder-lib
 
       - name: Run source gates
         shell: bash
