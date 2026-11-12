@@ -10,7 +10,7 @@
   "author": "Joe Amditis",
   "license": "MIT",
   "engines": {
-    "node": ">=22.23.4 <23"
+    "node": ">=22.23.5 <23"
   },
   "packageManager": "npm@10.9.9",
   "scripts": {
