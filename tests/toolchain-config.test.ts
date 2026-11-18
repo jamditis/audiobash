@@ -163,7 +163,7 @@ describe('dependency update group', () => {
     concurrently: '10.0.6',
     'electron-builder': '26.18.0',
     postcss: '8.5.31',
-    vite: '8.3.5',
+    vite: '8.3.7',
     vitest: '4.1.12',
   };
   const expectedOverrides = {
