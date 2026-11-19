@@ -160,10 +160,10 @@ describe('dependency cooldown policy', () => {
 describe('dependency update group', () => {
   const expectedDevDependencies = {
     '@vitest/coverage-v8': '4.1.12',
-    concurrently: '10.0.6',
+    concurrently: '10.0.7',
     'electron-builder': '26.18.0',
-    postcss: '8.5.31',
-    vite: '8.3.7',
+    postcss: '8.5.33',
+    vite: '8.3.8',
     vitest: '4.1.12',
   };
   const expectedOverrides = {
@@ -204,7 +204,7 @@ describe('dependency update group', () => {
 
   it('uses the cooled protobufjs repair and selected Electron release', () => {
     expect(packageJson.overrides.protobufjs).toBe('7.6.5');
-    expect(packageJson.devDependencies.electron).toBe('43.8.3');
+    expect(packageJson.devDependencies.electron).toBe('43.8.10');
   });
 
   it('forces the reviewed transitive security repairs', () => {
