@@ -8,6 +8,8 @@ Tailwind 4 needs a separate migration of the PostCSS plugin, CSS entry, and them
 
 Keep the exact Electron contract checks and verify native PTY binaries and signed packages before advancing the selected release. The selected release is 43.8.10. It keeps native ABI 148 and macOS 12 support. Electron 43.8.4 updated the embedded Node to 24.22.1, which includes the October Node fixes. Electron 44.3.0 changes the native ABI to 149 and requires macOS 13 or later. [Electron 43.8.4 release notes](https://releases.electronjs.org/release/v43.8.4) · [Electron release metadata](https://releases.electronjs.org/releases.json) · [Electron 44 platform changes](https://www.electronjs.org/blog/electron-44-0)
 
+The [v3.4.1 release evidence](releases/v3.4.1.md) records the earlier Electron 43.8.3 candidate and its package checks.
+
 When compatible package updates change an exact pin, update the corresponding toolchain assertion from the reviewed package version. Keep assertions for the supported toolchain and security overrides intact. Run formatting, lint, type checks, the relevant tests, and a production renderer build; require Linux CI and both process lifecycle platforms before merge.
 
 With electron-builder 26.18.0, app-builder-lib uses its own compatible noble-hashes 1.8.0 dependency. The major 2 security override still protects major 2 consumers; historical release evidence describes the dependency graph at that release. Keep the packager and PKI.js dependency contracts covered when updating this group.
