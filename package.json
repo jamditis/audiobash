@@ -63,11 +63,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.137.0",
+    "@anthropic-ai/sdk": "^1.1.0",
     "@google/generative-ai": "^0.24.1",
-    "@remotion/install-whisper-cpp": "^4.0.543",
+    "@remotion/install-whisper-cpp": "^4.0.545",
     "node-pty": "^1.1.0",
-    "openai": "^7.55.0"
+    "openai": "^7.57.0"
   },
   "devDependencies": {
     "@electron/asar": "^4.3.2",
@@ -85,16 +85,16 @@
     "@xterm/xterm": "6.0.0",
     "autoprefixer": "^10.6.2",
     "concurrently": "10.0.7",
-    "electron": "43.8.10",
+    "electron": "43.8.11",
     "electron-builder": "26.18.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.8",
     "globals": "^17.14.0",
     "jsdom": "^30.1.3",
     "postcss": "8.5.33",
-    "prettier": "^3.10.0",
+    "prettier": "^3.10.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tailwindcss": "3.4.19",
