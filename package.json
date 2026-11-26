@@ -63,7 +63,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.1.0",
+    "@anthropic-ai/sdk": "^0.137.0",
     "@google/generative-ai": "^0.24.1",
     "@remotion/install-whisper-cpp": "^4.0.545",
     "node-pty": "^1.1.0",
@@ -85,7 +85,7 @@
     "@xterm/xterm": "6.0.0",
     "autoprefixer": "^10.6.2",
     "concurrently": "10.0.7",
-    "electron": "43.8.11",
+    "electron": "43.8.10",
     "electron-builder": "26.18.0",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
